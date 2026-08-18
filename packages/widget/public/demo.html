@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SiteBot Widget — Test-Harness</title>
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
+      code { background: #f3f3f3; padding: 2px 5px; border-radius: 4px; }
+      .hint { color: #666; }
+    </style>
+  </head>
+  <body>
+    <h1>SiteBot — Widget-Test</h1>
+    <p class="hint">
+      Öffne diese Seite mit <code>?bot=&lt;botId&gt;</code> in der URL. Das Widget
+      erscheint unten rechts. Die botId bekommst du aus
+      <code>npm run backend:test:crawl -- &lt;url&gt;</code>.
+    </p>
+    <p id="status"></p>
+    <p>Beispiel-Fragen kannst du direkt im Chat-Fenster stellen.</p>
+
+    <script>
+      // botId aus Query-Param lesen und Widget-Script dynamisch einbinden.
+      var params = new URLSearchParams(location.search);
+      var botId = params.get("bot");
+      var status = document.getElementById("status");
+      if (!botId) {
+        status.textContent = "⚠️ Kein ?bot=… in der URL. Widget nicht geladen.";
+      } else {
+        status.textContent = "Widget geladen für: " + botId;
+        var s = document.createElement("script");
+        s.src = "/widget/widget.js";
+        s.setAttribute("data-bot-id", botId);
+        s.setAttribute("data-api-base", location.origin);
+        s.async = true;
+        document.body.appendChild(s);
+      }
+    </script>
+  </body>
+</html>

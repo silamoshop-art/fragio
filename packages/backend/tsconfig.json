@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    // DOM-Lib nur für die im Browser-Kontext laufenden Playwright-$$eval-Callbacks
+    // (Element/HTMLAnchorElement). Läuft nicht im Node-Prozess.
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

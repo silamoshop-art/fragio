@@ -1,0 +1,7 @@
+{
+  "name": "@sitebot/widget",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Einbettbares Vanilla-JS Chat-Widget (kein Build nötig; wird statisch ausgeliefert).",
+  "files": ["public"]
+}

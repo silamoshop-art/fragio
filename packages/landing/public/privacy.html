@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Datenschutzerklärung — KI-Chatbot</title>
+    <style>
+      :root {
+        --accent: oklch(0.55 0.16 258);
+        --accent-soft-bg: oklch(0.93 0.03 258);
+        --accent-soft-text: oklch(0.4 0.13 258);
+        --text-primary: oklch(0.22 0.01 258);
+        --text-secondary: oklch(0.48 0.01 258);
+        --border: oklch(0.92 0.005 258);
+        --bg: oklch(0.985 0.003 258);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text-primary);
+        font: 15px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        min-height: 100vh;
+      }
+      .wrap { max-width: 720px; margin: 0 auto; padding: 56px 20px; }
+      .badge {
+        display: inline-block; background: var(--accent-soft-bg); color: var(--accent-soft-text);
+        font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 999px; margin-bottom: 16px;
+      }
+      h1 { font-size: 1.6rem; line-height: 1.2; margin: 0 0 8px; font-weight: 700; letter-spacing: -0.01em; }
+      .card {
+        background: #fff; border: 1px solid var(--border); border-radius: 20px; padding: 8px 32px 24px;
+        box-shadow: 0 1px 3px oklch(0.2 0.01 258 / 0.04), 0 8px 24px oklch(0.2 0.01 258 / 0.05);
+      }
+      .card h2 {
+        font-size: 1.02rem; font-weight: 650; margin: 26px 0 6px; padding-top: 16px;
+        border-top: 1px solid var(--border); color: var(--text-primary);
+      }
+      .card h2:first-of-type { border-top: none; padding-top: 0; }
+      .card p { margin: 0 0 4px; color: var(--text-primary); }
+      .card p.intro { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 8px; }
+      .muted { color: var(--text-secondary); }
+      .err { color: oklch(0.55 0.18 25); }
+      a { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <span class="badge">Datenschutz</span>
+      <h1 id="headline">Datenschutzerklärung zum KI-Chatbot</h1>
+      <div class="card" id="content"><p class="muted">Wird geladen …</p></div>
+      <p class="err" id="err"></p>
+    </div>
+
+    <script>
+      var params = new URLSearchParams(location.search);
+      var botId = params.get("bot");
+      var contentEl = document.getElementById("content");
+
+      function escapeHtml(s) {
+        return s.replace(/[&<>]/g, function (c) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c];
+        });
+      }
+
+      // Text in strukturierte Abschnitte rendern: „N. Titel"-Blöcke werden zu <h2>,
+      // der übrige Text zu Absätzen. Erster Block = Titel (H1), zweiter = Einleitung.
+      function render(text) {
+        var blocks = text.split(/\n\s*\n/).map(function (b) { return b.trim(); }).filter(Boolean);
+        var html = "";
+        blocks.forEach(function (b, i) {
+          if (i === 0) return; // Titel steht bereits in <h1>
+          var lines = b.split("\n");
+          if (/^\d+\.\s/.test(lines[0])) {
+            // „N. Titel" -> Überschrift; alles danach (egal ob ein/zwei Umbrüche) -> Absatz.
+            html += "<h2>" + escapeHtml(lines[0].trim()) + "</h2>";
+            var body = lines.slice(1).join(" ").trim();
+            if (body) html += "<p>" + escapeHtml(body) + "</p>";
+          } else {
+            html += '<p class="' + (i === 1 ? "intro" : "") + '">' + escapeHtml(b.replace(/\n/g, " ")) + "</p>";
+          }
+        });
+        contentEl.innerHTML = html || '<p class="muted">Kein Text hinterlegt.</p>';
+        if (blocks[0]) document.getElementById("headline").textContent = blocks[0];
+      }
+
+      if (!botId) {
+        document.getElementById("err").textContent = "⚠️ Kein Bot angegeben (?bot=… fehlt).";
+        contentEl.innerHTML = "";
+      } else {
+        fetch("/api/widget/" + encodeURIComponent(botId) + "/privacy")
+          .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+          .then(function (data) {
+            document.title = "Datenschutzerklärung — " + (data.botName || "KI-Chatbot");
+            render(data.privacyText || "");
+          })
+          .catch(function () {
+            contentEl.innerHTML = "";
+            document.getElementById("err").textContent = "⚠️ Datenschutztext konnte nicht geladen werden.";
+          });
+      }
+    </script>
+  </body>
+</html>

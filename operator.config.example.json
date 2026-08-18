@@ -1,0 +1,15 @@
+{
+  "name": "Max Mustermann e.U.",
+  "address": "Musterstraße 1\n4020 Linz\nÖsterreich",
+  "uid": "ATU12345678",
+  "taxNote": "Umsatzsteuer wird gemäß §6 Abs.1 Z27 UStG (Kleinunternehmer) nicht ausgewiesen.",
+  "bank": {
+    "accountHolder": "Max Mustermann",
+    "iban": "AT00 0000 0000 0000 0000",
+    "bic": "XXXXATWW",
+    "bankName": "Musterbank AG"
+  },
+  "supportEmail": "support@deine-domain.at",
+  "supportPhone": "+43 660 1234567",
+  "currency": "EUR"
+}

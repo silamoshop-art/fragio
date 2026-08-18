@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Environment / Secrets
+.env
+.env.local
+*.env
+!.env.example
+
+# Lokale Betreiber-Config (echte Firmendaten/Bank) — NIE committen
+operator.config.json
+
+# Datenbank (SQLite) + Crawl-Artefakte
+data/
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+
+# Playwright
+/test-results/
+/playwright-report/
+.playwright/
+
+# Logs / OS
+*.log
+.DS_Store
+Thumbs.db

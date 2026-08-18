@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KI-Chatbot für Websites</title>
+    <style>
+      :root {
+        --accent: oklch(0.55 0.16 258);
+        --accent-soft-bg: oklch(0.93 0.03 258);
+        --accent-soft-text: oklch(0.4 0.13 258);
+        --text-primary: oklch(0.22 0.01 258);
+        --text-secondary: oklch(0.48 0.01 258);
+        --border: oklch(0.92 0.005 258);
+        --bg: oklch(0.985 0.003 258);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text-primary);
+        font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+      }
+      .wrap { max-width: 560px; margin: 0 auto; padding: 48px 24px; text-align: center; }
+      .badge {
+        display: inline-block; background: var(--accent-soft-bg); color: var(--accent-soft-text);
+        border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 600;
+      }
+      h1 { font-size: 1.9rem; line-height: 1.2; margin: 18px 0 12px; font-weight: 700; letter-spacing: -0.02em; }
+      .sub { color: var(--text-secondary); font-size: 1.05rem; margin: 0 auto 32px; max-width: 460px; }
+      .card {
+        background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 22px 24px;
+        box-shadow: 0 1px 3px oklch(0.2 0.01 258 / 0.04), 0 8px 24px oklch(0.2 0.01 258 / 0.05);
+        text-align: left;
+      }
+      .card strong { display: block; margin-bottom: 4px; }
+      .card p { margin: 0; color: var(--text-secondary); font-size: .95rem; }
+      footer { margin-top: 28px; color: var(--text-secondary); font-size: .85rem; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <span class="badge">KI-Chatbot für Websites</span>
+      <h1>Beantwortet Besucherfragen aus euren echten Website-Inhalten.</h1>
+      <p class="sub">
+        Rund um die Uhr, konkret und ohne erfundene Angaben — steht etwas nicht auf der Seite,
+        sagt der Bot das ehrlich.
+      </p>
+
+      <div class="card">
+        <strong>Vorschau-Link erhalten?</strong>
+        <p>Öffne ihn einfach im Browser und teste deinen Chatbot direkt auf einer Vorschau-Seite.</p>
+      </div>
+
+      <footer>ℹ️ Dies ist ein KI-Chatbot.</footer>
+    </div>
+  </body>
+</html>

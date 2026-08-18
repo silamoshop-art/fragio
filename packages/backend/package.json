@@ -1,0 +1,52 @@
+{
+  "name": "@sitebot/backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Zentrales Backend: Crawler, Vector-DB, RAG-Endpoint, LLM-Provider.",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json && node -e \"require('fs').copyFileSync('src/db/schema.sql','dist/db/schema.sql')\"",
+    "start": "node dist/server.js",
+    "test:llm": "tsx src/cli/test-llm.ts",
+    "test:crawl": "tsx src/cli/test-crawl.ts",
+    "test:trial": "tsx src/cli/test-trial.ts",
+    "test:quota": "tsx src/cli/test-quota.ts",
+    "test:recrawl": "tsx src/cli/test-recrawl.ts",
+    "test:billing": "tsx src/cli/test-billing.ts",
+    "db:init": "tsx src/cli/db-init.ts",
+    "admin:key": "tsx src/cli/admin-key.ts",
+    "backup:now": "tsx src/cli/backup.ts",
+    "cleanup:testdata": "tsx src/cli/cleanup-testdata.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "@fastify/cors": "^11.0.1",
+    "@fastify/multipart": "^9.4.0",
+    "@fastify/rate-limit": "^10.2.2",
+    "@fastify/static": "^8.0.4",
+    "@xenova/transformers": "^2.17.2",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.1",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.10.1",
+    "openai": "^4.83.0",
+    "pdfkit": "^0.15.2",
+    "playwright": "^1.50.1",
+    "robots-parser": "^3.0.1",
+    "sqlite-vec": "^0.1.7-alpha.2",
+    "stripe": "^17.7.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "@types/node-cron": "^3.0.11",
+    "@types/nodemailer": "^6.4.24",
+    "@types/pdfkit": "^0.13.9",
+    "pino-pretty": "^13.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

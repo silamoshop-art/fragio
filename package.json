@@ -1,0 +1,17 @@
+{
+  "name": "sitebot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Embeddable RAG chatbot SaaS (multi-tenant). Zentrales Backend, verteiltes Widget.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "backend:dev": "npm --workspace @sitebot/backend run dev",
+    "backend:build": "npm --workspace @sitebot/backend run build",
+    "backend:test:llm": "npm --workspace @sitebot/backend run test:llm"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

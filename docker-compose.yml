@@ -1,0 +1,42 @@
+# SiteBot — Deployment (nur Backend; Antworten via Claude Haiku 4.5).
+#
+# Start:
+#   export APP_SECRET=$(openssl rand -hex 32)
+#   export ANTHROPIC_API_KEY=sk-ant-...        # dein Operator-Key (Budgetlimit setzen!)
+#   docker compose up -d --build
+#
+# Backend danach unter http://<server>:3000 (Landing "/", Widget "/widget/widget.js",
+# Dashboard "/admin/"). Embeddings laufen lokal im Node-Prozess (kein Ollama nötig);
+# das Embedding-Modell wird beim ersten Start einmalig heruntergeladen und gecached.
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: packages/backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "3000"
+      DATABASE_PATH: /app/data/sitebot.sqlite
+      DEFAULT_ENGINE: anthropic
+      EMBEDDING_MODEL: Xenova/paraphrase-multilingual-MiniLM-L12-v2
+      EMBEDDING_DIM: "384"
+      # PFLICHT: verschlüsselt Kunden-API-Keys (32-Byte-Hex).
+      APP_SECRET: ${APP_SECRET:?APP_SECRET muss gesetzt sein (openssl rand -hex 32)}
+      # PFLICHT für die Standard-Engine (Claude Haiku 4.5).
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?ANTHROPIC_API_KEY muss gesetzt sein}
+      ANTHROPIC_DEFAULT_MODEL: claude-haiku-4-5-20251001
+      # Optional: separater Trial-Key (sonst wird ANTHROPIC_API_KEY genutzt).
+      TRIAL_ANTHROPIC_API_KEY: ${TRIAL_ANTHROPIC_API_KEY:-}
+    ports:
+      - "3000:3000"
+    volumes:
+      - sitebot_data:/app/data
+      # Cache für das lokale Embedding-Modell (spart Re-Download bei Rebuilds).
+      - sitebot_models:/app/node_modules/@xenova/transformers/.cache
+
+volumes:
+  sitebot_data:
+  sitebot_models:

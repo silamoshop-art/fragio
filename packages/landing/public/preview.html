@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dein Website-Chatbot — Vorschau</title>
+    <style>
+      :root {
+        --accent: oklch(0.55 0.16 258);
+        --accent-soft-bg: oklch(0.93 0.03 258);
+        --accent-soft-text: oklch(0.4 0.13 258);
+        --text-primary: oklch(0.22 0.01 258);
+        --text-secondary: oklch(0.48 0.01 258);
+        --border: oklch(0.92 0.005 258);
+        --bg: oklch(0.985 0.003 258);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text-primary);
+        font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        min-height: 100vh;
+      }
+      .wrap { max-width: 680px; margin: 0 auto; padding: 64px 20px; }
+      .badge {
+        display: inline-block; background: var(--accent-soft-bg); color: var(--accent-soft-text);
+        border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 600;
+      }
+      h1 { font-size: 2rem; line-height: 1.15; margin: 16px 0 12px; font-weight: 700; letter-spacing: -0.02em; }
+      .sub { color: var(--text-secondary); font-size: 1.1rem; margin: 0; }
+      .card {
+        background: #fff; border: 1px solid var(--border); border-radius: 20px; padding: 28px;
+        margin-top: 28px; box-shadow: 0 1px 3px oklch(0.2 0.01 258 / 0.04), 0 8px 24px oklch(0.2 0.01 258 / 0.05);
+      }
+      .card h2 { margin: 0 0 10px; font-size: 1.1rem; }
+      .muted { color: var(--text-secondary); }
+      .err { color: oklch(0.55 0.18 25); }
+      ol { color: var(--text-secondary); padding-left: 20px; margin: 0; }
+      ol li { margin: 8px 0; }
+      a { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <span class="badge">Persönliche Vorschau</span>
+      <h1 id="headline">Dein Chatbot ist startklar.</h1>
+      <p class="sub" id="sub">
+        Unten rechts findest du deinen Chatbot — er kennt bereits die Inhalte deiner Website.
+      </p>
+
+      <div class="card">
+        <h2>So testest du</h2>
+        <ol>
+          <li>Klick unten rechts auf „💬 Chat".</li>
+          <li>Stell eine Frage, die deine Kund:innen oft stellen (z. B. Öffnungszeiten, Kontakt, Leistungen).</li>
+          <li>Der Bot antwortet nur mit echten Infos von deiner Website — erfindet nichts.</li>
+        </ol>
+        <p class="muted">Gefällt's dir? Melde dich, dann schalten wir ihn auf deiner Website live.</p>
+      </div>
+
+      <p class="err" id="err"></p>
+    </div>
+
+    <script>
+      var params = new URLSearchParams(location.search);
+      var botId = params.get("bot");
+      if (!botId) {
+        document.getElementById("err").textContent = "⚠️ Kein Bot angegeben (?bot=… fehlt).";
+      } else {
+        var s = document.createElement("script");
+        s.src = "/widget/widget.js";
+        s.setAttribute("data-bot-id", botId);
+        s.setAttribute("data-api-base", location.origin);
+        s.async = true;
+        document.body.appendChild(s);
+      }
+    </script>
+  </body>
+</html>
