@@ -118,7 +118,13 @@
       "Bash(cd C:/Silamo && npm run -w packages/backend build 2>&1 | grep -avE \"^>|npm notice\" | tail -6; echo \"=== build done ===\" *)",
       "Bash(curl -s -X PATCH http://localhost:3011/api/admin/bots/bot_Z938ghkSNmdf -H 'Authorization: Bearer sk_admin_cb9adCqfFjH20VzG800zeuHWRYjvDTFC' -H 'Content-Type: application/json' -d '{\"status\":\"paused\"}')",
       "Bash(node --input-type=module -e ' *)",
-      "Bash(timeout 150 node --input-type=module -e ' *)"
+      "Bash(timeout 150 node --input-type=module -e ' *)",
+      "Bash(timeout 90 node --input-type=module -e ' *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"=== BACKEND TSC EXIT: $? ===\")",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

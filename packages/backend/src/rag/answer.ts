@@ -14,7 +14,7 @@ import { searchChunks, insertChatLog, incrementTrialCount } from "../db/repo.js"
 import { getProviderForBot } from "../llm/index.js";
 import { embed } from "../llm/embedder.js";
 import { isTrialActive } from "../trial/state.js";
-import { buildSystemPrompt, formatContext, buildUserMessage } from "./prompt.js";
+import { buildSystemPrompt, formatContext, buildUserMessage, type HistoryTurn } from "./prompt.js";
 import { numericSearch } from "./numeric.js";
 import { matchManualFaq } from "./faq.js";
 
@@ -70,6 +70,26 @@ export interface AnswerMeta {
 const FALLBACK_ANSWER =
   "Das kann ich anhand der Inhalte dieser Website leider nicht beantworten. " +
   "Formuliere deine Frage gern anders oder wende dich direkt an das Team.";
+
+// Rückfrage statt pauschaler Absage (Prompt 15 #3b): kurze/mehrdeutige Folgefrage,
+// zu der auch mit Gesprächskontext nichts Passendes gefunden wurde.
+const CLARIFY_ANSWER =
+  "Das habe ich noch nicht ganz verstanden. Magst du kurz genauer sagen, worauf sich " +
+  "deine Frage bezieht? Dann helfe ich dir direkt weiter.";
+
+/** Kurze/mehrdeutige Nachricht (typisch für Folgefragen wie "nein größer"). */
+function isShortQuery(q: string): boolean {
+  const words = q.trim().split(/\s+/).filter(Boolean);
+  return words.length <= 4;
+}
+
+/** Letzte Nutzernachricht aus dem Verlauf (für die Retrieval-Anreicherung). */
+function lastUserTurn(history: HistoryTurn[]): string | undefined {
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (history[i].role === "user") return history[i].content;
+  }
+  return undefined;
+}
 
 /**
  * Erkennt, ob eine bereits generierte LLM-Antwort inhaltlich eine ABSAGE ist
@@ -127,6 +147,12 @@ export interface AnswerOptions {
   storeContent?: boolean;
   /** Gehashte IP (SHA-256+Salt) für die gezielte Löschfunktion; keine Klartext-IP. */
   ipHash?: string | null;
+  /**
+   * Bisheriger Gesprächsverlauf (Prompt 15 #3) — chronologisch, OHNE die aktuelle
+   * Frage. Wird genutzt, um kurze Folgefragen ("nein größer") zu verstehen: fürs
+   * Retrieval (vorige Nutzerfrage anreichern) und als Kontext im LLM-Prompt.
+   */
+  history?: HistoryTurn[];
 }
 
 export async function* answerQuestion(
@@ -137,13 +163,22 @@ export async function* answerQuestion(
 ): AsyncGenerator<string> {
   const storeContent = opts?.storeContent !== false; // Default: loggen (Cron/Tests)
   const ipHash = opts?.ipHash ?? null;
+  const history = opts?.history ?? [];
   const started = Date.now();
   const branding = safeParseBranding(bot.branding);
   // Trial-Kontingent nur belasten, wenn tatsächlich der Trial-Key genutzt wird.
   const trialUsed = isTrialActive(bot);
 
+  // Gesprächskontext fürs Retrieval (Prompt 15 #3a): Bei kurzen Folgefragen
+  // ("nein größer", "und günstiger?") fehlt der Suchbegriff. Dann die vorige
+  // Nutzernachricht voranstellen, damit Vektor- UND Zahlensuche das gemeinte Thema
+  // treffen. Bei ausreichend langen Fragen unverändert (retrievalText == question).
+  const prevUser = lastUserTurn(history);
+  const retrievalText =
+    isShortQuery(question) && prevUser ? `${prevUser}\n${question}` : question;
+
   // 1) + 2) Query lokal embedden (kein Chat-Key nötig). kind="query" für e5.
-  const [qEmb] = await embed([question], "query");
+  const [qEmb] = await embed([retrievalText], "query");
 
   // 2a) Manuelle FAQ mit Vorrang (Prompt 14 #5): Bei sehr starker Übereinstimmung
   // die redaktionelle Antwort WÖRTLICH ausgeben — garantiert die gewünschte
@@ -186,19 +221,24 @@ export async function* answerQuestion(
   // Chunks mit passenden Zahlenwerten (in Toleranz) suchen und als hochrelevante
   // Treffer einmischen — so wird z. B. ein Immobilienobjekt mit ~320 m² gefunden,
   // auch wenn die reine Vektorsuche es verfehlt.
-  const numHits = numericSearch(bot.id, question);
+  const numHits = numericSearch(bot.id, retrievalText);
   if (numHits.length) hits = mergeHits(hits, numHits, TOP_K);
 
   const topScore = hits.length ? hits[0].distance : null;
 
   // 3) Nichts Relevantes gefunden -> ehrliche Absage OHNE LLM (kein Chat-Provider nötig).
   if (!hits.length || hits[0].distance > RELEVANCE_DISTANCE) {
+    // Bei einer kurzen/mehrdeutigen Folgefrage (Verlauf vorhanden, aber trotz
+    // Anreicherung nichts gefunden) aktiv nachfragen statt pauschal abzusagen
+    // (Prompt 15 #3b). Sonst die normale ehrliche Absage.
+    const ambiguous = history.length > 0 && isShortQuery(question);
+    const reply = ambiguous ? CLARIFY_ANSWER : FALLBACK_ANSWER;
     onMeta?.({ answered: false, sources: [], topScore, provider: "none" });
     if (storeContent) {
       insertChatLog({
         botId: bot.id,
         question,
-        answer: FALLBACK_ANSWER,
+        answer: reply,
         answered: false,
         topScore,
         provider: "none",
@@ -206,7 +246,7 @@ export async function* answerQuestion(
         ipHash,
       });
     }
-    yield FALLBACK_ANSWER;
+    yield reply;
     return;
   }
 
@@ -217,7 +257,13 @@ export async function* answerQuestion(
   onMeta?.({ answered: true, sources, topScore, provider: provider.id });
 
   const system = buildSystemPrompt({ botName: branding.botName });
-  const userMessage = buildUserMessage(formatContext(contextHits), question);
+  // Nur die letzten 2 Turns mitgeben — genug fürs Verständnis kurzer Folgefragen,
+  // ohne den Prompt (und die Tokens) aufzublähen.
+  const userMessage = buildUserMessage(
+    formatContext(contextHits),
+    question,
+    history.slice(-2),
+  );
 
   let full = "";
   try {

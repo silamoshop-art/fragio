@@ -34,6 +34,20 @@ function parseDeNumber(raw: string): number {
 }
 
 /**
+ * Größenordnungs-Wort ("Mio.", "Millionen", "Tsd.", "Tausend", "Mrd.") -> Faktor.
+ * Damit "1,5 Millionen" == "1.500.000" == "1,5 Mio. €" denselben Wert ergeben
+ * (Prompt 15 #2). Ohne Wort = Faktor 1.
+ */
+function magnitudeFactor(word?: string): number {
+  if (!word) return 1;
+  const w = word.toLowerCase();
+  if (/^mrd|^milliard/.test(w)) return 1_000_000_000;
+  if (/^mio|^mill/.test(w)) return 1_000_000;
+  if (/^tsd|^tausend/.test(w)) return 1_000;
+  return 1;
+}
+
+/**
  * Erkennt Zahlen-Filterkriterien in einem Text (Frage ODER Chunk-Inhalt).
  * Einheit vor ODER nach der Zahl wird berücksichtigt (m², qm, €, EUR).
  */
@@ -49,23 +63,33 @@ export function extractNumericCriteria(text: string): NumericCriterion[] {
   };
 
   const numPat = "\\d{1,3}(?:[.\\s]\\d{3})*(?:,\\d+)?|\\d+(?:,\\d+)?";
+  // Größenordnungs-Wörter (Prompt 15 #2). Kein trailing \b (nach "Mio." keine
+  // Wortgrenze); (?![a-zäöüß]) verhindert Treffer mitten in längeren Wörtern.
+  const magPat = "(?:mio\\.?|mrd\\.?|tsd\\.?|millionen?|milliarden?|tausend)";
+  const cur = "(?:€|eur|euro)";
 
   // Fläche: "320 m²", "320m2", "320 qm", "ca. 320 Quadratmeter".
   // Kein trailing \b: nach "²" gibt es keine Wortgrenze; (?![a-z0-9]) verhindert
   // trotzdem, dass "m2000" o. Ä. mitgezogen wird.
   const areaRe = new RegExp(`(${numPat})\\s*(?:m²|m2|qm|quadratmeter)(?![a-z0-9])`, "gi");
-  // Preis: "450.000 €", "€ 450000", "450000 EUR", "1,2 Mio €". Ebenfalls kein
-  // trailing \b (nach "€" keine Wortgrenze).
-  const priceRe = new RegExp(
-    `(?:€|eur|euro)\\s*(${numPat})|(${numPat})\\s*(?:€|eur|euro)(?![a-z])`,
-    "gi",
-  );
+  // Preis in mehreren Schreibweisen, jeweils Zahl + optionale Größenordnung:
+  //   "€ 1,5 Mio", "1.500.000 €", "450000 EUR", "1,5 Millionen" (auch OHNE Währung).
+  const priceRes = [
+    // Währung zuerst: "€ 1,5 Mio", "€ 450.000"
+    new RegExp(`${cur}\\s*(${numPat})\\s*(${magPat})?(?![a-zäöü0-9])`, "gi"),
+    // Zahl (+ optionale Größenordnung) dann Währung: "1,5 Mio €", "450.000 €"
+    new RegExp(`(${numPat})\\s*(${magPat})?\\s*${cur}`, "gi"),
+    // Größenordnung OHNE Währung (Wort ist Pflicht): "1,5 Millionen", "500 Tsd."
+    new RegExp(`(${numPat})\\s*(${magPat})(?![a-zäöü0-9])`, "gi"),
+  ];
   // PLZ: 4- (AT) oder 5-stellig (DE), als eigenständige Zahl.
   const plzRe = /\b(\d{4,5})\b/g;
 
   let m: RegExpExecArray | null;
   while ((m = areaRe.exec(text))) add(parseDeNumber(m[1]), "area");
-  while ((m = priceRe.exec(text))) add(parseDeNumber(m[1] ?? m[2]), "price");
+  for (const re of priceRes) {
+    while ((m = re.exec(text))) add(parseDeNumber(m[1]) * magnitudeFactor(m[2]), "price");
+  }
   while ((m = plzRe.exec(text))) add(parseDeNumber(m[1]), "plz");
 
   return out;

@@ -68,13 +68,24 @@
   // Beim Laden gespeicherte Wahl übernehmen (kein erneutes Popup in derselben Sitzung).
   (function () { var c = getConsent(); if (c) analyticsConsent = !!c.analytics; })();
 
+  // Gesprächsverlauf (Prompt 15 #3) — nur clientseitig, damit kurze Folgefragen
+  // ("nein größer") im Kontext verstanden werden. Wird pro Anfrage mitgeschickt
+  // (nicht dauerhaft serverseitig gespeichert). Auf die letzten Turns begrenzt.
+  var history = [];
+  var HISTORY_MAX = 6;
+
   // ---- SSE-über-fetch Client ----
   function streamChat(message, on) {
     fetch(apiBase + "/api/chat/" + encodeURIComponent(botId), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       // storeContent nur true, wenn der Nutzer der Analytics-Speicherung zugestimmt hat.
-      body: JSON.stringify({ message: message, storeContent: analyticsConsent }),
+      // history = bisherige Turns OHNE die aktuelle Nachricht.
+      body: JSON.stringify({
+        message: message,
+        storeContent: analyticsConsent,
+        history: history.slice(-HISTORY_MAX),
+      }),
     })
       .then(function (res) {
         if (!res.ok || !res.body) return on.error("HTTP " + res.status);
@@ -232,6 +243,12 @@
         done: function () {
           if (first) { bubble.classList.remove("sb-typing"); bubble.textContent = "(keine Antwort)"; }
           addSources(sources);
+          // Abgeschlossenen Austausch dem Verlauf hinzufügen (für Folgefragen).
+          if (acc) {
+            history.push({ role: "user", content: q });
+            history.push({ role: "assistant", content: acc });
+            if (history.length > HISTORY_MAX) history = history.slice(-HISTORY_MAX);
+          }
         },
       });
     });

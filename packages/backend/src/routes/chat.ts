@@ -33,6 +33,17 @@ const BodySchema = z.object({
   // Analytics-Einwilligung: true = Gesprächsverlauf für Statistiken speichern.
   // Fehlt/false = "Nur notwendige Verarbeitung" (kein chat_logs-Inhalt).
   storeContent: z.boolean().optional(),
+  // Bisheriger Gesprächsverlauf (Prompt 15 #3), OHNE die aktuelle Nachricht.
+  // Nur zum Verständnis kurzer Folgefragen; wird nicht dauerhaft gespeichert.
+  history: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().min(1).max(2000),
+      }),
+    )
+    .max(8)
+    .optional(),
 });
 
 const DEFAULT_LIMIT_MESSAGE =
@@ -106,7 +117,11 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
           bot,
           parsed.data.message,
           (meta) => send("meta", { ...meta, usage: quota }),
-          { storeContent: parsed.data.storeContent === true, ipHash: hashIp(request.ip) },
+          {
+            storeContent: parsed.data.storeContent === true,
+            ipHash: hashIp(request.ip),
+            history: parsed.data.history,
+          },
         );
         for await (const piece of stream) send("token", { t: piece });
         send("done", {});
