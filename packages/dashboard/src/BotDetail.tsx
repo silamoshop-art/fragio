@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { api, recrawl, openInvoicePdf, type Analytics, type Bot, type ChatLogEntry, type Invoice, type PlanRequest } from "./api";
+import { api, recrawl, openInvoicePdf, type Analytics, type Bot, type ChatLogEntry, type Invoice, type ManualFaq, type PlanRequest } from "./api";
 
 // Unter-Tabs pro Bot, damit nicht alles auf einer langen Seite steht.
 const BOT_TABS: [string, string][] = [
   ["config", "Einstellungen"],
   ["widget", "Widget & Einbindung"],
+  ["faqs", "FAQ-Antworten"],
   ["billing", "Abrechnung"],
   ["privacy", "Datenschutz"],
   ["analytics", "Analytics"],
@@ -352,6 +353,8 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
       </Section>
       </>)}
 
+      {tab === "faqs" && <FaqSection botId={botId} />}
+
       {tab === "billing" && (<>
       <Section title="Tarif-Anfragen (aus dem Portal)">
         <p className="muted">
@@ -570,6 +573,120 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
         )
       )}
     </div>
+  );
+}
+
+/**
+ * Verwaltung manueller FAQ-Antworten (Prompt 14 #5). Recrawl-fest (eigene Tabelle).
+ * Bei sehr starker Übereinstimmung gibt der Bot die hinterlegte Antwort wörtlich aus.
+ */
+function FaqSection({ botId }: { botId: string }) {
+  const [faqs, setFaqs] = useState<ManualFaq[] | null>(null);
+  const [q, setQ] = useState("");
+  const [a, setA] = useState("");
+  const [msg, setMsg] = useState("");
+  const [editId, setEditId] = useState<number | null>(null);
+
+  async function load() {
+    try {
+      setFaqs(await api.listFaqs(botId));
+    } catch (e) {
+      setMsg("⚠️ " + (e as Error).message);
+    }
+  }
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [botId]);
+
+  function reset() {
+    setQ("");
+    setA("");
+    setEditId(null);
+  }
+
+  async function submit() {
+    if (q.trim().length < 2 || !a.trim()) {
+      setMsg("Frage (min. 2 Zeichen) und Antwort nötig.");
+      return;
+    }
+    setMsg("Speichere…");
+    try {
+      if (editId === null) {
+        await api.createFaq(botId, { question: q.trim(), answer: a.trim() });
+        setMsg("✓ FAQ hinzugefügt");
+      } else {
+        await api.updateFaq(botId, editId, { question: q.trim(), answer: a.trim() });
+        setMsg("✓ FAQ aktualisiert");
+      }
+      reset();
+      await load();
+    } catch (e) {
+      setMsg("⚠️ " + (e as Error).message);
+    }
+  }
+
+  async function remove(id: number) {
+    if (!confirm("Diese FAQ-Antwort löschen?")) return;
+    try {
+      await api.deleteFaq(botId, id);
+      if (editId === id) reset();
+      await load();
+    } catch (e) {
+      setMsg("⚠️ " + (e as Error).message);
+    }
+  }
+
+  function startEdit(f: ManualFaq) {
+    setEditId(f.id);
+    setQ(f.question);
+    setA(f.answer);
+    setMsg("");
+  }
+
+  return (
+    <Section title="Manuelle FAQ-Antworten">
+      <p className="muted">
+        Redaktionelle Frage/Antwort-Paare für häufige Fragen oder eine bestimmte
+        gewünschte Formulierung. Sie werden <strong>vorrangig</strong> zur normalen
+        Suche berücksichtigt und überstehen jeden <strong>Neu-Crawl</strong> (eigene
+        Datenablage). Bei sehr starker Übereinstimmung gibt der Bot die hinterlegte
+        Antwort wörtlich aus. Tipp: als „Frage" die typische Formulierung des Besuchers
+        eintragen; bei mehreren Varianten mehrere FAQs anlegen.
+      </p>
+
+      <Field label={editId === null ? "Frage / Trigger-Formulierung" : "Frage bearbeiten"}>
+        <input value={q} placeholder="z. B. Bietet ihr kostenlose Parkplätze?" onChange={(e) => setQ(e.target.value)} />
+      </Field>
+      <Field label="Gewünschte Antwort">
+        <textarea rows={4} value={a} placeholder="Die Antwort, die der Bot geben soll…" onChange={(e) => setA(e.target.value)} />
+      </Field>
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <button className="btn sm" onClick={submit}>{editId === null ? "FAQ hinzufügen" : "Änderung speichern"}</button>
+        {editId !== null && <button className="btn ghost sm" onClick={reset}>Abbrechen</button>}
+      </div>
+      {msg && <p className="note">{msg}</p>}
+
+      <h4>Angelegte FAQs {faqs && faqs.length > 0 && <span className="muted">({faqs.length})</span>}</h4>
+      {faqs === null ? (
+        <p className="muted">Lädt…</p>
+      ) : faqs.length === 0 ? (
+        <p className="muted">Noch keine manuellen FAQ-Antworten.</p>
+      ) : (
+        <ul className="qlist">
+          {faqs.map((f) => (
+            <li key={f.id}>
+              <div style={{ flex: 1 }}>
+                <strong>{f.question}</strong>
+                <div className="muted" style={{ whiteSpace: "pre-wrap" }}>{f.answer}</div>
+              </div>
+              <button className="btn ghost sm" style={{ marginLeft: 8 }} onClick={() => startEdit(f)}>Bearbeiten</button>
+              <button className="btn danger sm" style={{ marginLeft: 6 }} onClick={() => remove(f.id)}>Löschen</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
   );
 }
 

@@ -92,6 +92,14 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ addon }),
     }),
+  // Manuelle FAQs (recrawl-fest)
+  listFaqs: () => req<ManualFaq[]>("/api/portal/faqs"),
+  createFaq: (body: { question: string; answer: string }) =>
+    req<ManualFaq>("/api/portal/faqs", { method: "POST", body: JSON.stringify(body) }),
+  updateFaq: (faqId: number, body: { question: string; answer: string }) =>
+    req<{ ok: boolean }>(`/api/portal/faqs/${faqId}`, { method: "PATCH", body: JSON.stringify(body) }),
+  deleteFaq: (faqId: number) =>
+    req<{ ok: boolean }>(`/api/portal/faqs/${faqId}`, { method: "DELETE" }),
   uploadLogo: async (file: File) => {
     const token = getToken();
     const fd = new FormData();
@@ -106,6 +114,15 @@ export const api = {
     return data as { ok: boolean; logoUrl: string };
   },
 };
+
+export interface ManualFaq {
+  id: number;
+  bot_id: string;
+  question: string;
+  answer: string;
+  created_at: number;
+  updated_at: number;
+}
 
 export interface PortalChatLog {
   id: number;

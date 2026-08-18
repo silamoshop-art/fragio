@@ -42,6 +42,11 @@ export function buildSystemPrompt(branding: PromptBranding): string {
     `Links & Formatierung:`,
     `- ERFINDE NIEMALS URLs. Keine Platzhalter wie "google.com/maps".`,
     `- Gib JEDEN Link als Markdown-Link aus: [Beschriftung](vollständige-URL).`,
+    `- Jeder KONTEXT-Block nennt seine Quelle als "URL: …". Beziehst du dich auf eine`,
+    `  bestimmte Seite, ein Angebot, ein Produkt oder ein Objekt, verlinke auf die`,
+    `  EXAKTE URL GENAU DES Blocks, aus dem die Info stammt — NICHT auf die Startseite`,
+    `  und nicht auf eine allgemeinere Übersichtsseite. Beispiel: Nennst du ein konkretes`,
+    `  Immobilienobjekt, verlinke die Objekt-Unterseite, nicht die Objektliste.`,
     `- Bei Fragen nach ADRESSE / STANDORT / ANFAHRT MUSST du einen klickbaren Link`,
     `  liefern — eines von beidem:`,
     `    (a) die Kontakt-/Impressum-Quell-URL aus dem KONTEXT, ODER`,
@@ -53,10 +58,20 @@ export function buildSystemPrompt(branding: PromptBranding): string {
   ].join("\n");
 }
 
-/** Gefundene Chunks als klar abgegrenzten Kontextblock formatieren (mit Quellen-Index). */
+/**
+ * Gefundene Chunks als klar abgegrenzten Kontextblock formatieren (mit Quellen-Index).
+ * WICHTIG: Titel UND URL jeder Quelle mitgeben, damit das Modell direkt auf die
+ * konkrete Unterseite verlinken kann (Prompt 14 #3) — früher wurde bei vorhandenem
+ * Titel die URL verschluckt, sodass der Bot mangels URL nur die Startseite verlinkte.
+ */
 export function formatContext(hits: ChunkHit[]): string {
   const blocks = hits.map((h, i) => {
-    const src = h.page_title || h.page_url || `Quelle ${i + 1}`;
+    const title = h.page_title?.trim();
+    const url = h.page_url?.trim();
+    const parts: string[] = [];
+    if (title) parts.push(title);
+    if (url) parts.push(`URL: ${url}`);
+    const src = parts.length ? parts.join(" · ") : `Quelle ${i + 1}`;
     return `[${i + 1}] (${src})\n${h.content}`;
   });
   return blocks.join("\n\n---\n\n");

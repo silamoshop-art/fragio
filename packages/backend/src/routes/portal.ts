@@ -22,6 +22,12 @@ import { verifyPassword } from "../crypto/password.js";
 import { signPortalToken, verifyPortalToken } from "../portal/token.js";
 import { snippetFor, backendBase } from "../util/embed.js";
 import { updateBot, listChatLogs, deleteChatLogsByIpHash } from "../db/repo.js";
+import {
+  listManualFaqs,
+  createManualFaq,
+  updateManualFaq,
+  deleteManualFaq,
+} from "../db/repo.js";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "../config.js";
@@ -249,6 +255,46 @@ export async function portalRoutes(app: FastifyInstance): Promise<void> {
           parsed.data.message,
       );
       return { ok: true, message: "Danke! Deine Nachricht wurde an unser Support-Team gesendet." };
+    });
+
+    // --- Manuelle FAQs (Prompt 14 #5): der Kunde pflegt eigene Antworten ---
+    const portalFaqSchema = z.object({
+      question: z.string().min(2).max(500),
+      answer: z.string().min(1).max(4000),
+    });
+
+    secured.get("/api/portal/faqs", async (request, reply) => {
+      const bot = loadBot(request);
+      if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
+      return listManualFaqs(bot.id);
+    });
+
+    secured.post("/api/portal/faqs", async (request, reply) => {
+      const bot = loadBot(request);
+      if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
+      const parsed = portalFaqSchema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: "Frage (min. 2) und Antwort nötig." });
+      return createManualFaq(bot.id, parsed.data.question.trim(), parsed.data.answer.trim());
+    });
+
+    secured.patch("/api/portal/faqs/:faqId", async (request, reply) => {
+      const bot = loadBot(request);
+      if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
+      const parsed = portalFaqSchema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: "Frage (min. 2) und Antwort nötig." });
+      const faqId = Number((request.params as { faqId: string }).faqId);
+      const ok = updateManualFaq(bot.id, faqId, parsed.data.question.trim(), parsed.data.answer.trim());
+      if (!ok) return reply.code(404).send({ error: "FAQ nicht gefunden." });
+      return { ok: true };
+    });
+
+    secured.delete("/api/portal/faqs/:faqId", async (request, reply) => {
+      const bot = loadBot(request);
+      if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
+      const faqId = Number((request.params as { faqId: string }).faqId);
+      const ok = deleteManualFaq(bot.id, faqId);
+      if (!ok) return reply.code(404).send({ error: "FAQ nicht gefunden." });
+      return { ok: true };
     });
 
     secured.get("/api/portal/snippet", async (request, reply) => {

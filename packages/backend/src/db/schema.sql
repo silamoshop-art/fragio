@@ -164,6 +164,20 @@ CREATE TABLE IF NOT EXISTS consent_events (
 );
 CREATE INDEX IF NOT EXISTS idx_consent_bot ON consent_events(bot_id, created_at);
 
+-- Manuelle FAQ-Antworten (Prompt 14 #5): redaktionelle Frage/Antwort-Paare, die
+-- der Betreiber/Kunde pflegt. BEWUSST getrennt von `chunks`, damit ein (Auto-)Recrawl
+-- (clearBotKnowledge löscht nur chunks/vec_chunks/crawl_pages) sie NICHT anfasst.
+-- Werden bei der Anfrage-Verarbeitung vorrangig zur Vektorsuche berücksichtigt.
+CREATE TABLE IF NOT EXISTS manual_faqs (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  bot_id      TEXT NOT NULL REFERENCES bots(id) ON DELETE CASCADE,
+  question    TEXT NOT NULL,          -- Frage / Trigger-Formulierung
+  answer      TEXT NOT NULL,          -- gewünschte Antwort (wird bei starkem Match wörtlich ausgegeben)
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_faqs_bot ON manual_faqs(bot_id);
+
 -- Audit/Benachrichtigung: tatsächlich durchgeführter Tarifwechsel (Freischaltung).
 CREATE TABLE IF NOT EXISTS plan_changes (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,

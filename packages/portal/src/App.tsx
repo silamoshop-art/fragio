@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { api, getToken, setToken, clearToken, type Overview, type Plan, type QItem, type VariantId, type AddonsResp, type AddonStatus, type PortalChatLog } from "./api";
+import { api, getToken, setToken, clearToken, type Overview, type Plan, type QItem, type VariantId, type AddonsResp, type AddonStatus, type PortalChatLog, type ManualFaq } from "./api";
 
 /* Farben exakt aus dem gelieferten Design (oklch). */
 const C = {
@@ -89,7 +89,7 @@ const primaryBtn: CSSProperties = { background: C.accent, color: "#fff", border:
 function Portal({ onLogout }: { onLogout: () => void }) {
   const isMobile = useIsMobile();
   const [screen, setScreen] = useState(0);
-  const screens = ["Übersicht", "Tarife", "Fragen", "Einbindung", "Support"];
+  const screens = ["Übersicht", "Tarife", "Fragen", "FAQ-Antworten", "Einbindung", "Support"];
 
   const rootStyle: CSSProperties = {
     display: "flex",
@@ -141,8 +141,9 @@ function Portal({ onLogout }: { onLogout: () => void }) {
         {screen === 0 && <Overview onGoToPlans={() => setScreen(1)} />}
         {screen === 1 && <Plans isMobile={isMobile} />}
         {screen === 2 && <Questions />}
-        {screen === 3 && <Embed />}
-        {screen === 4 && <Support />}
+        {screen === 3 && <Faqs />}
+        {screen === 4 && <Embed />}
+        {screen === 5 && <Support />}
       </main>
     </div>
   );
@@ -539,7 +540,123 @@ function Questions() {
   );
 }
 
-/* ---------- Screen 3: Einbindung ---------- */
+/* ---------- Screen 3: Manuelle FAQ-Antworten (recrawl-fest) ---------- */
+function Faqs() {
+  const [faqs, setFaqs] = useState<ManualFaq[] | null>(null);
+  const [q, setQ] = useState("");
+  const [a, setA] = useState("");
+  const [editId, setEditId] = useState<number | null>(null);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  async function load() {
+    try {
+      setFaqs(await api.listFaqs());
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+
+  function reset() {
+    setQ("");
+    setA("");
+    setEditId(null);
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setErr("");
+    setMsg("");
+    if (q.trim().length < 2 || !a.trim()) {
+      setErr("Frage (min. 2 Zeichen) und Antwort nötig.");
+      return;
+    }
+    try {
+      if (editId === null) {
+        await api.createFaq({ question: q.trim(), answer: a.trim() });
+        setMsg("FAQ hinzugefügt ✓");
+      } else {
+        await api.updateFaq(editId, { question: q.trim(), answer: a.trim() });
+        setMsg("FAQ aktualisiert ✓");
+      }
+      reset();
+      await load();
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  }
+
+  async function remove(id: number) {
+    if (!confirm("Diese FAQ-Antwort löschen?")) return;
+    try {
+      await api.deleteFaq(id);
+      if (editId === id) reset();
+      await load();
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  }
+
+  const card: CSSProperties = { background: "#fff", border: `1px solid ${C.border}`, borderRadius: 18, padding: 24 };
+  const input: CSSProperties = { width: "100%", padding: "11px 14px", borderRadius: 12, border: `1px solid ${C.border}`, fontSize: 15, color: C.textPrimary, fontFamily: "inherit" };
+
+  return (
+    <div style={{ maxWidth: 760 }}>
+      <h1 style={h1Style()}>Eigene Antworten</h1>
+      <p style={{ fontSize: 16, color: C.textSecondary, margin: "0 0 24px", lineHeight: 1.5 }}>
+        Hinterlege feste Antworten für häufige Fragen oder eine bestimmte gewünschte
+        Formulierung. Sie werden <strong>vorrangig</strong> verwendet und bleiben bei
+        jeder Aktualisierung eurer Website (Neu-Crawl) <strong>erhalten</strong>.
+      </p>
+
+      <form onSubmit={submit} style={{ ...card, marginBottom: 28 }}>
+        <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: C.textPrimary, marginBottom: 6 }}>
+          {editId === null ? "Frage / typische Formulierung des Besuchers" : "Frage bearbeiten"}
+        </label>
+        <input style={input} value={q} placeholder="z. B. Bietet ihr kostenlose Parkplätze?" onChange={(e) => setQ(e.target.value)} />
+        <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: C.textPrimary, margin: "14px 0 6px" }}>Gewünschte Antwort</label>
+        <textarea style={{ ...input, resize: "vertical" }} rows={4} value={a} placeholder="Die Antwort, die der Bot geben soll…" onChange={(e) => setA(e.target.value)} />
+        {err && <p style={{ color: C.red, fontSize: 14, margin: "12px 0 0" }}>{err}</p>}
+        {msg && <p style={{ color: "oklch(0.45 0.12 145)", fontSize: 14, margin: "12px 0 0", fontWeight: 500 }}>✓ {msg}</p>}
+        <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+          <button type="submit" style={{ background: C.accent, color: "#fff", border: "none", padding: "12px 22px", borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
+            {editId === null ? "Hinzufügen" : "Speichern"}
+          </button>
+          {editId !== null && (
+            <button type="button" onClick={reset} style={{ background: "transparent", color: C.textSecondary, border: `1px solid ${C.border}`, padding: "12px 22px", borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: "pointer" }}>Abbrechen</button>
+          )}
+        </div>
+      </form>
+
+      <h2 style={{ fontSize: 18, fontWeight: 650, color: C.textPrimary, margin: "0 0 16px" }}>
+        Angelegte Antworten {faqs && faqs.length > 0 && <span style={{ color: C.textSecondary, fontWeight: 500 }}>({faqs.length})</span>}
+      </h2>
+      {faqs === null ? (
+        <p style={{ color: C.textSecondary }}>Lädt…</p>
+      ) : faqs.length === 0 ? (
+        <p style={{ color: C.textSecondary }}>Noch keine eigenen Antworten hinterlegt.</p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {faqs.map((f) => (
+            <div key={f.id} style={{ ...card, padding: 20, display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>{f.question}</div>
+                <div style={{ fontSize: 14, color: C.textSecondary, marginTop: 4, whiteSpace: "pre-wrap" }}>{f.answer}</div>
+              </div>
+              <button onClick={() => { setEditId(f.id); setQ(f.question); setA(f.answer); setMsg(""); setErr(""); }} style={{ flex: "0 0 auto", padding: "8px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.textPrimary, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Bearbeiten</button>
+              <button onClick={() => remove(f.id)} style={{ flex: "0 0 auto", padding: "8px 12px", borderRadius: 8, border: "none", background: "oklch(0.55 0.18 25)", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Löschen</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Screen 4: Einbindung ---------- */
 function Embed() {
   const [snippet, setSnippet] = useState("");
   const [active, setActive] = useState(false);

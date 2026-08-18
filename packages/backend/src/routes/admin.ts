@@ -35,6 +35,10 @@ import {
   consentStats,
   listChatLogs,
   deleteChatLogsByIpHash,
+  listManualFaqs,
+  createManualFaq,
+  updateManualFaq,
+  deleteManualFaq,
   INVOICE_DUE_DAYS,
   type BotRow,
   type InvoiceRow,
@@ -524,6 +528,46 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       const bot = loadOwned(request, reply);
       if (!bot) return;
       deleteBot(bot.id);
+      return { ok: true };
+    });
+
+    // --- Manuelle FAQs (Prompt 14 #5): recrawl-feste redaktionelle Antworten ---
+    const faqSchema = z.object({
+      question: z.string().min(2).max(500),
+      answer: z.string().min(1).max(4000),
+    });
+
+    secured.get("/api/admin/bots/:id/faqs", async (request, reply) => {
+      const bot = loadOwned(request, reply);
+      if (!bot) return;
+      return listManualFaqs(bot.id);
+    });
+
+    secured.post("/api/admin/bots/:id/faqs", async (request, reply) => {
+      const bot = loadOwned(request, reply);
+      if (!bot) return;
+      const parsed = faqSchema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: "Frage (min. 2) und Antwort nötig." });
+      return createManualFaq(bot.id, parsed.data.question.trim(), parsed.data.answer.trim());
+    });
+
+    secured.patch("/api/admin/bots/:id/faqs/:faqId", async (request, reply) => {
+      const bot = loadOwned(request, reply);
+      if (!bot) return;
+      const parsed = faqSchema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: "Frage (min. 2) und Antwort nötig." });
+      const faqId = Number((request.params as { faqId: string }).faqId);
+      const ok = updateManualFaq(bot.id, faqId, parsed.data.question.trim(), parsed.data.answer.trim());
+      if (!ok) return reply.code(404).send({ error: "FAQ nicht gefunden." });
+      return { ok: true };
+    });
+
+    secured.delete("/api/admin/bots/:id/faqs/:faqId", async (request, reply) => {
+      const bot = loadOwned(request, reply);
+      if (!bot) return;
+      const faqId = Number((request.params as { faqId: string }).faqId);
+      const ok = deleteManualFaq(bot.id, faqId);
+      if (!ok) return reply.code(404).send({ error: "FAQ nicht gefunden." });
       return { ok: true };
     });
 

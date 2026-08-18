@@ -813,6 +813,73 @@ export function searchChunks(
   return rows;
 }
 
+/**
+ * Alle Chunks eines Bots leichtgewichtig (ohne Embeddings) laden — Grundlage für
+ * die numerische Zusatzsuche (Prompt 14 #2). Für die Zielgröße (kleine Firmen-
+ * Websites, i. d. R. < einige Hundert Chunks) ist ein voller Scan unkritisch.
+ */
+export function allChunksForBot(botId: string): Omit<ChunkHit, "distance">[] {
+  return getDb()
+    .prepare(
+      `SELECT id AS chunk_id, content, page_url AS page_url, page_title AS page_title
+         FROM chunks WHERE bot_id = ?`,
+    )
+    .all(botId) as unknown as Omit<ChunkHit, "distance">[];
+}
+
+// ── Manuelle FAQs (Prompt 14 #5) ─────────────────────────────────────────────
+
+export interface ManualFaqRow {
+  id: number;
+  bot_id: string;
+  question: string;
+  answer: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export function listManualFaqs(botId: string): ManualFaqRow[] {
+  return getDb()
+    .prepare("SELECT * FROM manual_faqs WHERE bot_id = ? ORDER BY created_at DESC")
+    .all(botId) as unknown as ManualFaqRow[];
+}
+
+export function createManualFaq(botId: string, question: string, answer: string): ManualFaqRow {
+  const now = Date.now();
+  const res = getDb()
+    .prepare(
+      `INSERT INTO manual_faqs(bot_id, question, answer, created_at, updated_at)
+       VALUES (?,?,?,?,?)`,
+    )
+    .run(botId, question, answer, BigInt(now), BigInt(now));
+  return getDb()
+    .prepare("SELECT * FROM manual_faqs WHERE id = ?")
+    .get(Number(res.lastInsertRowid)) as unknown as ManualFaqRow;
+}
+
+/** FAQ aktualisieren — NUR wenn sie diesem Bot gehört (Tenant-/Bot-Isolation). */
+export function updateManualFaq(
+  botId: string,
+  id: number,
+  question: string,
+  answer: string,
+): boolean {
+  const res = getDb()
+    .prepare(
+      "UPDATE manual_faqs SET question = ?, answer = ?, updated_at = ? WHERE id = ? AND bot_id = ?",
+    )
+    .run(question, answer, BigInt(Date.now()), BigInt(id), botId);
+  return Number(res.changes) > 0;
+}
+
+/** FAQ löschen — NUR wenn sie diesem Bot gehört. */
+export function deleteManualFaq(botId: string, id: number): boolean {
+  const res = getDb()
+    .prepare("DELETE FROM manual_faqs WHERE id = ? AND bot_id = ?")
+    .run(BigInt(id), botId);
+  return Number(res.changes) > 0;
+}
+
 // ── Rechnungen (Package D) ───────────────────────────────────────────────────
 
 export interface InvoiceRow {

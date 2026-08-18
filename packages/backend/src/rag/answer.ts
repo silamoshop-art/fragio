@@ -15,6 +15,8 @@ import { getProviderForBot } from "../llm/index.js";
 import { embed } from "../llm/embedder.js";
 import { isTrialActive } from "../trial/state.js";
 import { buildSystemPrompt, formatContext, buildUserMessage } from "./prompt.js";
+import { numericSearch } from "./numeric.js";
+import { matchManualFaq } from "./faq.js";
 
 // Cosine-Distanz in [0,2]. Kleiner = ähnlicher.
 // Empirisch kalibriert für multilingual-e5-small (relevant ~0.15, irrelevant ~0.21+).
@@ -24,6 +26,13 @@ const RELEVANCE_DISTANCE = 0.24; // bester Treffer schlechter -> "weiß ich nich
 const CONTEXT_DISTANCE = 0.3; // Chunks darüber nicht in den Kontext
 const TOP_K = 8;
 const DEFAULT_ANSWER_TOKENS = 250; // Fallback, falls Bot keinen Wert gesetzt hat
+
+// Manuelle FAQ (Prompt 14 #5): Passt die Besucherfrage sehr stark zu einer
+// redaktionellen FAQ, wird deren Antwort wörtlich ausgegeben. Konservativ
+// kalibriert für multilingual-e5-small: direkte Paraphrasen liegen < 0.10,
+// themenverwandte Fremdfragen erst ab ~0.12 — 0.11 trennt sauber und vermeidet
+// Fehlauslösungen (lieber eine FAQ verpassen als eine falsche wörtlich ausgeben).
+const FAQ_MATCH_DISTANCE = 0.11;
 
 // Kanonische Kontakt-Query für die Standort-Erweiterung (matcht Adress-/Impressum-Chunks).
 const LOCATION_QUERY =
@@ -63,6 +72,48 @@ const FALLBACK_ANSWER =
   "Formuliere deine Frage gern anders oder wende dich direkt an das Team.";
 
 /**
+ * Erkennt, ob eine bereits generierte LLM-Antwort inhaltlich eine ABSAGE ist
+ * ("kann ich anhand der Website nicht beantworten", "wende dich ans Team" …).
+ *
+ * Hintergrund (Prompt 14 #4): Der Retrieval-Treffer kann über der Relevanz-
+ * Schwelle liegen (also wird das LLM aufgerufen), aber das Modell erkennt selbst,
+ * dass die konkrete Antwort nicht im Kontext steht, und gibt einen Absage-/
+ * Verweis-Text aus. Ohne diese Prüfung würde so eine Antwort fälschlich als
+ * "beantwortet" gezählt und taucht nicht bei den "unbeantworteten Fragen" auf.
+ *
+ * Bewusst eher inklusiv: ein Fehlalarm (echte Antwort wird als unbeantwortet
+ * markiert) ist hier weniger schlimm als ein verpasster Content-Gap — der
+ * Betreiber will diese Lücken ja gerade sehen. Deutsch + gängiges Englisch.
+ */
+const NON_ANSWER_PATTERNS: RegExp[] = [
+  /\bnicht beantworten\b/i,
+  /\bkann ich (dir |ihnen |euch |das |dazu |hierzu |diese frage )*(leider )?nicht\b/i,
+  /\bwei(?:ß|ss) ich (leider )?nicht\b/i,
+  /\bkeine (näheren |genaueren |weiteren |genauen )?(informationen|angaben|angabe|details|infos?|daten)\b/i,
+  /\bliegen (mir|uns)\b[^.]*\bkeine\b/i,
+  /\b(dazu|hierzu|darüber)\b[^.]*\bkein(e|en)?\b[^.]*\b(informationen|angaben|details|infos?)\b/i,
+  /\bgeht\b[^.]*\bnicht hervor\b/i,
+  /\bnicht ersichtlich\b/i,
+  /\bsteht (leider )?nicht\b[^.]*\b(website|seite|kontext|hier)\b/i,
+  /\bfinde ich (dazu |hierzu )?(leider )?(nichts|keine)\b/i,
+  /\bwende dich\b[^.]*\b(team|unternehmen|direkt)\b/i,
+  /\bwenden sie sich\b[^.]*\b(team|unternehmen|direkt)\b/i,
+  // Englisch
+  /\bcan(?:'|no|)?t (help|answer|find|provide)\b/i,
+  /\bdon'?t have (enough |any |the )?(information|details|data)\b/i,
+  /\bno (information|details) (available|about|on)\b/i,
+  /\b(unable|not able) to (help|answer|find|provide)\b/i,
+  /\bnot (mentioned|available|specified|listed|provided)\b[^.]*\b(website|page|context)\b/i,
+];
+
+/** True, wenn die generierte Antwort wie eine inhaltliche Absage aussieht. */
+export function looksLikeNonAnswer(answer: string): boolean {
+  const t = answer.trim();
+  if (!t) return false; // leer = technischer Abbruch, kein Content-Gap
+  return NON_ANSWER_PATTERNS.some((re) => re.test(t));
+}
+
+/**
  * Streamt die Antwort. Ruft `onMeta` einmal auf, sobald Quellen/Relevanz
  * feststehen (vor dem ersten Token), und liefert die Text-Token als AsyncIterable.
  */
@@ -93,6 +144,31 @@ export async function* answerQuestion(
 
   // 1) + 2) Query lokal embedden (kein Chat-Key nötig). kind="query" für e5.
   const [qEmb] = await embed([question], "query");
+
+  // 2a) Manuelle FAQ mit Vorrang (Prompt 14 #5): Bei sehr starker Übereinstimmung
+  // die redaktionelle Antwort WÖRTLICH ausgeben — garantiert die gewünschte
+  // Formulierung und kostet keinen LLM-Token. Recrawl-fest, da manual_faqs eine
+  // eigene Tabelle ist, die der Crawler nicht anfasst.
+  const faqMatch = await matchManualFaq(bot.id, qEmb);
+  if (faqMatch && faqMatch.distance <= FAQ_MATCH_DISTANCE) {
+    const answerText = faqMatch.faq.answer;
+    onMeta?.({ answered: true, sources: [], topScore: faqMatch.distance, provider: "faq" });
+    if (storeContent) {
+      insertChatLog({
+        botId: bot.id,
+        question,
+        answer: answerText,
+        answered: true,
+        topScore: faqMatch.distance,
+        provider: "faq",
+        latencyMs: Date.now() - started,
+        ipHash,
+      });
+    }
+    yield answerText;
+    return;
+  }
+
   let hits = searchChunks(bot.id, qEmb, TOP_K);
 
   // Standort-/Kontaktfragen ("wo seid ihr?", "wie erreiche ich euch?") matchen den
@@ -104,6 +180,15 @@ export async function* answerQuestion(
     const [augEmb] = await embed([LOCATION_QUERY], "query");
     hits = mergeHits(hits, searchChunks(bot.id, augEmb, TOP_K), TOP_K);
   }
+
+  // Numerische Zusatzsuche (Prompt 14 #2): Enthält die Frage Zahlen-Filter
+  // (m²/qm, €, PLZ), matchen diese semantisch oft schlecht. Dann zusätzlich nach
+  // Chunks mit passenden Zahlenwerten (in Toleranz) suchen und als hochrelevante
+  // Treffer einmischen — so wird z. B. ein Immobilienobjekt mit ~320 m² gefunden,
+  // auch wenn die reine Vektorsuche es verfehlt.
+  const numHits = numericSearch(bot.id, question);
+  if (numHits.length) hits = mergeHits(hits, numHits, TOP_K);
+
   const topScore = hits.length ? hits[0].distance : null;
 
   // 3) Nichts Relevantes gefunden -> ehrliche Absage OHNE LLM (kein Chat-Provider nötig).
@@ -148,12 +233,16 @@ export async function* answerQuestion(
     // Trial-Kontingent erhöhen (nur wenn der Trial-Key wirklich verwendet wurde).
     if (trialUsed) incrementTrialCount(bot.id);
     // 5) Loggen (auch bei Abbruch, was bereits generiert wurde) — nur mit Einwilligung.
+    // answered hängt NICHT nur an der Retrieval-Schwelle, sondern auch am tatsächlichen
+    // Antwortinhalt: sagt das LLM trotz gefundenem Kontext inhaltlich ab ("kann ich anhand
+    // der Website nicht beantworten", "wende dich ans Team"), zählt das als unbeantwortet
+    // (Prompt 14 #4 — sonst fehlen diese Content-Lücken in der Analytics).
     if (storeContent) {
       insertChatLog({
         botId: bot.id,
         question,
         answer: full || null,
-        answered: true,
+        answered: !looksLikeNonAnswer(full),
         topScore,
         provider: provider.id,
         latencyMs: Date.now() - started,

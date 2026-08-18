@@ -64,6 +64,15 @@ export interface Bot {
   portalUser: string | null;
 }
 
+export interface ManualFaq {
+  id: number;
+  bot_id: string;
+  question: string;
+  answer: string;
+  created_at: number;
+  updated_at: number;
+}
+
 export interface Pricing {
   setupFeeCents: number;
   commitMonths: number;
@@ -151,6 +160,17 @@ export const api = {
   deleteBot: (id: string) =>
     req<{ ok: boolean }>(`/api/admin/bots/${id}`, { method: "DELETE" }),
   analytics: (id: string) => req<Analytics>(`/api/admin/bots/${id}/analytics`),
+  // Manuelle FAQs (recrawl-fest)
+  listFaqs: (botId: string) => req<ManualFaq[]>(`/api/admin/bots/${botId}/faqs`),
+  createFaq: (botId: string, body: { question: string; answer: string }) =>
+    req<ManualFaq>(`/api/admin/bots/${botId}/faqs`, { method: "POST", body: JSON.stringify(body) }),
+  updateFaq: (botId: string, faqId: number, body: { question: string; answer: string }) =>
+    req<{ ok: boolean }>(`/api/admin/bots/${botId}/faqs/${faqId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteFaq: (botId: string, faqId: number) =>
+    req<{ ok: boolean }>(`/api/admin/bots/${botId}/faqs/${faqId}`, { method: "DELETE" }),
   snippet: (id: string) => req<{ snippet: string }>(`/api/admin/bots/${id}/snippet`),
   // Billing
   getBilling: () => req<Billing>("/api/admin/billing"),
