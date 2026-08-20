@@ -60,6 +60,8 @@ export interface BotRow {
   customer_email: string | null;
   customer_vat: string | null;
   retention_days: number;
+  // Zuletzt Chat-Anfrage mit passendem Origin zur hinterlegten Domain (echte Einbindung).
+  last_embedded_at: number | null;
 }
 
 export interface ChunkHit {
@@ -653,6 +655,20 @@ export function setLastCrawledAt(botId: string, when: number): void {
   getDb()
     .prepare("UPDATE bots SET last_crawled_at = ? WHERE id = ?")
     .run(BigInt(when), botId);
+}
+
+/**
+ * Echte Widget-Einbindung markieren: Zeitpunkt der letzten Chat-Anfrage, deren
+ * Origin zur hinterlegten Kunden-Domain passt (Aufrufer prüft das). Gedrosselt —
+ * es wird nur geschrieben, wenn der letzte Marker älter als `throttleMs` ist,
+ * damit nicht jede Anfrage einen DB-Write auslöst.
+ */
+export function markEmbeddedSeen(botId: string, when = Date.now(), throttleMs = 3_600_000): void {
+  getDb()
+    .prepare(
+      "UPDATE bots SET last_embedded_at = ? WHERE id = ? AND (last_embedded_at IS NULL OR last_embedded_at < ?)",
+    )
+    .run(BigInt(when), botId, BigInt(when - throttleMs));
 }
 
 /** Ergebnis eines (Auto-)Crawls protokollieren (Package C). */

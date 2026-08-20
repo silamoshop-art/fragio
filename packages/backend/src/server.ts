@@ -62,8 +62,19 @@ export async function buildServer() {
   });
 
   // --- Rate-Limiting: Schlüssel = botId (Chat) bzw. IP (sonst). ---
+  // Das öffentliche Chat/Widget bleibt streng limitiert (Kostenschutz). Für die
+  // authentifizierten App-Bereiche (Admin-Dashboard, Kunden-Portal) ist das Limit
+  // deutlich höher, weil ein einziger Seitenaufruf mehrere Requests parallel feuert
+  // — sonst steht der Betreiber beim normalen Klicken ständig an. "Authentifiziert"
+  // = trägt einen Authorization-Header; unauth. Zugriffe bleiben streng begrenzt.
   await app.register(rateLimit, {
-    max: 60,
+    max: (req: FastifyRequest) => {
+      const url = req.url || "";
+      const authed = !!req.headers["authorization"];
+      if (authed && url.startsWith("/api/admin/")) return 600; // Betreiber-Dashboard
+      if (authed && url.startsWith("/api/portal/")) return 240; // Kunden-Portal
+      return 60; // öffentlicher Chat/Widget + alles Übrige
+    },
     timeWindow: "1 minute",
     keyGenerator: (req) => {
       const botId = botIdFromUrl(req.url || "");

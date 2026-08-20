@@ -14,7 +14,7 @@
  */
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { getBot, consumeQuota } from "../db/repo.js";
+import { getBot, consumeQuota, markEmbeddedSeen } from "../db/repo.js";
 import { answerQuestion } from "../rag/answer.js";
 import { isOriginAllowed, parseAllowedOrigins } from "../util/origin.js";
 import { sha256 } from "../util/id.js";
@@ -77,6 +77,14 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
         return reply
           .code(403)
           .send({ error: "Origin nicht erlaubt für diesen Bot." });
+      }
+
+      // Echte Einbindung erkennen (nur wenn eine Domain hinterlegt IST und der
+      // Origin dazu passt): so zählt Test-/Vorschau-Traffic (Backend-Origin,
+      // localhost) NICHT als "eingebunden". Bei leerer Whitelist würde jeder
+      // Origin "passen" — deshalb hier ausdrücklich allowed.length > 0 fordern.
+      if (allowed.length > 0 && origin) {
+        markEmbeddedSeen(bot.id);
       }
 
       // Pro-Bot-Zeichenlimit (zusätzlich zur absoluten Obergrenze).

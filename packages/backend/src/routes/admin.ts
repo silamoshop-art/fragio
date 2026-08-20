@@ -268,7 +268,27 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
           recomputeBotPrice(req.bot_id);
         }
         markPlanChangeRequestDone(req.id);
-        return { ok: true };
+
+        // Nach der Freigabe automatisch eine Rechnung erzeugen (analog zum
+        // monatlichen Rechnungslauf, Vorauskasse für den kommenden Monat, inkl.
+        // Einrichtungsgebühr auf der Erstrechnung). Sie erscheint dadurch sofort
+        // in "Offene Zahlungen". Fehlende Kundendaten dürfen die Freigabe NICHT
+        // scheitern lassen — dann nur einen Hinweis zurückgeben.
+        const freshBot = getBotForTenant(req.bot_id, request.tenant!.id)!;
+        let invoice: ReturnType<typeof presentInvoice> | null = null;
+        let invoiceError: string | undefined;
+        try {
+          const r = await generateInvoiceForBot(freshBot);
+          if (r.invoice) invoice = presentInvoice(r.invoice);
+        } catch (err) {
+          if (err instanceof InvoiceDataError) {
+            invoiceError = err.message;
+          } else {
+            request.log.error(err);
+            invoiceError = "Rechnung konnte nicht automatisch erstellt werden.";
+          }
+        }
+        return { ok: true, invoice, invoiceError };
       },
     );
 

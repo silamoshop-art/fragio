@@ -54,8 +54,14 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
   async function resolveRequest(id: number) {
     setReqMsg("");
     try {
-      await api.resolvePlanRequest(id);
-      setReqMsg("✓ Tarif freigeschaltet & Anfrage erledigt.");
+      const r = await api.resolvePlanRequest(id);
+      if (r.invoice) {
+        setReqMsg(`✓ Freigeschaltet & Rechnung ${r.invoice.invoiceNumber} erstellt — siehe „Zahlungen“ › Offene Zahlungen.`);
+      } else if (r.invoiceError) {
+        setReqMsg(`✓ Freigeschaltet, aber KEINE Rechnung erstellt: ${r.invoiceError}`);
+      } else {
+        setReqMsg("✓ Tarif freigeschaltet & Anfrage erledigt.");
+      }
       await load();
     } catch (e) {
       setReqMsg("⚠️ " + (e as Error).message);

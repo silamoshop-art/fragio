@@ -147,6 +147,10 @@ function runMigrations(db: DatabaseSync): void {
     { table: "bots", column: "customer_vat", ddl: "TEXT" },
     // Speicherdauer der Chat-Verläufe in Tagen (Auftrag 2.2, Standard 90).
     { table: "bots", column: "retention_days", ddl: "INTEGER NOT NULL DEFAULT 90" },
+    // Zuletzt echte Widget-Einbindung erkannt: Zeitpunkt der letzten Chat-Anfrage,
+    // deren Origin zur hinterlegten (nicht-leeren) Kunden-Domain passt. Grundlage
+    // für "Bereits eingebunden" im Portal — Test-/Vorschau-Traffic zählt NICHT.
+    { table: "bots", column: "last_embedded_at", ddl: "INTEGER" },
     // Gehashte IP-Adresse pro Chat-Log (Auftrag 2.3, SHA-256 mit Salt; keine Klartext-IP).
     { table: "chat_logs", column: "ip_hash", ddl: "TEXT" },
     { table: "tenants", column: "billing_name", ddl: "TEXT" },

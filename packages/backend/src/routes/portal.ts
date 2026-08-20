@@ -58,6 +58,18 @@ function currentPlanId(bot: BotRow): string | null {
   return null;
 }
 
+// Als "eingebunden" gilt nur, wenn zuletzt echter Widget-Traffic von der
+// hinterlegten Kunden-Domain kam (last_embedded_at, gesetzt in chat.ts nur bei
+// passendem Origin). Zeitfenster, damit eine entfernte Einbindung irgendwann
+// wieder auf "nicht eingebunden" zurückfällt. Test-/Vorschau-Traffic zählt nie.
+const EMBED_ACTIVE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000; // 30 Tage
+function isWidgetLive(bot: BotRow): boolean {
+  return (
+    bot.last_embedded_at != null &&
+    Date.now() - bot.last_embedded_at <= EMBED_ACTIVE_WINDOW_MS
+  );
+}
+
 export async function portalRoutes(app: FastifyInstance): Promise<void> {
   // --- Login (ohne Auth) ---
   app.post("/api/portal/login", async (request, reply) => {
@@ -107,7 +119,7 @@ export async function portalRoutes(app: FastifyInstance): Promise<void> {
         planName: currentPlanId(bot) ? planName(bot.plan) : null,
         priceCents: bot.price_cents,
         usage: usageView(bot),
-        widgetActive: !!bot.last_crawled_at, // grober Indikator
+        widgetActive: isWidgetLive(bot), // echte Domain-Einbindung, nicht nur Crawl
       };
     });
 
@@ -300,7 +312,7 @@ export async function portalRoutes(app: FastifyInstance): Promise<void> {
     secured.get("/api/portal/snippet", async (request, reply) => {
       const bot = loadBot(request);
       if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
-      return { snippet: snippetFor(bot.id), widgetActive: !!bot.last_crawled_at };
+      return { snippet: snippetFor(bot.id), widgetActive: isWidgetLive(bot) };
     });
 
     // Chat-Log-Detailansicht für den Kunden (nur eigener Bot, botId aus Token).

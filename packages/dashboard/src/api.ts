@@ -144,10 +144,10 @@ export const api = {
   me: () => req<{ tenantId: string; email: string; stripeEnabled: boolean }>("/api/admin/me"),
   planRequests: () => req<PlanRequest[]>("/api/admin/plan-change-requests"),
   resolvePlanRequest: (id: number) =>
-    req<{ ok: boolean }>(`/api/admin/plan-change-requests/${id}/resolve`, {
-      method: "POST",
-      body: "{}",
-    }),
+    req<{ ok: boolean; invoice: Invoice | null; invoiceError?: string }>(
+      `/api/admin/plan-change-requests/${id}/resolve`,
+      { method: "POST", body: "{}" },
+    ),
   getPricing: () => req<Pricing>("/api/admin/pricing"),
   updatePricing: (p: Pricing) =>
     req<Pricing>("/api/admin/pricing", { method: "PATCH", body: JSON.stringify(p) }),
