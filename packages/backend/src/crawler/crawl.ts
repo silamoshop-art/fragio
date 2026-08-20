@@ -67,6 +67,29 @@ function normalizeUrl(raw: string, base: string): string | null {
   }
 }
 
+/**
+ * Vergleichs-Host ohne führendes "www." (klein). Viele Sites verlinken intern
+ * ausschließlich die www-Variante (oder leiten die apex-Domain auf www um). Ohne
+ * diese Normalisierung würde der reine `origin`-Vergleich ALLE internen Links als
+ * "fremde Domain" verwerfen (realer Fall fahrschule-hoerl.at → nur 1 Seite gecrawlt).
+ */
+function siteHost(hostname: string): string {
+  return hostname.replace(/^www\./i, "").toLowerCase();
+}
+
+/**
+ * Dedupe-Schlüssel: host (ohne www) + Pfad + Query, protokoll-unabhängig. So wird
+ * dieselbe Seite unter www und non-www (bzw. http/https) nicht doppelt gecrawlt.
+ */
+function dedupeKey(u: string): string {
+  try {
+    const url = new URL(u);
+    return siteHost(url.hostname) + url.pathname + url.search;
+  } catch {
+    return u;
+  }
+}
+
 // Titel typischer Fehler-/404-Seiten: solche Seiten NICHT indexieren (Prompt 13 #2).
 const NOT_FOUND_TITLE =
   /(page not found|not found|404|nicht gefunden|seite nicht gefunden|fehler\s*404|error\s*404|no encontrada|introuvable)/i;
@@ -91,10 +114,13 @@ export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<
   const start = normalizeUrl(startUrl, startUrl);
   if (!start) throw new Error(`Ungültige Start-URL: ${startUrl}`);
   const origin = new URL(start).origin;
+  // Maßgeblicher Site-Host (ohne www). Wird nach dem Laden der Startseite ggf. auf
+  // den finalen Host nach Weiterleitung aktualisiert (apex→www oder Domainwechsel).
+  let originHost = siteHost(new URL(start).hostname);
 
   const robots = await loadRobots(origin);
   const results: CrawledPage[] = [];
-  const seen = new Set<string>([start]);
+  const seen = new Set<string>([dedupeKey(start)]);
   const queue: { url: string; depth: number }[] = [{ url: start, depth: 0 }];
 
   let browser: Browser | null = null;
@@ -116,6 +142,16 @@ export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<
         if (response && response.status() >= 400) {
           console.warn(`  ⚠️  ${url} übersprungen (HTTP ${response.status()}).`);
           continue;
+        }
+        // Beim allerersten (Start-)Seitenaufruf den maßgeblichen Host aus der FINALEN
+        // URL nach Weiterleitungen übernehmen (z. B. apex → www) — sonst würden die
+        // internen Links danach fälschlich als "fremde Domain" verworfen.
+        if (results.length === 0 && response) {
+          try {
+            originHost = siteHost(new URL(response.url()).hostname);
+          } catch {
+            /* Fallback: originHost unverändert */
+          }
         }
         // kurzes Nachladen für JS-gerenderte Inhalte
         await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
@@ -139,9 +175,18 @@ export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<
           const normal: { url: string; depth: number }[] = [];
           for (const href of hrefs) {
             const abs = normalizeUrl(href, url);
-            if (!abs || seen.has(abs)) continue;
-            if (new URL(abs).origin !== origin) continue; // gleiche Origin only
-            seen.add(abs);
+            if (!abs) continue;
+            const key = dedupeKey(abs);
+            if (seen.has(key)) continue;
+            // Gleiche Site (www egal); verwirft echte Fremd-Domains weiterhin.
+            if (siteHost(new URL(abs).hostname) !== originHost) continue;
+            // Fehlerhaft ausgezeichnete Links (z. B. href="www.firma.at/x" OHNE
+            // Protokoll) werden vom Browser als RELATIV aufgelöst -> der Host landet
+            // als Pfadsegment (…/www.firma.at/x) und rekursiert bei jedem Schritt
+            // weiter zu 404-Müll. Solche URLs verwerfen.
+            const segs = new URL(abs).pathname.toLowerCase().split("/");
+            if (segs.includes(originHost) || segs.includes("www." + originHost)) continue;
+            seen.add(key);
             const item = { url: abs, depth: depth + 1 };
             (KEY_PATH.test(abs) ? priority : normal).push(item);
           }
