@@ -131,7 +131,9 @@
       "Read(//tmp/**)",
       "Bash(echo \"── €-Beträge / 4-stellige Zahlen im Roh-HTML ──\" && grep -oiE \"\\(€\\\\s?[0-9][0-9.,]{2,}\\)|\\([0-9]\\\\.[0-9]{3},?-?\\)|\\([0-9]{4}\\\\s?\\(euro|€|,-\\)\\)\" /tmp/hoerl.html | sort | uniq -c | sort -rn | head -30 *)",
       "Bash(echo \"=== TSC EXIT: $? ===\")",
-      "Bash(node -e \"const re=/\\(datenschutz|privacy|datenschutzerkl|agb|gesch\\\\S{0,4}ftsbedingung|terms|nutzungsbedingungen|widerruf|cookie|gtc\\)/i; for \\(const s of ['Alg_Geschftsbedingungen_Fahrschule_WIEN_WEST.pdf','Geschäftsbedingungen','geschaeftsbedingungen','Preislisteab12.01.2026.pdf','/preise','/impressum']\\) console.log\\(\\(re.test\\(s\\)?'SKIP ':'keep '\\)+s\\);\")"
+      "Bash(node -e \"const re=/\\(datenschutz|privacy|datenschutzerkl|agb|gesch\\\\S{0,4}ftsbedingung|terms|nutzungsbedingungen|widerruf|cookie|gtc\\)/i; for \\(const s of ['Alg_Geschftsbedingungen_Fahrschule_WIEN_WEST.pdf','Geschäftsbedingungen','geschaeftsbedingungen','Preislisteab12.01.2026.pdf','/preise','/impressum']\\) console.log\\(\\(re.test\\(s\\)?'SKIP ':'keep '\\)+s\\);\")",
+      "Bash(curl -s -A \"SiteBotCrawler/0.1\" -L \"https://www.sauer.at/preisliste\" -o /tmp/sauer.html)",
+      "Bash(grep -oiE \".{0,60}\\(traktor|759|führerscheinklasse|klasse f\\)\\\\b.{0,80}\" /tmp/sauer.html)"
     ]
   }
 }

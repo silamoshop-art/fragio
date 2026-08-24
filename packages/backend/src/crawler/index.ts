@@ -164,7 +164,10 @@ export async function crawlAndIndex(
 
     let chunks = chunkText(pdfText);
     if (chunks.length === 0) continue;
-    if (chunks.length > perPageCap) chunks = chunks.slice(0, perPageCap);
+    // PDFs (oft Preislisten = Kern-Content) großzügiger deckeln, damit die
+    // strukturierten Tabellen-Datensätze nicht abgeschnitten werden.
+    const pdfCap = Math.max(perPageCap, 50);
+    if (chunks.length > pdfCap) chunks = chunks.slice(0, pdfCap);
 
     const embeddings = await embed(chunks);
     for (let i = 0; i < chunks.length; i++) {
