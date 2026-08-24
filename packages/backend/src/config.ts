@@ -28,6 +28,12 @@ const EnvSchema = z.object({
   HOST: z.string().default("0.0.0.0"),
   PORT: z.coerce.number().int().positive().default(3000),
 
+  // Öffentliche Basis-URL des Backends (z. B. "https://fragio.at"). Speist ALLE
+  // nach außen sichtbaren Links (Widget-Snippet, Vorschau-Link, Portal-/Logo-/
+  // Datenschutz-URL, Stripe-Redirects) über util/embed.ts. Ist sie gesetzt, wird
+  // sie verwendet; sonst Fallback auf http://localhost:PORT (lokale Entwicklung).
+  PUBLIC_BACKEND_URL: z.string().url().optional(),
+
   // Pfad zur SQLite-DB. Default: <repo>/data/sitebot.sqlite
   DATABASE_PATH: z.string().default(path.join(repoRoot, "data", "sitebot.sqlite")),
 
@@ -111,6 +117,16 @@ if (!parsed.success) {
 }
 
 const env = parsed.data;
+
+// In Produktion sollte die öffentliche Basis-URL gesetzt sein, sonst erscheinen in
+// Snippet/Vorschau-/Portal-Links "localhost"-Adressen statt der echten Domain.
+if (env.NODE_ENV === "production" && !env.PUBLIC_BACKEND_URL) {
+  console.warn(
+    "⚠️  PUBLIC_BACKEND_URL ist in Produktion nicht gesetzt — nach außen sichtbare " +
+      "Links (Snippet, Vorschau, Portal) fallen auf http://localhost zurück. " +
+      "Bitte PUBLIC_BACKEND_URL=https://deine-domain in der .env setzen.",
+  );
+}
 
 // APP_SECRET: 32 Bytes aus hex/base64/utf8 ableiten. Fehlt er im Dev, warnen + flüchtigen Key erzeugen.
 import crypto from "node:crypto";

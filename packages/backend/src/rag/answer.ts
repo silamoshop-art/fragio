@@ -45,6 +45,20 @@ function isLocationIntent(q: string): boolean {
   );
 }
 
+// Kanonische Preis-Query für die Preis-Erweiterung. Preis-/Tarif-Chunks sind oft
+// terse Tabellen ("B € 2.166,– B 17 € 2.197,– …") mit wenig Fließtext und matchen
+// eine knappe Frage ("Preis B17") semantisch schlecht. Diese Query zieht solche
+// Chunks zuverlässig heran (Prompt-15-Folge: Preisfragen OHNE Zahl in der Frage).
+const PRICE_QUERY =
+  "Preis Preise Kosten Kurskosten Ausbildungskosten Gebühr Gebühren Tarif Preisliste was kostet wie viel kostet Euro €";
+
+/** Erkennt Preis-/Kostenfragen (auch ohne konkrete Zahl in der Frage). */
+function isPriceIntent(q: string): boolean {
+  return /(\bpreis|\bpreise|\bpreislist|kostet|\bkosten\b|\bgebühr|\btarif|teuer|wie\s?viel|was\s?kostet|betrag|€|\beuro\b)/i.test(
+    q,
+  );
+}
+
 /** Zwei Trefferlisten vereinen: pro Chunk kleinste Distanz behalten, aufsteigend sortiert. */
 function mergeHits(a: ChunkHit[], b: ChunkHit[], cap: number): ChunkHit[] {
   const best = new Map<number, ChunkHit>();
@@ -213,6 +227,15 @@ export async function* answerQuestion(
   // im Kontext, statt dass mal nur Telefon/E-Mail gezogen wird.
   if (isLocationIntent(question)) {
     const [augEmb] = await embed([LOCATION_QUERY], "query");
+    hits = mergeHits(hits, searchChunks(bot.id, augEmb, TOP_K), TOP_K);
+  }
+
+  // Preis-/Kostenfragen: Preistabellen sind terse und matchen knappe Fragen
+  // ("Preis B17", "wie viel kostet das") semantisch schlecht. Zusätzlich mit einer
+  // kanonischen Preis-Query suchen und zusammenführen — auch wenn KEINE Zahl in der
+  // Frage steht (die numerische Suche aus Prompt 14 greift dann nicht).
+  if (isPriceIntent(question)) {
+    const [augEmb] = await embed([PRICE_QUERY], "query");
     hits = mergeHits(hits, searchChunks(bot.id, augEmb, TOP_K), TOP_K);
   }
 

@@ -124,7 +124,14 @@
       "Bash(echo \"=== BACKEND TSC EXIT: $? ===\")",
       "Bash(git checkout *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(curl -s -A \"SiteBotCrawler/0.1\" https://www.fahrschule-hoerl.at/sitemap_index.xml)",
+      "Bash(curl -s -A \"SiteBotCrawler/0.1\" https://www.fahrschule-hoerl.at/page-sitemap.xml)",
+      "Bash(curl -s -A \"SiteBotCrawler/0.1\" https://www.fahrschule-hoerl.at/ -o /tmp/hoerl.html)",
+      "Read(//tmp/**)",
+      "Bash(echo \"── €-Beträge / 4-stellige Zahlen im Roh-HTML ──\" && grep -oiE \"\\(€\\\\s?[0-9][0-9.,]{2,}\\)|\\([0-9]\\\\.[0-9]{3},?-?\\)|\\([0-9]{4}\\\\s?\\(euro|€|,-\\)\\)\" /tmp/hoerl.html | sort | uniq -c | sort -rn | head -30 *)",
+      "Bash(echo \"=== TSC EXIT: $? ===\")",
+      "Bash(node -e \"const re=/\\(datenschutz|privacy|datenschutzerkl|agb|gesch\\\\S{0,4}ftsbedingung|terms|nutzungsbedingungen|widerruf|cookie|gtc\\)/i; for \\(const s of ['Alg_Geschftsbedingungen_Fahrschule_WIEN_WEST.pdf','Geschäftsbedingungen','geschaeftsbedingungen','Preislisteab12.01.2026.pdf','/preise','/impressum']\\) console.log\\(\\(re.test\\(s\\)?'SKIP ':'keep '\\)+s\\);\")"
     ]
   }
 }

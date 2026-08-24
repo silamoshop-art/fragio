@@ -1,8 +1,15 @@
 /** Gemeinsame Helfer für Widget-Snippet, Vorschau- und Portal-Links. */
 import { config } from "../config.js";
 
+/**
+ * Öffentliche Basis-URL für alle nach außen sichtbaren Links. Bevorzugt die
+ * konfigurierte PUBLIC_BACKEND_URL (Produktion, z. B. https://fragio.at); ohne sie
+ * Fallback auf http://localhost:PORT (lokale Entwicklung). Trailing-Slash entfernt.
+ */
 export function backendBase(): string {
-  return config.isProd ? "https://<DEIN-BACKEND-HOST>" : `http://localhost:${config.PORT}`;
+  const base = config.PUBLIC_BACKEND_URL?.trim();
+  if (base) return base.replace(/\/+$/, "");
+  return `http://localhost:${config.PORT}`;
 }
 
 export function snippetFor(botId: string): string {

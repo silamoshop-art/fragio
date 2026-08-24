@@ -15,7 +15,7 @@ const robotsParser = robotsParserImport as unknown as (
   contents: string,
 ) => { isAllowed(url: string, ua?: string): boolean | undefined };
 
-export const CRAWLER_UA = "SiteBotCrawler/0.1 (+https://sitebot.example)";
+export const CRAWLER_UA = "SiteBotCrawler/0.1 (+https://fragio.at)";
 
 // Für einen Firmen-Chatbot besonders wertvolle Seiten — werden beim Crawlen
 // bevorzugt, damit sie auch bei knappem Seitenlimit sicher indexiert werden.
@@ -39,6 +39,12 @@ export interface CrawledPage {
   url: string;
   html: string;
   depth: number;
+}
+
+export interface CrawlResult {
+  pages: CrawledPage[];
+  /** Same-site .pdf-Links (dedupliziert, auf MAX_PDFS begrenzt), für die PDF-Indexierung. */
+  pdfUrls: string[];
 }
 
 // Tracking-/Social-Redirect-Parameter: Solche URLs sind KEINE echten Inhaltsseiten,
@@ -90,6 +96,28 @@ function dedupeKey(u: string): string {
   }
 }
 
+// Max. Anzahl PDFs pro Website (Zeit-/Speicherschutz, Prompt 16 #2).
+const MAX_PDFS = 10;
+
+/**
+ * Erkennt einen SAME-SITE-Link auf eine .pdf-Datei (für die PDF-Indexierung).
+ * Gibt die absolute PDF-URL zurück oder null. Fremd-Domain- und Tracking-PDFs
+ * werden — wie normale Links — verworfen.
+ */
+function pdfLinkIfSameSite(href: string, base: string, originHost: string): string | null {
+  try {
+    const u = new URL(href, base);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    if (!/\.pdf$/i.test(u.pathname)) return null;
+    if (u.search && TRACKING_PARAM.test(u.search)) return null;
+    if (siteHost(u.hostname) !== originHost) return null;
+    u.hash = "";
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
 // Titel typischer Fehler-/404-Seiten: solche Seiten NICHT indexieren (Prompt 13 #2).
 const NOT_FOUND_TITLE =
   /(page not found|not found|404|nicht gefunden|seite nicht gefunden|fehler\s*404|error\s*404|no encontrada|introuvable)/i;
@@ -106,7 +134,7 @@ async function loadRobots(origin: string): Promise<ReturnType<typeof robotsParse
   }
 }
 
-export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<CrawledPage[]> {
+export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<CrawlResult> {
   const maxPages = opts.maxPages ?? 50;
   const maxDepth = opts.maxDepth ?? 3;
   const timeoutMs = opts.timeoutMs ?? 20000;
@@ -120,6 +148,7 @@ export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<
 
   const robots = await loadRobots(origin);
   const results: CrawledPage[] = [];
+  const pdfUrls = new Set<string>(); // same-site PDF-Links (Prompt 16 #2)
   const seen = new Set<string>([dedupeKey(start)]);
   const queue: { url: string; depth: number }[] = [{ url: start, depth: 0 }];
 
@@ -174,6 +203,12 @@ export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<
           const priority: { url: string; depth: number }[] = [];
           const normal: { url: string; depth: number }[] = [];
           for (const href of hrefs) {
+            // Same-site PDF-Links separat sammeln (normalizeUrl verwirft .pdf für
+            // die Seiten-Queue). Set dedupliziert; Cap MAX_PDFS.
+            if (pdfUrls.size < MAX_PDFS) {
+              const pdf = pdfLinkIfSameSite(href, url, originHost);
+              if (pdf) pdfUrls.add(pdf);
+            }
             const abs = normalizeUrl(href, url);
             if (!abs) continue;
             const key = dedupeKey(abs);
@@ -205,5 +240,5 @@ export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<
     await browser?.close().catch(() => {});
   }
 
-  return results;
+  return { pages: results, pdfUrls: [...pdfUrls] };
 }
