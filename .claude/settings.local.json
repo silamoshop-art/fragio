@@ -133,7 +133,10 @@
       "Bash(echo \"=== TSC EXIT: $? ===\")",
       "Bash(node -e \"const re=/\\(datenschutz|privacy|datenschutzerkl|agb|gesch\\\\S{0,4}ftsbedingung|terms|nutzungsbedingungen|widerruf|cookie|gtc\\)/i; for \\(const s of ['Alg_Geschftsbedingungen_Fahrschule_WIEN_WEST.pdf','Geschäftsbedingungen','geschaeftsbedingungen','Preislisteab12.01.2026.pdf','/preise','/impressum']\\) console.log\\(\\(re.test\\(s\\)?'SKIP ':'keep '\\)+s\\);\")",
       "Bash(curl -s -A \"SiteBotCrawler/0.1\" -L \"https://www.sauer.at/preisliste\" -o /tmp/sauer.html)",
-      "Bash(grep -oiE \".{0,60}\\(traktor|759|führerscheinklasse|klasse f\\)\\\\b.{0,80}\" /tmp/sauer.html)"
+      "Bash(grep -oiE \".{0,60}\\(traktor|759|führerscheinklasse|klasse f\\)\\\\b.{0,80}\" /tmp/sauer.html)",
+      "Bash(grep -vE \"Experimental|trace-warn|Warning: |TT: undefined|fontkit|Download is starting|navigating to|Call log|^\\\\s*$\")",
+      "Bash(curl -s -A \"SiteBotCrawler/0.1\" https://www.sauer.at/)",
+      "Bash(curl -s -A \"SiteBotCrawler/0.1\" https://www.sauer.at/klasse/traktor -o /tmp/trak.html)"
     ]
   }
 }

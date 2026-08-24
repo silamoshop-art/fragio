@@ -30,13 +30,12 @@ export const MAX_PDF_BYTES = 5 * 1024 * 1024; // 5 MB
 export async function fetchAndExtractPdf(url: string): Promise<string | null> {
   if (!checkPublicHttpUrl(url).ok) return null; // SSRF-Schutz
 
-  let res: Response;
-  try {
-    res = await fetch(url, { headers: { "user-agent": CRAWLER_UA }, redirect: "follow" });
-  } catch {
-    return null;
-  }
-  if (!res.ok) return null;
+  // Robuster Download mit Retry: der ERSTE fetch direkt nach dem Playwright-Crawl
+  // scheitert gelegentlich transient ("fetch failed", undici-Verbindungsrace nach
+  // Browser-Shutdown) — dann würde ein reales Preis-PDF verloren gehen. Deshalb
+  // bis zu 3 Versuche mit kurzer Wartezeit und Timeout.
+  const res = await fetchPdfWithRetry(url);
+  if (!res || !res.ok) return null;
 
   const ct = (res.headers.get("content-type") || "").toLowerCase();
   const looksPdf = ct.includes("pdf") || ct.includes("octet-stream") || /\.pdf(\?|$)/i.test(url);
@@ -62,6 +61,22 @@ export async function fetchAndExtractPdf(url: string): Promise<string | null> {
   }
 }
 
+/** PDF-Download mit bis zu `attempts` Versuchen (transiente Netzfehler abfangen) + Timeout. */
+async function fetchPdfWithRetry(url: string, attempts = 3): Promise<Response | null> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fetch(url, {
+        headers: { "user-agent": CRAWLER_UA },
+        redirect: "follow",
+        signal: AbortSignal.timeout(20000),
+      });
+    } catch {
+      if (i < attempts - 1) await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+    }
+  }
+  return null;
+}
+
 interface Item {
   s: string;
   x: number;
@@ -79,6 +94,9 @@ async function extractPdfStructured(data: Uint8Array): Promise<string | null> {
     isEvalSupported: false,
     // Kein Worker in Node (verhindert Worker-Setup-Fehler).
     disableFontFace: true,
+    // Nur echte Fehler loggen (unterdrückt harmlose "Cannot polyfill DOMMatrix"/
+    // "glyf"-Rendering-Warnungen — wir extrahieren nur Text, kein Rendering).
+    verbosity: 0,
   } as never).promise;
 
   const pages: string[] = [];

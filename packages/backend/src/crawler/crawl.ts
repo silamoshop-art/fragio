@@ -19,8 +19,24 @@ export const CRAWLER_UA = "SiteBotCrawler/0.1 (+https://fragio.at)";
 
 // Für einen Firmen-Chatbot besonders wertvolle Seiten — werden beim Crawlen
 // bevorzugt, damit sie auch bei knappem Seitenlimit sicher indexiert werden.
+// Enthält Kontakt-/Über-uns-Muster UND typische Inhalts-/Angebotsseiten
+// (Preise, Klassen, Kurse, Leistungen, FAQ), damit z. B. Preislisten sicher vor
+// dem Seitenlimit gecrawlt werden.
 const KEY_PATH =
-  /(kontakt|contact|impressum|imprint|team|ueber|über|about|unternehmen|company|karriere|career|jobs|standort|anfahrt|mitarbeiter|lehr)/i;
+  /(kontakt|contact|impressum|imprint|team|ueber|über|about|unternehmen|company|karriere|career|jobs|standort|anfahrt|mitarbeiter|lehr|preis|tarif|kosten|kurs|klasse|f[üu]hrerschein|ausbildung|leistung|angebot|service|produkt|faq|objekt|immobil)/i;
+
+// GEGENTEIL: Seiten mit geringem Chatbot-Nutzen, die aber oft in großer Zahl (fast
+// duplizierte Query-Varianten) verlinkt sind und sonst das Seitenbudget auffressen —
+// Termin-/Buchungs-/Kalenderseiten. Werden ganz ans Ende der Queue gestellt UND in
+// der Anzahl gedeckelt, damit Inhaltsseiten vorher drankommen (realer Fall sauer.at:
+// dutzende /terminuebersicht.X-Varianten verdrängten Preisliste & Klassenseiten).
+const LOW_PATH = /(termin|calendar|kalender|buchung|buchen|booking|warenkorb|checkout|cart)/i;
+const MAX_LOW_PAGES = 3; // höchstens so viele Kalender-/Buchungsseiten crawlen
+
+// TOP-Priorität: dedizierte Preislisten-/Tarifseiten. Preisfragen gehören zu den
+// häufigsten Nutzeranfragen — diese Seiten (und die dort verlinkten Tarif-PDFs)
+// MÜSSEN vor dem Seitenlimit gecrawlt werden, sonst fehlt genau die Preisinfo.
+const PRICE_PATH = /(preislist|preise|\bpreis\b|tarif|kostenuebersicht|preisuebersicht)/i;
 
 export interface CrawlOptions {
   maxPages?: number;
@@ -59,10 +75,14 @@ function normalizeUrl(raw: string, base: string): string | null {
     const u = new URL(raw, base);
     if (u.protocol !== "http:" && u.protocol !== "https:") return null;
     u.hash = "";
-    // Häufige nicht-HTML-Endungen überspringen.
-    if (/\.(pdf|jpg|jpeg|png|gif|svg|webp|zip|mp4|mp3|css|js|ico|woff2?)$/i.test(u.pathname)) {
+    // Häufige nicht-HTML-Endungen überspringen (inkl. Download-Formate wie ICS/
+    // Office/CSV — sonst löst page.goto einen Download aus: "Download is starting").
+    if (/\.(pdf|jpe?g|png|gif|svg|webp|zip|rar|7z|mp4|mp3|avi|mov|css|js|ico|woff2?|ics|xlsx?|docx?|pptx?|csv|xml|rss)$/i.test(u.pathname)) {
       return null;
     }
+    // Download-/Kalender-Export-Parameter verwerfen (lösen ebenfalls Downloads aus
+    // bzw. sind reine Kalender-Feeds ohne Inhalt für den Chatbot).
+    if (/[?&](calendar|ical|ics|download|export|attachment|dl)=/i.test(u.search)) return null;
     // Tracking-/Social-Redirect-Links verwerfen (auch same-origin getarnt).
     if (u.search && TRACKING_PARAM.test(u.search)) return null;
     let s = u.toString();
@@ -96,8 +116,11 @@ function dedupeKey(u: string): string {
   }
 }
 
-// Max. Anzahl PDFs pro Website (Zeit-/Speicherschutz, Prompt 16 #2).
-const MAX_PDFS = 10;
+// Max. Anzahl PDFs pro Website (Zeit-/Speicherschutz, Prompt 16 #2). Bewusst
+// großzügig: Fahrschulen/Kanzleien hinterlegen oft EIN PDF pro Klasse/Leistung
+// (Infozettel, Tarifblätter) — bei zu niedrigem Cap fehlt sonst genau das mit dem
+// gesuchten Preis (realer Fall sauer.at: F-Infozettel/Tarifblatt fielen bei 10 raus).
+const MAX_PDFS = 25;
 
 /**
  * Erkennt einen SAME-SITE-Link auf eine .pdf-Datei (für die PDF-Indexierung).
@@ -151,6 +174,7 @@ export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<
   const pdfUrls = new Set<string>(); // same-site PDF-Links (Prompt 16 #2)
   const seen = new Set<string>([dedupeKey(start)]);
   const queue: { url: string; depth: number }[] = [{ url: start, depth: 0 }];
+  let lowQueued = 0; // gedeckelte Anzahl Kalender-/Buchungsseiten (LOW_PATH)
 
   let browser: Browser | null = null;
   try {
@@ -198,10 +222,12 @@ export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<
           const hrefs = await page.$$eval("a[href]", (as) =>
             as.map((a) => (a as HTMLAnchorElement).getAttribute("href") || ""),
           );
-          // Wichtige Seiten (Kontakt/Impressum/Team/…) priorisieren: sie hängen oft
-          // im Footer und würden bei niedrigem Seitenlimit sonst nie gecrawlt.
+          // Vier Prioritäten: Preislisten (TOP) > Inhalts-/Angebotsseiten (KEY_PATH)
+          // > Normal > Kalender-/Buchungsseiten (LOW, gedeckelt, zuletzt).
+          const pricePriority: { url: string; depth: number }[] = [];
           const priority: { url: string; depth: number }[] = [];
           const normal: { url: string; depth: number }[] = [];
+          const low: { url: string; depth: number }[] = [];
           for (const href of hrefs) {
             // Same-site PDF-Links separat sammeln (normalizeUrl verwirft .pdf für
             // die Seiten-Queue). Set dedupliziert; Cap MAX_PDFS.
@@ -223,11 +249,28 @@ export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<
             if (segs.includes(originHost) || segs.includes("www." + originHost)) continue;
             seen.add(key);
             const item = { url: abs, depth: depth + 1 };
-            (KEY_PATH.test(abs) ? priority : normal).push(item);
+            // Klassifikation NUR anhand des Pfads (nicht der Query!) — sonst würde
+            // z. B. "?fuehrerschein=nein" an einer Kalender-URL fälschlich als
+            // Inhaltsseite gelten. LOW zuerst prüfen: Kalender/Buchung gewinnt.
+            const path = new URL(abs).pathname.toLowerCase();
+            if (LOW_PATH.test(path)) {
+              if (lowQueued < MAX_LOW_PAGES) {
+                low.push(item);
+                lowQueued++;
+              }
+            } else if (PRICE_PATH.test(path)) {
+              pricePriority.push(item);
+            } else if (KEY_PATH.test(path)) {
+              priority.push(item);
+            } else {
+              normal.push(item);
+            }
           }
-          // Priorisierte an den Anfang der Queue, Rest ans Ende.
+          // Reihenfolge: Preislisten ganz vorne, dann Inhalt, dann Normal, Kalender zuletzt.
           queue.unshift(...priority);
+          queue.unshift(...pricePriority); // zuletzt unshift = frontmost
           queue.push(...normal);
+          queue.push(...low);
         }
       } catch (err) {
         // Einzelne Seite fehlgeschlagen -> überspringen, Crawl fortsetzen.
