@@ -309,19 +309,39 @@ export async function portalRoutes(app: FastifyInstance): Promise<void> {
       return { ok: true };
     });
 
+    // --- Schreibstil (Tonfall): Textbeispiel pro Bot, recrawl-fest ---
+    secured.get("/api/portal/style", async (request, reply) => {
+      const bot = loadBot(request);
+      if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
+      return { styleSample: bot.style_sample };
+    });
+    secured.post("/api/portal/style", async (request, reply) => {
+      const bot = loadBot(request);
+      if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
+      const parsed = z.object({ styleSample: z.string().max(3000).nullable() }).safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: "Ungültiges Stil-Beispiel." });
+      const v = parsed.data.styleSample?.trim();
+      updateBot(bot.id, { style_sample: v ? v : null });
+      return { ok: true };
+    });
+
     secured.get("/api/portal/snippet", async (request, reply) => {
       const bot = loadBot(request);
       if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
       return { snippet: snippetFor(bot.id), widgetActive: isWidgetLive(bot) };
     });
 
-    // Chat-Log-Detailansicht für den Kunden (nur eigener Bot, botId aus Token).
+    // Chat-Verläufe für den Kunden (nur eigener Bot, botId aus Token) — vollständig
+    // (Frage + Antwort + Datum), durchsuchbar via ?q=.
     secured.get("/api/portal/chat-logs", async (request, reply) => {
       const bot = loadBot(request);
       if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
-      return listChatLogs(bot.id, 100).map((l) => ({
+      const query = request.query as { q?: string; limit?: string };
+      const limit = Math.min(1000, Math.max(1, Number(query.limit) || 300));
+      return listChatLogs(bot.id, limit, query.q).map((l) => ({
         id: l.id,
         question: l.question,
+        answer: l.answer,
         answered: !!l.answered,
         ipHash: l.ip_hash,
         createdAt: l.created_at,

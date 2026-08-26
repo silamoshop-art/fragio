@@ -80,7 +80,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ message, replyEmail }),
     }),
-  chatLogs: () => req<PortalChatLog[]>("/api/portal/chat-logs"),
+  chatLogs: (q?: string) =>
+    req<PortalChatLog[]>(`/api/portal/chat-logs${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   deleteBySender: (ipHash: string) =>
     req<{ deleted: number }>("/api/portal/chat-logs/delete-by-sender", {
       method: "POST",
@@ -94,6 +95,9 @@ export const api = {
     }),
   // Manuelle FAQs (recrawl-fest)
   listFaqs: () => req<ManualFaq[]>("/api/portal/faqs"),
+  getStyle: () => req<{ styleSample: string | null }>("/api/portal/style"),
+  setStyle: (styleSample: string | null) =>
+    req<{ ok: boolean }>("/api/portal/style", { method: "POST", body: JSON.stringify({ styleSample }) }),
   createFaq: (body: { question: string; answer: string }) =>
     req<ManualFaq>("/api/portal/faqs", { method: "POST", body: JSON.stringify(body) }),
   updateFaq: (faqId: number, body: { question: string; answer: string }) =>
@@ -127,6 +131,7 @@ export interface ManualFaq {
 export interface PortalChatLog {
   id: number;
   question: string;
+  answer: string | null;
   answered: boolean;
   ipHash: string | null;
   createdAt: number;

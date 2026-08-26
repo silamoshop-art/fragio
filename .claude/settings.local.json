@@ -136,7 +136,12 @@
       "Bash(grep -oiE \".{0,60}\\(traktor|759|führerscheinklasse|klasse f\\)\\\\b.{0,80}\" /tmp/sauer.html)",
       "Bash(grep -vE \"Experimental|trace-warn|Warning: |TT: undefined|fontkit|Download is starting|navigating to|Call log|^\\\\s*$\")",
       "Bash(curl -s -A \"SiteBotCrawler/0.1\" https://www.sauer.at/)",
-      "Bash(curl -s -A \"SiteBotCrawler/0.1\" https://www.sauer.at/klasse/traktor -o /tmp/trak.html)"
+      "Bash(curl -s -A \"SiteBotCrawler/0.1\" https://www.sauer.at/klasse/traktor -o /tmp/trak.html)",
+      "Bash(echo \"tsc: $?\")",
+      "Bash(curl -s -A \"SiteBotCrawler/0.1\" -L https://www.schein-welt.at/ -o /tmp/sw.html -w \"HTTP %{http_code}, final %{url_effective}\\\\n\")",
+      "Bash(curl -s -A \"Mozilla/5.0\" -L \"https://www.schein-welt.at/kontakt\" -w \"HTTP %{http_code}\\\\n\" -o /tmp/k.html)",
+      "Bash(curl -s -A \"SiteBotCrawler/0.1\" \"https://www.schein-welt.at/kontakt\" -w \"CrawlerUA: HTTP %{http_code}\\\\n\" -o /dev/null)",
+      "Bash(curl -s -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\)\" \"https://www.schein-welt.at/kontakt\" -w \"BrowserUA: HTTP %{http_code}\\\\n\" -o /dev/null)"
     ]
   }
 }

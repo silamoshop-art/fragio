@@ -117,6 +117,7 @@ function presentBot(bot: BotRow) {
     addonName: !!bot.addon_name,
     // DSGVO/AI-Act: pro Bot editierbarer Datenschutztext (Consent-Popup, Section C).
     privacyText: bot.privacy_text,
+    styleSample: bot.style_sample,
     // Rechnungsdaten DES KUNDEN — pro Bot eigenständig.
     customerName: bot.customer_name,
     customerAddress: bot.customer_address,
@@ -393,13 +394,17 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       return getBotAnalytics(bot.id);
     });
 
-    // Chat-Log-Detailansicht (jüngste zuerst) — zeigt den IP-Hash, nicht die echte IP.
+    // Chat-Verläufe (jüngste zuerst) — vollständig (Frage + Antwort + Datum),
+    // durchsuchbar via ?q=. Zeigt den IP-Hash, nicht die echte IP.
     secured.get("/api/admin/bots/:id/chat-logs", async (request, reply) => {
       const bot = loadOwned(request, reply);
       if (!bot) return;
-      return listChatLogs(bot.id, 100).map((l) => ({
+      const query = request.query as { q?: string; limit?: string };
+      const limit = Math.min(1000, Math.max(1, Number(query.limit) || 300));
+      return listChatLogs(bot.id, limit, query.q).map((l) => ({
         id: l.id,
         question: l.question,
+        answer: l.answer,
         answered: !!l.answered,
         ipHash: l.ip_hash,
         createdAt: l.created_at,
@@ -481,6 +486,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         discountValue: z.number().int().min(0).max(10_000_000).optional(),
         // DSGVO/AI-Act: Datenschutztext fürs Consent-Popup (Section C)
         privacyText: z.string().max(20_000).nullable().optional(),
+        styleSample: z.string().max(3000).nullable().optional(),
         // Rechnungsdaten DES KUNDEN — pro Bot eigenständig (Prompt 9 #1).
         customerName: z.string().max(200).nullable().optional(),
         customerAddress: z.string().max(500).nullable().optional(),
@@ -531,6 +537,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         discount_type: d.discountType,
         discount_value: d.discountValue,
         privacy_text: d.privacyText,
+        style_sample: d.styleSample,
         customer_name: d.customerName,
         customer_address: d.customerAddress,
         customer_email: d.customerEmail === "" ? null : d.customerEmail,

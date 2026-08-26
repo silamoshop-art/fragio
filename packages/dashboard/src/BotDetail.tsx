@@ -21,6 +21,10 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
   const [crawlMsg, setCrawlMsg] = useState("");
   const [invoiceMsg, setInvoiceMsg] = useState("");
   const [chatLogs, setChatLogs] = useState<ChatLogEntry[] | null>(null);
+  const [logSearch, setLogSearch] = useState("");
+  const [correctId, setCorrectId] = useState<number | null>(null);
+  const [correctText, setCorrectText] = useState("");
+  const [correctMsg, setCorrectMsg] = useState("");
   const [exAmount, setExAmount] = useState("");
   const [exDesc, setExDesc] = useState("");
   const [exPeriod, setExPeriod] = useState("");
@@ -155,9 +159,9 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
     }
   }
 
-  async function loadChatLogs() {
+  async function loadChatLogs(search?: string) {
     try {
-      setChatLogs(await api.chatLogs(botId));
+      setChatLogs(await api.chatLogs(botId, search ?? logSearch));
     } catch (e) {
       setMsg("⚠️ " + (e as Error).message);
     }
@@ -170,6 +174,22 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
       await loadChatLogs();
     } catch (e) {
       setMsg("⚠️ " + (e as Error).message);
+    }
+  }
+  function startCorrect(l: ChatLogEntry) {
+    setCorrectId(l.id);
+    setCorrectText(l.answer || "");
+    setCorrectMsg("");
+  }
+  // Korrektur = manuelle FAQ (recrawl-fest, per Ähnlichkeit bei künftigen Fragen bevorzugt).
+  async function saveCorrection(question: string) {
+    if (!correctText.trim()) { setCorrectMsg("Bitte die richtige Antwort eingeben."); return; }
+    try {
+      await api.createFaq(botId, { question, answer: correctText.trim() });
+      setCorrectMsg("✓ Als richtige Antwort gespeichert — wird künftig bei ähnlichen Fragen bevorzugt (übersteht Recrawl).");
+      setCorrectId(null);
+    } catch (e) {
+      setCorrectMsg("⚠️ " + (e as Error).message);
     }
   }
 
@@ -308,6 +328,22 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
         <Field label="Farbe"><input type="color" defaultValue={bot.branding.primaryColor || "#4f46e5"} onBlur={(e) => save({ branding: { ...bot.branding, primaryColor: e.target.value } })} /></Field>
         <Field label="Begrüßung"><input defaultValue={bot.branding.greeting || ""} onBlur={(e) => save({ branding: { ...bot.branding, greeting: e.target.value } })} /></Field>
         <Field label="Logo-URL"><input defaultValue={bot.branding.logoUrl || ""} onBlur={(e) => save({ branding: { ...bot.branding, logoUrl: e.target.value } })} placeholder="https://…/logo.png" /></Field>
+      </Section>
+
+      <Section title="Schreibstil (Tonfall)">
+        <p className="muted">
+          Füge ein kurzes Textbeispiel ein, an dessen <strong>Tonfall</strong> (Anrede
+          du/Sie, Förmlichkeit, Satzlänge) sich der Bot orientiert — <strong>nicht</strong>
+          am Inhalt. Leer lassen = neutraler Standardton. Bleibt bei jedem Recrawl erhalten.
+        </p>
+        <Field label="Stil-Beispiel">
+          <textarea
+            rows={5}
+            defaultValue={bot.styleSample || ""}
+            placeholder="z. B.: „Hey! Schön, dass du da bist. Wir kümmern uns locker und schnell um dein Anliegen – frag einfach drauflos!“"
+            onBlur={(e) => save({ styleSample: e.target.value.trim() ? e.target.value : null })}
+          />
+        </Field>
       </Section>
 
       <Section title="Erlaubte Domain (CORS)">
@@ -533,26 +569,72 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
         </Field>
         <p className="muted">Ein täglicher Job löscht Chat-Verläufe, die älter sind. Wird auch auf der Datenschutzseite angezeigt.</p>
 
-        <h4>Chat-Verläufe & Löschanspruch (Art. 17 DSGVO)</h4>
-        <p className="muted">Absender werden nur als <strong>gehashte IP</strong> angezeigt (keine Klartext-IP). „Löschen" entfernt alle Anfragen desselben Absenders.</p>
+        <h4>Chat-Verläufe (vollständig, durchsuchbar)</h4>
+        <p className="muted">
+          Jede gespeicherte Frage + Antwort mit Datum. Absender werden nur als
+          <strong> gehashte IP</strong> angezeigt (keine Klartext-IP); „Absender löschen"
+          entfernt alle Anfragen desselben Absenders (Art. 17 DSGVO). Es werden nur
+          Verläufe gespeichert, für die der Besucher „Annehmen" gewählt hat.
+        </p>
+        <form
+          onSubmit={(e) => { e.preventDefault(); loadChatLogs(); }}
+          style={{ display: "flex", gap: 8, margin: "8px 0" }}
+        >
+          <input
+            style={{ flex: 1 }}
+            placeholder="In Fragen & Antworten suchen…"
+            value={logSearch}
+            onChange={(e) => setLogSearch(e.target.value)}
+          />
+          <button className="btn sm" type="submit">Suchen</button>
+          {logSearch && (
+            <button className="btn ghost sm" type="button" onClick={() => { setLogSearch(""); loadChatLogs(""); }}>
+              Zurücksetzen
+            </button>
+          )}
+        </form>
         {chatLogs === null ? (
-          <button className="btn ghost sm" onClick={loadChatLogs}>Chat-Verläufe laden</button>
+          <button className="btn ghost sm" onClick={() => loadChatLogs()}>Chat-Verläufe laden</button>
         ) : chatLogs.length === 0 ? (
-          <p className="muted">Keine gespeicherten Chat-Verläufe (nur mit „Annehmen" wird gespeichert).</p>
+          <p className="muted">{logSearch ? "Keine Treffer für die Suche." : "Keine gespeicherten Chat-Verläufe."}</p>
         ) : (
-          <table className="tbl">
-            <thead><tr><th>Zeit</th><th>Frage</th><th>IP-Hash</th><th></th></tr></thead>
-            <tbody>
-              {chatLogs.map((l) => (
-                <tr key={l.id}>
-                  <td className="muted" style={{ whiteSpace: "nowrap" }}>{new Date(l.createdAt).toLocaleString("de-AT")}</td>
-                  <td>{l.question.slice(0, 60)}{!l.answered && <span className="tag warn" style={{ marginLeft: 6 }}>unbeantwortet</span>}</td>
-                  <td style={{ fontFamily: "ui-monospace, monospace", fontSize: 12 }}>{l.ipHash ? l.ipHash.slice(0, 12) + "…" : "—"}</td>
-                  <td>{l.ipHash && <button className="btn danger sm" onClick={() => deleteSender(l.ipHash!)}>Absender löschen</button>}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <p className="muted">{chatLogs.length} Eintrag/Einträge (jüngste zuerst)</p>
+            {chatLogs.map((l) => (
+              <div key={l.id} style={{ border: "1px solid var(--line)", borderRadius: 10, padding: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    {new Date(l.createdAt).toLocaleString("de-AT")}
+                    {!l.answered && <span className="tag warn" style={{ marginLeft: 6 }}>unbeantwortet</span>}
+                  </span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span className="muted" style={{ fontFamily: "ui-monospace, monospace", fontSize: 11 }}>
+                      {l.ipHash ? l.ipHash.slice(0, 12) + "…" : "—"}
+                    </span>
+                    {l.ipHash && <button className="btn danger sm" onClick={() => deleteSender(l.ipHash!)}>Absender löschen</button>}
+                  </span>
+                </div>
+                <div style={{ marginTop: 6 }}><strong>F:</strong> {l.question}</div>
+                <div style={{ marginTop: 4, whiteSpace: "pre-wrap", color: "var(--muted)" }}>
+                  <strong style={{ color: "var(--text)" }}>A:</strong> {l.answer || <em>(keine Antwort gespeichert)</em>}
+                </div>
+                {correctId === l.id ? (
+                  <div style={{ marginTop: 8, borderTop: "1px dashed var(--line)", paddingTop: 8 }}>
+                    <label className="field"><span>Richtige Antwort (wird als bevorzugte FAQ gespeichert)</span>
+                      <textarea rows={3} value={correctText} onChange={(e) => setCorrectText(e.target.value)} />
+                    </label>
+                    <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                      <button className="btn sm" onClick={() => saveCorrection(l.question)}>Als richtige Antwort speichern</button>
+                      <button className="btn ghost sm" onClick={() => setCorrectId(null)}>Abbrechen</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button className="btn ghost sm" style={{ marginTop: 8 }} onClick={() => startCorrect(l)}>✎ Korrigieren</button>
+                )}
+              </div>
+            ))}
+            {correctMsg && <p className="note">{correctMsg}</p>}
+          </div>
         )}
       </Section>
       </>)}

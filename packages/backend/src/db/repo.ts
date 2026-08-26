@@ -55,6 +55,7 @@ export interface BotRow {
   addon_logo: number;
   addon_name: number;
   privacy_text: string | null;
+  style_sample: string | null;
   customer_name: string | null;
   customer_address: string | null;
   customer_email: string | null;
@@ -539,6 +540,7 @@ export interface BotUpdate {
   addon_logo?: number;
   addon_name?: number;
   privacy_text?: string | null;
+  style_sample?: string | null;
   customer_name?: string | null;
   customer_address?: string | null;
   customer_email?: string | null;
@@ -1114,8 +1116,26 @@ export interface ChatLogRow {
   ip_hash: string | null;
   created_at: number;
 }
-export function listChatLogs(botId: string, limit = 100): ChatLogRow[] {
-  return getDb()
+/**
+ * Chat-Verläufe (jüngste zuerst). Optionaler Volltext-Filter über Frage UND Antwort
+ * (case-insensitive LIKE). `limit` deckelt die Rückgabe.
+ */
+export function listChatLogs(botId: string, limit = 200, search?: string): ChatLogRow[] {
+  const db = getDb();
+  const term = (search ?? "").trim();
+  if (term) {
+    const like = `%${term.replace(/[%_]/g, (m) => "\\" + m)}%`;
+    return db
+      .prepare(
+        `SELECT id, question, answer, answered, ip_hash, created_at
+           FROM chat_logs
+          WHERE bot_id = ?
+            AND (question LIKE ? ESCAPE '\\' OR answer LIKE ? ESCAPE '\\')
+          ORDER BY created_at DESC LIMIT ?`,
+      )
+      .all(botId, like, like, BigInt(limit)) as unknown as ChatLogRow[];
+  }
+  return db
     .prepare(
       `SELECT id, question, answer, answered, ip_hash, created_at
          FROM chat_logs WHERE bot_id = ? ORDER BY created_at DESC LIMIT ?`,

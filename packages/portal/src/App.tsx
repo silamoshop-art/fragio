@@ -456,12 +456,15 @@ function Questions() {
   const [err, setErr] = useState("");
   const [logs, setLogs] = useState<PortalChatLog[] | null>(null);
   const [logMsg, setLogMsg] = useState("");
+  const [logSearch, setLogSearch] = useState("");
+  const [correctId, setCorrectId] = useState<number | null>(null);
+  const [correctText, setCorrectText] = useState("");
   useEffect(() => {
     api.analytics().then((a) => { setTop(a.topQuestions); setUn(a.unanswered); setLoaded(true); }).catch((e) => setErr((e as Error).message));
   }, []);
 
-  async function loadLogs() {
-    try { setLogs(await api.chatLogs()); } catch (e) { setLogMsg("⚠️ " + (e as Error).message); }
+  async function loadLogs(search?: string) {
+    try { setLogs(await api.chatLogs(search ?? logSearch)); } catch (e) { setLogMsg("⚠️ " + (e as Error).message); }
   }
   async function delSender(ipHash: string) {
     if (!confirm("Alle Chat-Anfragen dieses Absenders (gleicher IP-Hash) unwiderruflich löschen?")) return;
@@ -469,6 +472,15 @@ function Questions() {
       const r = await api.deleteBySender(ipHash);
       setLogMsg(`✓ ${r.deleted} Eintrag/Einträge gelöscht.`);
       await loadLogs();
+    } catch (e) { setLogMsg("⚠️ " + (e as Error).message); }
+  }
+  // Korrektur = eigene (recrawl-feste) Antwort, künftig bei ähnlichen Fragen bevorzugt.
+  async function saveCorrection(question: string) {
+    if (!correctText.trim()) { setLogMsg("Bitte die richtige Antwort eingeben."); return; }
+    try {
+      await api.createFaq({ question, answer: correctText.trim() });
+      setLogMsg("✓ Als richtige Antwort gespeichert — wird künftig bei ähnlichen Fragen bevorzugt (übersteht Aktualisierungen).");
+      setCorrectId(null);
     } catch (e) { setLogMsg("⚠️ " + (e as Error).message); }
   }
 
@@ -511,25 +523,46 @@ function Questions() {
       </section>
 
       <section style={{ marginTop: 40 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 650, color: C.textPrimary, margin: "0 0 4px" }}>Chat-Verläufe &amp; Löschanspruch</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 650, color: C.textPrimary, margin: "0 0 4px" }}>Chat-Verläufe (vollständig, durchsuchbar)</h2>
         <p style={{ fontSize: 14, color: C.textSecondary, margin: "0 0 16px", lineHeight: 1.5 }}>
-          Absender werden nur als <strong>gehashte IP</strong> angezeigt (keine echte IP). „Löschen" entfernt alle Anfragen desselben Absenders (Art. 17 DSGVO).
+          Jede gespeicherte Frage + Antwort mit Datum. Absender werden nur als <strong>gehashte IP</strong> angezeigt (keine echte IP). „Absender löschen" entfernt alle Anfragen desselben Absenders (Art. 17 DSGVO).
         </p>
+        <form onSubmit={(e) => { e.preventDefault(); loadLogs(); }} style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          <input value={logSearch} onChange={(e) => setLogSearch(e.target.value)} placeholder="In Fragen & Antworten suchen…" style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, color: C.textPrimary }} />
+          <button type="submit" style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontWeight: 600 }}>Suchen</button>
+          {logSearch && <button type="button" onClick={() => { setLogSearch(""); loadLogs(""); }} style={{ padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: "#fff", cursor: "pointer", fontWeight: 600, color: C.textSecondary }}>Zurücksetzen</button>}
+        </form>
         {logMsg && <p style={{ fontSize: 14, color: C.textSecondary }}>{logMsg}</p>}
         {logs === null ? (
-          <button onClick={loadLogs} style={{ padding: "10px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "#fff", cursor: "pointer", fontWeight: 600, color: C.textPrimary }}>Chat-Verläufe laden</button>
+          <button onClick={() => loadLogs()} style={{ padding: "10px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "#fff", cursor: "pointer", fontWeight: 600, color: C.textPrimary }}>Chat-Verläufe laden</button>
         ) : logs.length === 0 ? (
-          <p style={{ fontSize: 14, color: C.textSecondary }}>Keine gespeicherten Chat-Verläufe.</p>
+          <p style={{ fontSize: 14, color: C.textSecondary }}>{logSearch ? "Keine Treffer für die Suche." : "Keine gespeicherten Chat-Verläufe."}</p>
         ) : (
-          <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 18, overflow: "hidden" }}>
-            {logs.map((l, i) => (
-              <div key={l.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "12px 18px", borderBottom: i === logs.length - 1 ? "none" : `1px solid ${C.border}` }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 14, color: "oklch(0.28 0.01 258)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.question}</div>
-                  <div style={{ fontSize: 12, color: C.textSecondary, fontFamily: "ui-monospace, monospace" }}>{new Date(l.createdAt).toLocaleString("de-AT")} · {l.ipHash ? l.ipHash.slice(0, 12) + "…" : "—"}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {logs.map((l) => (
+              <div key={l.id} style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, padding: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 12, color: C.textSecondary, fontFamily: "ui-monospace, monospace" }}>
+                    {new Date(l.createdAt).toLocaleString("de-AT")} · {l.ipHash ? l.ipHash.slice(0, 12) + "…" : "—"}
+                    {!l.answered && <span style={{ marginLeft: 8, color: "oklch(0.55 0.12 85)", fontWeight: 600 }}>unbeantwortet</span>}
+                  </span>
+                  {l.ipHash && (
+                    <button onClick={() => delSender(l.ipHash!)} style={{ flex: "0 0 auto", padding: "6px 12px", borderRadius: 8, border: "none", background: "oklch(0.55 0.18 25)", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Absender löschen</button>
+                  )}
                 </div>
-                {l.ipHash && (
-                  <button onClick={() => delSender(l.ipHash!)} style={{ flex: "0 0 auto", padding: "8px 12px", borderRadius: 8, border: "none", background: "oklch(0.55 0.18 25)", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Absender löschen</button>
+                <div style={{ marginTop: 8, fontSize: 14, color: "oklch(0.24 0.01 258)" }}><strong>F:</strong> {l.question}</div>
+                <div style={{ marginTop: 4, fontSize: 14, color: C.textSecondary, whiteSpace: "pre-wrap" }}><strong style={{ color: "oklch(0.24 0.01 258)" }}>A:</strong> {l.answer || "—"}</div>
+                {correctId === l.id ? (
+                  <div style={{ marginTop: 8, borderTop: `1px dashed ${C.border}`, paddingTop: 8 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>Richtige Antwort (wird bevorzugt genutzt)</label>
+                    <textarea rows={3} value={correctText} onChange={(e) => setCorrectText(e.target.value)} style={{ width: "100%", marginTop: 4, padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, resize: "vertical", fontFamily: "inherit" }} />
+                    <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                      <button onClick={() => saveCorrection(l.question)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Als richtige Antwort speichern</button>
+                      <button onClick={() => setCorrectId(null)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.textSecondary, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Abbrechen</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => { setCorrectId(l.id); setCorrectText(l.answer || ""); setLogMsg(""); }} style={{ marginTop: 8, padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.textPrimary, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>✎ Korrigieren</button>
                 )}
               </div>
             ))}
@@ -548,10 +581,14 @@ function Faqs() {
   const [editId, setEditId] = useState<number | null>(null);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [style, setStyle] = useState("");
+  const [styleMsg, setStyleMsg] = useState("");
 
   async function load() {
     try {
       setFaqs(await api.listFaqs());
+      const s = await api.getStyle();
+      setStyle(s.styleSample || "");
     } catch (e) {
       setErr((e as Error).message);
     }
@@ -559,6 +596,16 @@ function Faqs() {
   useEffect(() => {
     load();
   }, []);
+
+  async function saveStyle() {
+    setStyleMsg("");
+    try {
+      await api.setStyle(style.trim() ? style.trim() : null);
+      setStyleMsg("✓ Schreibstil gespeichert.");
+    } catch (e) {
+      setStyleMsg("⚠️ " + (e as Error).message);
+    }
+  }
 
   function reset() {
     setQ("");
@@ -611,6 +658,20 @@ function Faqs() {
         Formulierung. Sie werden <strong>vorrangig</strong> verwendet und bleiben bei
         jeder Aktualisierung eurer Website (Neu-Crawl) <strong>erhalten</strong>.
       </p>
+
+      <div style={{ ...card, marginBottom: 28 }}>
+        <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: C.textPrimary, marginBottom: 6 }}>Schreibstil (Tonfall)</label>
+        <p style={{ fontSize: 13, color: C.textSecondary, margin: "0 0 8px", lineHeight: 1.5 }}>
+          Ein kurzes Textbeispiel, an dessen <strong>Tonfall</strong> (Anrede du/Sie,
+          Förmlichkeit, Satzlänge) sich der Bot orientiert — <strong>nicht</strong> am Inhalt.
+          Leer = neutraler Standardton. Bleibt bei jeder Website-Aktualisierung erhalten.
+        </p>
+        <textarea style={{ ...input, resize: "vertical" }} rows={4} value={style} placeholder="z. B.: „Hey! Schön, dass du da bist. Wir kümmern uns locker und schnell um dein Anliegen – frag einfach drauflos!“" onChange={(e) => setStyle(e.target.value)} />
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10 }}>
+          <button type="button" onClick={saveStyle} style={{ background: C.accent, color: "#fff", border: "none", padding: "10px 18px", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Schreibstil speichern</button>
+          {styleMsg && <span style={{ fontSize: 13, color: C.textSecondary }}>{styleMsg}</span>}
+        </div>
+      </div>
 
       <form onSubmit={submit} style={{ ...card, marginBottom: 28 }}>
         <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: C.textPrimary, marginBottom: 6 }}>

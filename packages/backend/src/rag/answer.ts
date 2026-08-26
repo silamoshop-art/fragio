@@ -279,7 +279,10 @@ export async function* answerQuestion(
   const sources = dedupeSources(contextHits);
   onMeta?.({ answered: true, sources, topScore, provider: provider.id });
 
-  const system = buildSystemPrompt({ botName: branding.botName });
+  const system = buildSystemPrompt({
+    botName: branding.botName,
+    styleSample: bot.style_sample ?? undefined,
+  });
   // Nur die letzten 2 Turns mitgeben — genug fürs Verständnis kurzer Folgefragen,
   // ohne den Prompt (und die Tokens) aufzublähen.
   const userMessage = buildUserMessage(

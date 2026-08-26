@@ -53,6 +53,7 @@ export interface Bot {
   addonLogo: boolean;
   addonName: boolean;
   privacyText: string | null;
+  styleSample: string | null;
   consent: { count: number; lastAt: number | null };
   customerName: string | null;
   customerAddress: string | null;
@@ -197,7 +198,8 @@ export const api = {
       { method: "POST", body: JSON.stringify(body) },
     ),
   // Offene Zahlungen (Section D)
-  chatLogs: (botId: string) => req<ChatLogEntry[]>(`/api/admin/bots/${botId}/chat-logs`),
+  chatLogs: (botId: string, q?: string) =>
+    req<ChatLogEntry[]>(`/api/admin/bots/${botId}/chat-logs${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   deleteBySender: (botId: string, ipHash: string) =>
     req<{ deleted: number }>(`/api/admin/bots/${botId}/chat-logs/delete-by-sender`, {
       method: "POST",
@@ -216,6 +218,7 @@ export const api = {
 export interface ChatLogEntry {
   id: number;
   question: string;
+  answer: string | null;
   answered: boolean;
   ipHash: string | null;
   createdAt: number;

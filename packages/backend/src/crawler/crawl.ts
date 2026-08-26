@@ -69,7 +69,13 @@ export interface CrawlResult {
 const TRACKING_PARAM =
   /(^|[?&])(fbclid|fbid|gclid|gbraid|wbraid|msclkid|yclid|twclid|igshid|mc_cid|mc_eid|trk|trkcampaign|utm_source|utm_medium|utm_campaign|utm_term|utm_content|ref_src|_openstat)=/i;
 
-/** URL für Dedupe normalisieren: Fragment weg, kein Trailing-Slash (außer Root). */
+/**
+ * URL normalisieren: nur Fragment entfernen, sonst UNVERÄNDERT lassen (inkl.
+ * Trailing-Slash!). Wichtig: Manche Server liefern NUR die verlinkte Form aus —
+ * `/kontakt/` funktioniert, `/kontakt` gibt 404 (realer Fall schein-welt.at). Den
+ * Slash beim Fetch zu entfernen würde alle Unterseiten in 404 verwandeln. Die
+ * Vereinheitlichung von `/x` und `/x/` passiert NUR beim Dedupe (dedupeKey).
+ */
 function normalizeUrl(raw: string, base: string): string | null {
   try {
     const u = new URL(raw, base);
@@ -85,9 +91,7 @@ function normalizeUrl(raw: string, base: string): string | null {
     if (/[?&](calendar|ical|ics|download|export|attachment|dl)=/i.test(u.search)) return null;
     // Tracking-/Social-Redirect-Links verwerfen (auch same-origin getarnt).
     if (u.search && TRACKING_PARAM.test(u.search)) return null;
-    let s = u.toString();
-    if (u.pathname !== "/" && s.endsWith("/")) s = s.slice(0, -1);
-    return s;
+    return u.toString();
   } catch {
     return null;
   }
@@ -110,7 +114,9 @@ function siteHost(hostname: string): string {
 function dedupeKey(u: string): string {
   try {
     const url = new URL(u);
-    return siteHost(url.hostname) + url.pathname + url.search;
+    // Trailing-Slash für den Vergleich vereinheitlichen (aber NICHT beim Fetch).
+    const path = url.pathname.replace(/\/+$/, "") || "/";
+    return siteHost(url.hostname) + path + url.search;
   } catch {
     return u;
   }
@@ -219,8 +225,11 @@ export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<
 
         // Links einsammeln (nur wenn noch Tiefe/Budget übrig).
         if (depth < maxDepth && results.length < maxPages) {
+          // Vom Browser AUFGELÖSTE URLs (a.href) statt roher Attribute — so werden
+          // <base>-Tag, relative Pfade und Trailing-Slashes exakt so behandelt, wie
+          // der Browser navigieren würde (realer Fall schein-welt.at: <base> + /x/).
           const hrefs = await page.$$eval("a[href]", (as) =>
-            as.map((a) => (a as HTMLAnchorElement).getAttribute("href") || ""),
+            as.map((a) => (a as HTMLAnchorElement).href || ""),
           );
           // Vier Prioritäten: Preislisten (TOP) > Inhalts-/Angebotsseiten (KEY_PATH)
           // > Normal > Kalender-/Buchungsseiten (LOW, gedeckelt, zuletzt).

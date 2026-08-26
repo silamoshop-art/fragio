@@ -139,6 +139,9 @@ function runMigrations(db: DatabaseSync): void {
     { table: "bots", column: "addon_name", ddl: "INTEGER NOT NULL DEFAULT 0" },
     // Pro Bot editierbarer Datenschutztext (Consent-Popup, Section C).
     { table: "bots", column: "privacy_text", ddl: "TEXT" },
+    // Einstellbarer Schreibstil (Prompt 4/Änderung): Textbeispiel, an dessen TONFALL
+    // (nicht Inhalt) sich der Bot orientiert. Recrawl-fest (Bot-Spalte, nicht Crawl).
+    { table: "bots", column: "style_sample", ddl: "TEXT" },
     // Rechnungsdaten DES KUNDEN — pro Bot eigenständig (Prompt 9 #1: vorher fälschlich
     // global auf dem Tenant → alle Bots teilten sich eine E-Mail/Adresse).
     { table: "bots", column: "customer_name", ddl: "TEXT" },
