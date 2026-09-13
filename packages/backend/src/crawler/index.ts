@@ -65,9 +65,15 @@ export interface IndexResult {
   chunks: number;
 }
 
+export interface CrawlIndexOptions {
+  /** Obergrenze zu indexierender PDFs (z. B. Demo-Crawl) — bounded Ressourcen. */
+  maxPdfs?: number;
+}
+
 export async function crawlAndIndex(
   bot: BotRow,
   onProgress?: (p: IndexProgress) => void,
+  opts?: CrawlIndexOptions,
 ): Promise<IndexResult> {
   if (!bot.crawl_start_url) throw new Error("Bot hat keine crawl_start_url.");
 
@@ -148,7 +154,10 @@ export async function crawlAndIndex(
 
   // 3d) Verlinkte PDFs (z. B. Preislisten) mit auslesen und wie Seitentext indexieren
   //     (Prompt 16 #2). Quelle = PDF-URL, damit der Bot direkt aufs PDF verlinken kann.
-  for (const pdfUrl of pdfUrls) {
+  //     Optional gedeckelt (Demo-Crawl): nur die ersten maxPdfs bearbeiten.
+  const pdfList =
+    opts?.maxPdfs != null ? [...pdfUrls].slice(0, Math.max(0, opts.maxPdfs)) : [...pdfUrls];
+  for (const pdfUrl of pdfList) {
     if (SKIP_INDEX_PATH.test(pdfUrl)) continue; // rechtliche PDFs (AGB/Datenschutz) auslassen
     let pdfText: string | null = null;
     try {

@@ -35,6 +35,7 @@
     logoUrl: "",
     aiNotice: "Dies ist ein KI-Chatbot. Antworten können Fehler enthalten.",
     status: "active",
+    lang: "de-DE",
     consentNotice:
       "Dies ist ein KI-Chatbot. Zur Beantwortung werden deine Nachrichten an einen " +
       "KI-Dienstleister (Anthropic, USA) übermittelt — das ist für die Nutzung des Chats " +
@@ -140,6 +141,7 @@
     var log = root.querySelector(".sb-log");
     var form = root.querySelector(".sb-form");
     var input = root.querySelector(".sb-input");
+    var micBtn = root.querySelector(".sb-mic");
     var consent = root.querySelector(".sb-consent");
     var acceptBtn = root.querySelector(".sb-consent-accept");
     var rejectBtn = root.querySelector(".sb-consent-reject");
@@ -217,21 +219,69 @@
       log.scrollTop = log.scrollHeight;
     }
 
+    // ---- Spracheingabe (Web Speech API) ----
+    // Läuft ausschließlich im Browser des Besuchers und startet NUR nach explizitem
+    // Klick samt Browser-Mikrofon-Erlaubnis. Wird die API nicht unterstützt, bleibt
+    // der Button verborgen (Graceful Degradation) — der Chat funktioniert normal.
+    (function setupVoice() {
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR || !micBtn) { if (micBtn) micBtn.hidden = true; return; }
+      micBtn.hidden = false;
+      var rec = null, listening = false, base = "";
+      micBtn.addEventListener("click", function () {
+        if (listening) { try { rec && rec.stop(); } catch (e) {} return; }
+        try {
+          rec = new SR();
+          rec.lang = cfg.lang || "de-DE";
+          rec.interimResults = true;
+          rec.maxAlternatives = 1;
+          rec.continuous = false;
+          base = input.value ? input.value.trim() + " " : "";
+          rec.onstart = function () {
+            listening = true;
+            micBtn.classList.add("sb-listening");
+            micBtn.setAttribute("aria-label", "Aufnahme stoppen");
+            input.setAttribute("placeholder", "Sprich jetzt …");
+          };
+          rec.onresult = function (e) {
+            var finalText = "", interim = "";
+            for (var i = 0; i < e.results.length; i++) {
+              var tr = e.results[i][0].transcript;
+              if (e.results[i].isFinal) finalText += tr; else interim += tr;
+            }
+            input.value = (base + finalText + interim).replace(/\s+/g, " ").replace(/^\s+/, "");
+          };
+          rec.onerror = function () { /* no-speech / not-allowed etc. — still bricht onend ab */ };
+          rec.onend = function () {
+            listening = false;
+            micBtn.classList.remove("sb-listening");
+            micBtn.setAttribute("aria-label", "Frage per Sprache eingeben");
+            input.setAttribute("placeholder", "Nachricht schreiben…");
+            input.focus();
+          };
+          rec.start();
+        } catch (e) {
+          listening = false;
+          micBtn.classList.remove("sb-listening");
+        }
+      });
+    })();
+
     // Begrüßung anzeigen.
     addMsg("bot", cfg.greeting);
 
-    form.addEventListener("submit", function (e) {
-      e.preventDefault();
-      var q = input.value.trim();
+    // Eine Frage senden (aus dem Eingabefeld ODER per Vorschlag-Chip).
+    function sendQuestion(q) {
+      q = (q || "").trim();
       if (!q) return;
-      input.value = "";
+      removeSuggestions(); // Starter-Vorschläge ausblenden, sobald das Gespräch läuft
       addMsg("user", q);
       var bubble = addMsg("bot", "");
       bubble.classList.add("sb-typing");
       bubble.textContent = "…";
-      var first = true, sources = null, acc = "";
+      var first = true, sources = null, acc = "", msgId = null;
       streamChat(q, {
-        meta: function (m) { sources = m.sources; },
+        meta: function (m) { sources = m.sources; if (m.msgId) msgId = m.msgId; },
         token: function (t) {
           if (first) { bubble.classList.remove("sb-typing"); acc = ""; first = false; }
           acc += t;
@@ -243,6 +293,8 @@
         done: function () {
           if (first) { bubble.classList.remove("sb-typing"); bubble.textContent = "(keine Antwort)"; }
           addSources(sources);
+          // Bewertung (Daumen hoch/runter) unter jede echte Antwort.
+          if (acc && msgId) addFeedback(msgId);
           // Abgeschlossenen Austausch dem Verlauf hinzufügen (für Folgefragen).
           if (acc) {
             history.push({ role: "user", content: q });
@@ -251,7 +303,82 @@
           }
         },
       });
+    }
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var q = input.value.trim();
+      if (!q) return;
+      input.value = "";
+      sendQuestion(q);
     });
+
+    // ---- Vorauswahl: die drei häufigsten Fragen als Chips ----
+    var suggestionsRow = null;
+    function removeSuggestions() {
+      if (suggestionsRow && suggestionsRow.parentNode) suggestionsRow.parentNode.removeChild(suggestionsRow);
+      suggestionsRow = null;
+    }
+    function renderSuggestions(questions) {
+      removeSuggestions();
+      if (!questions || !questions.length) return;
+      var row = document.createElement("div");
+      row.className = "sb-chips";
+      questions.slice(0, 3).forEach(function (q) {
+        var chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "sb-chip";
+        chip.textContent = q;
+        chip.addEventListener("click", function () { sendQuestion(q); });
+        row.appendChild(chip);
+      });
+      log.appendChild(row);
+      log.scrollTop = log.scrollHeight;
+      suggestionsRow = row;
+    }
+    // Vorschläge laden (Fehler ignorieren — der Chat funktioniert auch ohne).
+    fetch(apiBase + "/api/widget/" + encodeURIComponent(botId) + "/top-questions")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { if (d && d.questions) renderSuggestions(d.questions); })
+      .catch(function () {});
+
+    // ---- Bewertung: Daumen hoch/runter ----
+    function addFeedback(msgId) {
+      var row = document.createElement("div");
+      row.className = "sb-feedback";
+      var label = document.createElement("span");
+      label.className = "sb-feedback-label";
+      label.textContent = "War das hilfreich?";
+      row.appendChild(label);
+      var done = false;
+      function vote(rating, btn) {
+        if (done) return;
+        done = true;
+        row.classList.add("sb-voted");
+        btn.classList.add("sb-fb-active");
+        label.textContent = "Danke für dein Feedback!";
+        try {
+          fetch(apiBase + "/api/chat/" + encodeURIComponent(botId) + "/feedback", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ msgId: msgId, rating: rating }),
+            keepalive: true,
+          }).catch(function () {});
+        } catch (e) {}
+      }
+      [["up", "👍", "Hilfreich"], ["down", "👎", "Nicht hilfreich"]].forEach(function (v) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "sb-fb sb-fb-" + v[0];
+        b.setAttribute("aria-label", v[2]);
+        b.title = v[2];
+        b.textContent = v[1];
+        b.addEventListener("click", function () { vote(v[0], b); });
+        row.appendChild(b);
+      });
+      log.appendChild(row);
+      log.scrollTop = log.scrollHeight;
+    }
   }
 
   function template(c) {
@@ -271,6 +398,9 @@
       '  <div class="sb-log" aria-live="polite"></div>' +
       '  <div class="sb-notice">' + escapeHtml(c.aiNotice) + "</div>" +
       '  <form class="sb-form">' +
+      '    <button class="sb-mic" type="button" aria-label="Frage per Sprache eingeben" title="Frage per Sprache eingeben" hidden>' +
+      '      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>' +
+      "    </button>" +
       '    <input class="sb-input" type="text" placeholder="Nachricht schreiben…" autocomplete="off" maxlength="2000" />' +
       '    <button class="sb-send" type="submit" aria-label="Senden">' +
       '      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>' +
@@ -317,11 +447,25 @@
       ".sb-sources{font-size:11px;color:#7a8194;margin:2px 4px 10px;}",
       ".sb-sources a{color:var(--sb-brand);text-decoration:none;}",
       ".sb-sources a:hover{text-decoration:underline;}",
+      ".sb-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 4px 10px;}",
+      ".sb-chip{background:#fff;border:1px solid #dfe2ec;color:var(--sb-brand);border-radius:14px;padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer;line-height:1.2;text-align:left;font-family:inherit;}",
+      ".sb-chip:hover{border-color:var(--sb-brand);background:#f4f5fb;}",
+      ".sb-feedback{display:flex;align-items:center;gap:6px;margin:0 4px 10px;}",
+      ".sb-feedback-label{font-size:11px;color:#8a90a2;}",
+      ".sb-fb{background:transparent;border:1px solid #e6e8ef;border-radius:12px;padding:2px 8px;font-size:13px;line-height:1.4;cursor:pointer;opacity:.75;}",
+      ".sb-fb:hover{opacity:1;border-color:var(--sb-brand);}",
+      ".sb-fb-active{opacity:1;border-color:var(--sb-brand);background:#f4f5fb;}",
+      ".sb-voted .sb-fb{cursor:default;}",
       ".sb-notice{font-size:11px;color:#8a90a2;padding:6px 16px;background:#f7f8fb;border-top:1px solid #eef0f5;}",
       ".sb-form{display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid #eef0f5;background:#fff;}",
       ".sb-input{flex:1;border:1px solid #dfe2ec;border-radius:20px;padding:10px 14px;font-size:14px;outline:none;color:#111;}",
       ".sb-input:focus{border-color:var(--sb-brand);}",
       ".sb-send{width:40px;height:40px;border-radius:50%;border:0;background:var(--sb-brand);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}",
+      ".sb-mic{width:40px;height:40px;border-radius:50%;border:0;background:#eceef3;color:#555;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:0 0 auto;transition:background .15s;}",
+      ".sb-mic:hover{background:#e2e5ee;}",
+      ".sb-mic[hidden]{display:none;}",
+      ".sb-mic.sb-listening{background:var(--sb-brand);color:#fff;animation:sb-pulse 1.3s infinite;}",
+      "@keyframes sb-pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,0,0,0);}50%{box-shadow:0 0 0 6px rgba(0,0,0,.10);}}",
       // Consent-Popup: gleiche Position wie das Panel, über allem, blockiert bis zur Entscheidung.
       ".sb-consent{position:fixed;right:20px;bottom:88px;z-index:2147483001;width:370px;max-width:calc(100vw - 40px);background:#fff;color:#111;border-radius:var(--sb-radius);box-shadow:0 12px 40px rgba(0,0,0,.28);opacity:0;transform:translateY(12px) scale(.98);pointer-events:none;transition:opacity .18s,transform .18s;}",
       ".sb-consent.sb-open{opacity:1;transform:none;pointer-events:auto;}",
@@ -350,6 +494,11 @@
   // Nur http/https-Links werden verlinkt (kein javascript:), target=_blank + noopener.
   function renderMarkdown(text) {
     var html = escapeHtml(text);
+    // Überschriften (# … bis ###### …) am Zeilenanfang -> saubere Fett-Zeile,
+    // damit nie ein rohes "# Titel" im Chat steht (professionelles Aussehen).
+    html = html.replace(/^\s{0,3}#{1,6}\s*(.+?)\s*$/gm, "<strong>$1</strong>");
+    // Einfache Aufzählungspunkte "- "/"* " am Zeilenanfang -> "• " (sauberer Punkt).
+    html = html.replace(/^\s*[-*]\s+/gm, "• ");
     // **fett**
     html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
     // Markdown-Link [Text](http-URL)  (nach escape ist "&" -> "&amp;", in href gültig)
@@ -380,6 +529,7 @@
         cfg.logoUrl = data.logoUrl || "";
         cfg.aiNotice = data.aiNotice || cfg.aiNotice;
         cfg.status = data.status || "active";
+        cfg.lang = data.lang || cfg.lang;
         cfg.consentNotice = data.consentNotice || cfg.consentNotice;
         cfg.privacyUrl = data.privacyUrl || cfg.privacyUrl;
       }

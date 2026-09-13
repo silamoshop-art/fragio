@@ -49,6 +49,7 @@ import { operatorConfig } from "../config/operator.js";
 import { applyPlanToBot, stripeEnabled, recomputeBotPrice } from "../payments/stripe.js";
 import { planName, getPricing, savePricing, DEFAULT_PRICING, type Pricing } from "../billing/plans.js";
 import { crawlAndIndex } from "../crawler/index.js";
+import { provisionPaidBot } from "../onboarding/provision.js";
 import {
   generateInvoiceForBot,
   generateExtraInvoice,
@@ -733,15 +734,34 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       listOpenInvoicesForTenant(request.tenant!.id).map(presentOpenInvoice),
     );
 
-    // Rechnung als bezahlt markieren.
+    // Rechnung als bezahlt markieren. Ist es die Rechnung einer noch AUSSTEHENDEN
+    // Self-Service-Bestellung (Bot „paused", noch kein Portal-Login), wird der Bot
+    // jetzt automatisch freigeschaltet und provisioniert (Login + Crawl + Zugangsmail).
     secured.post<{ Params: { invoiceId: string } }>(
       "/api/admin/invoices/:invoiceId/paid",
       async (request, reply) => {
         const id = Number(request.params.invoiceId);
         if (!Number.isFinite(id)) return reply.code(400).send({ error: "Ungültige ID." });
+        const inv = getInvoiceForTenant(id, request.tenant!.id);
+        if (!inv) return reply.code(404).send({ error: "Rechnung nicht gefunden." });
         const ok = markInvoicePaid(id, request.tenant!.id);
         if (!ok) return reply.code(404).send({ error: "Rechnung nicht gefunden." });
-        return { ok: true };
+
+        const paidBot = getBotForTenant(inv.bot_id, request.tenant!.id);
+        let provisioned = false;
+        if (
+          paidBot &&
+          paidBot.status === "paused" &&
+          paidBot.customer_email &&
+          !getBotUserForBot(paidBot.id)
+        ) {
+          updateBot(paidBot.id, { status: "active", is_paying: 1 });
+          provisioned = true;
+          void provisionPaidBot(paidBot.id, paidBot.customer_email).catch((e) =>
+            request.log.error(e, "Provisionierung nach Zahlungseingang fehlgeschlagen"),
+          );
+        }
+        return { ok: true, provisioned };
       },
     );
 

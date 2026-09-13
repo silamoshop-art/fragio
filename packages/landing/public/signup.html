@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bestellen — Fragio</title>
+<meta name="description" content="Fragio-Chatbot bestellen: E-Mail und Website angeben, sicher bezahlen — danach wird alles automatisch eingerichtet." />
+<meta name="robots" content="noindex,follow" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta name="theme-color" content="#ffffff" />
+<style>
+  :root {
+    --sand: oklch(0.985 0.003 258); --sand-2: oklch(0.965 0.004 258); --paper: #fff; --ink: oklch(0.22 0.01 258);
+    --ink-2: oklch(0.22 0.01 258); --green: oklch(0.55 0.16 258); --green-dark: oklch(0.48 0.15 258);
+    --muted: oklch(0.48 0.01 258); --muted-2: oklch(0.6 0.01 258); --line: oklch(0.92 0.005 258); --line-2: oklch(0.88 0.006 258);
+    --danger: oklch(0.55 0.18 25);
+    --serif: var(--sans);
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  body { margin:0; background:var(--sand); color:var(--ink-2); font-family:var(--sans); -webkit-font-smoothing:antialiased; }
+  * { box-sizing:border-box; }
+  a { color:var(--green); text-decoration:none; }
+  a:hover { color:var(--green-dark); }
+  h1 { font-family:var(--serif); font-weight:700; }
+  :focus-visible { outline:2px solid var(--green); outline-offset:2px; border-radius:6px; }
+  .btn-primary { display:inline-block; width:100%; padding:15px 26px; border-radius:12px; background:var(--green); color:#fff; font-size:16px; font-weight:600; border:none; cursor:pointer; font-family:var(--sans); }
+  .btn-primary:hover { background:var(--green-dark); }
+  .btn-primary:disabled { opacity:.6; cursor:default; }
+  label { display:block; font-size:14px; font-weight:600; color:var(--ink); margin:0 0 6px; }
+  input[type=email], input[type=text] { width:100%; padding:13px 15px; border:1px solid var(--line-2); border-radius:10px; background:var(--paper); color:var(--ink-2); font-family:var(--sans); font-size:16px; outline:none; }
+  input:focus { border-color:var(--green); }
+</style>
+</head>
+<body>
+<div style="min-height:100vh;background:var(--sand)">
+  <header style="border-bottom:1px solid var(--line);background:oklch(0.985 0.003 258 / 0.92)">
+    <nav style="max-width:760px;margin:0 auto;padding:16px clamp(20px,4vw,40px);display:flex;align-items:center;gap:20px">
+      <a href="/" style="font-family:var(--serif);font-weight:700;font-size:26px;color:var(--ink-2);margin-right:auto">Fragio</a>
+      <a href="/#preise" style="font-size:15px;color:var(--muted)">← Tarife</a>
+    </nav>
+  </header>
+
+  <main style="max-width:760px;margin:0 auto;padding:clamp(36px,6vw,64px) clamp(20px,4vw,40px)">
+    <h1 style="margin:0 0 10px;font-size:clamp(30px,4.4vw,44px);line-height:1.1;letter-spacing:-0.02em;color:var(--ink)">Chatbot bestellen</h1>
+    <p style="margin:0 0 28px;font-size:17px;line-height:1.6;color:var(--muted);max-width:52ch">Zwei Angaben genügen. Nach der Zahlung richten wir alles automatisch ein und schicken dir die Zugangsdaten fürs Dashboard per E-Mail.</p>
+
+    <div id="cancel-note" hidden style="background:oklch(0.97 0.03 70);border:1px solid oklch(0.85 0.09 70);border-radius:12px;padding:14px 16px;margin-bottom:24px;font-size:15px;color:oklch(0.45 0.12 55)">Die Zahlung wurde abgebrochen — es wurde nichts berechnet. Du kannst es jederzeit erneut versuchen.</div>
+
+    <div id="order-success" hidden style="max-width:560px">
+      <div style="width:56px;height:56px;border-radius:50%;background:oklch(0.95 0.05 150);display:grid;place-items:center;margin-bottom:18px">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="oklch(0.5 0.14 150)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2 style="margin:0 0 10px;font-family:var(--serif);font-weight:700;font-size:28px;color:var(--ink)">Bestellung erhalten — danke!</h2>
+      <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:var(--muted)">Deine Rechnung <strong id="os-invnum" style="color:var(--ink)"></strong> über <strong id="os-amount" style="color:var(--ink)"></strong> ist unterwegs an deine E-Mail. Bitte begleiche sie per Überweisung oder PayPal:</p>
+      <div style="background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:16px">
+        <p style="margin:0 0 10px;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted-2);font-weight:700">Überweisung</p>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+          <div id="os-bank" style="flex:1 1 240px;font-size:15px;line-height:1.8;color:var(--ink-2)"></div>
+          <div id="os-qr-box" hidden style="text-align:center">
+            <img id="os-qr" alt="Giro-Code zum Scannen mit der Banking-App" width="128" height="128" style="border:1px solid var(--line);border-radius:8px;background:#fff;padding:4px" />
+            <p style="margin:6px 0 0;font-size:12px;color:var(--muted-2)">Mit Banking-App scannen</p>
+          </div>
+        </div>
+      </div>
+      <div id="os-paypal-box" hidden style="background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:16px">
+        <p style="margin:0 0 8px;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted-2);font-weight:700">PayPal</p>
+        <a id="os-paypal" href="#" target="_blank" rel="noopener" class="btn-primary" style="display:inline-block;width:auto;padding:11px 20px">Mit PayPal bezahlen</a>
+      </div>
+      <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:var(--muted)">Sobald deine Zahlung eingegangen ist, richten wir deinen Chatbot automatisch ein und schicken dir die Zugangsdaten fürs Dashboard.</p>
+      <a href="/" class="btn-primary" style="display:inline-block;width:auto;padding:13px 24px;background:var(--green)">Zur Startseite</a>
+    </div>
+
+    <div id="order-form" style="display:grid;grid-template-columns:1fr;gap:24px;max-width:520px">
+      <div>
+        <label for="plan">Tarif</label>
+        <div id="plan-cards" style="display:flex;flex-direction:column;gap:10px"></div>
+      </div>
+      <div>
+        <label for="email">Deine E-Mail-Adresse</label>
+        <input id="email" type="email" autocomplete="email" placeholder="name@firma.at" />
+        <p style="margin:6px 0 0;font-size:13px;color:var(--muted-2)">An diese Adresse kommen Rechnung und Zugangsdaten.</p>
+      </div>
+      <div id="billing-fields">
+        <label for="bname">Name / Firma (für die Rechnung)</label>
+        <input id="bname" type="text" autocomplete="name" placeholder="Vor- und Nachname oder Firmenname" />
+        <label for="baddr" style="margin-top:12px">Anschrift (für die Rechnung)</label>
+        <input id="baddr" type="text" autocomplete="street-address" placeholder="Straße Nr., PLZ Ort" />
+      </div>
+      <div>
+        <label for="url">Deine Website</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-family:var(--mono);font-size:14px;color:var(--muted-2)">https://</span>
+          <input id="url" type="text" inputmode="url" autocomplete="off" placeholder="ihre-firma.at" />
+        </div>
+        <p style="margin:6px 0 0;font-size:13px;color:var(--muted-2)">Diese Seite liest der Bot ein.</p>
+      </div>
+
+      <div style="background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 20px">
+        <div style="display:flex;justify-content:space-between;font-size:15px;color:var(--muted);margin-bottom:6px"><span>Monatlich</span><span id="sum-monthly" style="color:var(--ink);font-weight:600">—</span></div>
+        <div id="sum-setup-row" style="display:flex;justify-content:space-between;font-size:15px;color:var(--muted)"><span>Einmalige Einrichtung</span><span id="sum-setup" style="color:var(--ink);font-weight:600">—</span></div>
+        <p style="margin:10px 0 0;font-size:12.5px;color:var(--muted-2)">Preise exkl. USt. Monatlich kündbar. Bezahlung per Rechnung — Überweisung oder PayPal.</p>
+      </div>
+
+      <div>
+        <button id="submit" type="button" class="btn-primary">Zahlungspflichtig bestellen</button>
+        <p id="err" style="margin:10px 0 0;font-size:14px;color:var(--danger)" hidden></p>
+        <p style="margin:12px 0 0;font-size:12.5px;line-height:1.5;color:var(--muted-2)">Mit der Bestellung stimmst du den <a href="/agb.html" target="_blank">AGB</a> und der <a href="/datenschutz.html" target="_blank">Datenschutzerklärung</a> zu. Du erhältst anschließend die Rechnung mit allen Zahlungsdaten per E-Mail.</p>
+      </div>
+    </div>
+  </main>
+
+  <footer style="background:var(--sand);border-top:1px solid var(--line);color:var(--muted)">
+    <div style="max-width:760px;margin:0 auto;padding:28px clamp(20px,4vw,40px);display:flex;gap:20px;flex-wrap:wrap;align-items:baseline">
+      <span style="font-family:var(--serif);font-weight:700;font-size:20px;color:var(--ink)">Fragio</span>
+      <span style="margin-left:auto;display:flex;gap:20px;flex-wrap:wrap;font-size:14px">
+        <a href="/impressum.html" style="color:var(--muted)">Impressum</a>
+        <a href="/datenschutz.html" style="color:var(--muted)">Datenschutz</a>
+        <a href="/agb.html" style="color:var(--muted)">AGB</a>
+      </span>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var params = new URLSearchParams(location.search);
+  if (params.get("abbruch")) document.getElementById("cancel-note").hidden = false;
+  var wantPlan = params.get("plan") || "business";
+
+  var el = function (id) { return document.getElementById(id); };
+  var state = { plans: [], selected: wantPlan, busy: false };
+
+  function eur(cents) { return (cents / 100).toLocaleString("de-AT", { style: "currency", currency: "EUR" }); }
+
+  function renderPlans() {
+    var wrap = el("plan-cards"); wrap.innerHTML = "";
+    state.plans.forEach(function (p) {
+      var on = p.id === state.selected;
+      var card = document.createElement("button");
+      card.type = "button";
+      card.style.cssText = "text-align:left;border:1.5px solid " + (on ? "var(--green)" : "var(--line-2)") +
+        ";background:" + (on ? "oklch(0.96 0.02 258)" : "var(--paper)") +
+        ";border-radius:12px;padding:14px 16px;cursor:pointer;font-family:var(--sans);display:flex;justify-content:space-between;align-items:center;gap:12px";
+      card.innerHTML = '<span><span style="font-weight:700;color:var(--ink);font-size:16px">' + p.name +
+        '</span><span style="display:block;font-size:13px;color:var(--muted)">' + p.limit.toLocaleString("de-AT") + ' Anfragen/Monat</span></span>' +
+        '<span style="font-weight:700;color:var(--ink);white-space:nowrap">' + eur(p.monthlyCents) + '<span style="font-weight:400;font-size:13px;color:var(--muted-2)"> /Mon.</span></span>';
+      card.addEventListener("click", function () { state.selected = p.id; renderPlans(); renderSummary(); });
+      wrap.appendChild(card);
+    });
+  }
+  function currentPlan() { return state.plans.filter(function (p) { return p.id === state.selected; })[0]; }
+  function renderSummary() {
+    var p = currentPlan(); if (!p) return;
+    el("sum-monthly").textContent = eur(p.monthlyCents);
+    if (p.setupCents > 0) { el("sum-setup").textContent = eur(p.setupCents); el("sum-setup-row").hidden = false; }
+    else { el("sum-setup-row").hidden = true; }
+  }
+
+  function showErr(m) { var e = el("err"); e.textContent = m; e.hidden = !m; }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  function showSuccess(o) {
+    el("order-form").hidden = true;
+    document.getElementById("cancel-note").hidden = true;
+    el("os-invnum").textContent = o.invoiceNumber || "";
+    el("os-amount").textContent = eur(o.amountCents);
+    var b = o.bank || {};
+    el("os-bank").innerHTML =
+      "Kontoinhaber: <strong>" + esc(b.accountHolder) + "</strong><br>" +
+      "IBAN: <strong>" + esc(b.iban) + "</strong><br>" +
+      "BIC: " + esc(b.bic) + " · " + esc(b.bankName) + "<br>" +
+      "Verwendungszweck: <strong>" + esc(o.reference) + "</strong>";
+    if (o.qrDataUrl) {
+      el("os-qr").src = o.qrDataUrl;
+      document.getElementById("os-qr-box").hidden = false;
+    }
+    if (o.paypal && /^https?:\/\//.test(o.paypal)) {
+      el("os-paypal").href = o.paypal;
+      document.getElementById("os-paypal-box").hidden = false;
+    } else if (o.paypal) {
+      document.getElementById("os-paypal-box").hidden = false;
+      el("os-paypal").outerHTML =
+        '<span style="font-size:15px;color:var(--ink-2)">PayPal an <strong>' + esc(o.paypal) +
+        "</strong> (Verwendungszweck " + esc(o.reference) + ")</span>";
+    }
+    document.getElementById("order-success").hidden = false;
+    window.scrollTo(0, 0);
+  }
+
+  el("submit").addEventListener("click", function () {
+    if (state.busy) return;
+    showErr("");
+    var email = el("email").value.trim();
+    var url = el("url").value.trim();
+    var name = el("bname").value.trim();
+    var addr = el("baddr").value.trim();
+    if (!email || email.indexOf("@") < 0) { showErr("Bitte eine gültige E-Mail-Adresse angeben."); el("email").focus(); return; }
+    if (name.length < 2) { showErr("Bitte Name oder Firma für die Rechnung angeben."); el("bname").focus(); return; }
+    if (addr.length < 5) { showErr("Bitte die Anschrift für die Rechnung angeben."); el("baddr").focus(); return; }
+    if (!url || url.indexOf(".") < 0) { showErr("Bitte deine Website-Adresse angeben."); el("url").focus(); return; }
+    state.busy = true; el("submit").disabled = true; el("submit").textContent = "Wird gesendet …";
+    fetch("/api/signup", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email, url: url, planId: state.selected, name: name, address: addr }),
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (res.ok && res.d.mode === "online" && res.d.url) { location.href = res.d.url; return; }
+        if (res.ok && res.d.mode === "invoice" && res.d.order) { showSuccess(res.d.order); return; }
+        showErr(res.d.error || "Es ist ein Fehler aufgetreten. Bitte später erneut versuchen.");
+        state.busy = false; el("submit").disabled = false; el("submit").textContent = "Zahlungspflichtig bestellen";
+      })
+      .catch(function () {
+        showErr("Verbindung fehlgeschlagen. Bitte später erneut versuchen.");
+        state.busy = false; el("submit").disabled = false; el("submit").textContent = "Zahlungspflichtig bestellen";
+      });
+  });
+
+  fetch("/api/signup/plans")
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d || !d.plans) { showErr("Tarife konnten nicht geladen werden."); return; }
+      state.plans = d.plans;
+      if (!state.plans.some(function (p) { return p.id === state.selected; })) state.selected = state.plans[0].id;
+      renderPlans(); renderSummary();
+    })
+    .catch(function () { showErr("Tarife konnten nicht geladen werden."); });
+})();
+</script>
+</body>
+</html>

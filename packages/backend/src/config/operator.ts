@@ -26,6 +26,8 @@ export interface OperatorConfig {
   uid: string; // UID-/Steuernummer
   taxNote: string; // z. B. Kleinunternehmerregelung / USt-Hinweis
   bank: OperatorBank;
+  /** PayPal-Zahllink oder -E-Mail (z. B. "https://paypal.me/deinname"). Leer = aus. */
+  paypal: string;
   supportEmail: string;
   supportPhone: string;
   currency: string; // z. B. "EUR"
@@ -42,6 +44,7 @@ const PLACEHOLDER: OperatorConfig = {
     bic: "[BIC]",
     bankName: "[Bank]",
   },
+  paypal: "",
   supportEmail: "[support@deine-domain.at]",
   supportPhone: "[+43 …]",
   currency: "EUR",

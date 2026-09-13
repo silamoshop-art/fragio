@@ -13,8 +13,9 @@
  * Response: text/event-stream mit Events meta | token | done | error.
  */
 import type { FastifyInstance } from "fastify";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { getBot, consumeQuota, markEmbeddedSeen } from "../db/repo.js";
+import { getBot, consumeQuota, markEmbeddedSeen, insertFeedback } from "../db/repo.js";
 import { answerQuestion } from "../rag/answer.js";
 import { isOriginAllowed, parseAllowedOrigins } from "../util/origin.js";
 import { sha256 } from "../util/id.js";
@@ -121,14 +122,17 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
       try {
         // Nur mit Analytics-Einwilligung wird der Gesprächsinhalt in chat_logs
         // gespeichert; Kontingent (oben) + Rate-Limit laufen unabhängig davon.
+        // Pro Antwort eine ID: das Widget hängt daran die spätere Bewertung (Daumen).
+        const msgId = randomUUID();
         const stream = answerQuestion(
           bot,
           parsed.data.message,
-          (meta) => send("meta", { ...meta, usage: quota }),
+          (meta) => send("meta", { ...meta, usage: quota, msgId }),
           {
             storeContent: parsed.data.storeContent === true,
             ipHash: hashIp(request.ip),
             history: parsed.data.history,
+            msgId,
           },
         );
         for await (const piece of stream) send("token", { t: piece });
@@ -139,6 +143,25 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
       } finally {
         res.end();
       }
+    },
+  );
+
+  // Antwort-Bewertung (Daumen hoch/runter). Speichert bewusst KEINEN Inhalt und
+  // KEINE IP — nur Bot, Antwort-ID (msgId) und die Wertung. Idempotent je Antwort.
+  const FeedbackSchema = z.object({
+    msgId: z.string().min(8).max(64),
+    rating: z.enum(["up", "down"]),
+  });
+  app.post<{ Params: { botId: string } }>(
+    "/api/chat/:botId/feedback",
+    { config: { rateLimit: {} } },
+    async (request, reply) => {
+      const bot = getBot(request.params.botId);
+      if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
+      const parsed = FeedbackSchema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: "Ungültige Bewertung." });
+      insertFeedback(bot.id, parsed.data.msgId, parsed.data.rating);
+      return { ok: true };
     },
   );
 }

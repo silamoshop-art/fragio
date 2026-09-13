@@ -87,6 +87,18 @@ CREATE TABLE IF NOT EXISTS chat_logs (
 );
 CREATE INDEX IF NOT EXISTS idx_logs_bot ON chat_logs(bot_id, created_at);
 
+-- Antwort-Bewertung (Daumen hoch/runter). Eine Bewertung je Antwort (msg_id ist
+-- eine pro Antwort erzeugte ID). Bewusst OHNE Inhalt/IP: nur Bot, Antwort-ID, Wertung.
+CREATE TABLE IF NOT EXISTS message_feedback (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  bot_id     TEXT NOT NULL REFERENCES bots(id) ON DELETE CASCADE,
+  msg_id     TEXT NOT NULL,
+  rating     TEXT NOT NULL,           -- 'up' | 'down'
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_feedback_bot ON message_feedback(bot_id, created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_feedback_msg ON message_feedback(msg_id);
+
 -- Rechnungen (Package D). invoice_number ist fortlaufend pro Jahr ("2026-001").
 CREATE TABLE IF NOT EXISTS invoices (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,

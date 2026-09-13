@@ -18,7 +18,7 @@ export interface BotRow {
   id: string;
   tenant_id: string;
   name: string;
-  status: "active" | "suspended" | "pending_delete";
+  status: "active" | "paused" | "suspended" | "pending_delete";
   llm_provider: ProviderId;
   encrypted_api_key: string | null;
   chat_model: string | null;
@@ -369,6 +369,109 @@ export function getPortalAnalytics(botId: string, days = 30): {
   };
 }
 
+/**
+ * Vorschlagsfragen fürs Widget (die N häufigsten Besucherfragen, bereinigt).
+ *
+ * Quelle: gespeicherte Chat-Logs (nur mit Einwilligung entstanden). Es werden
+ * ähnliche Formulierungen zusammengeführt (case-/whitespace-/satzzeichen-insensitiv),
+ * die häufigste Oberflächenform je Gruppe genommen und formal geglättet
+ * (Groß-/Kleinschreibung, Leerzeichen, Fragezeichen). Reicht die Datenlage nicht,
+ * wird mit manuellen FAQ-Fragen und generischen Standardfragen aufgefüllt, damit das
+ * Widget immer bis zu N sinnvolle Vorschläge zeigt.
+ */
+const GENERIC_SUGGESTIONS = [
+  "Wie sind die Öffnungszeiten?",
+  "Wo finde ich euch?",
+  "Wie kann ich euch kontaktieren?",
+  "Welche Leistungen bietet ihr an?",
+];
+
+/** Formale Glättung einer Frage für die Anzeige als Vorschlag-Chip. */
+function cleanSuggestion(raw: string): string {
+  let s = (raw || "").replace(/\s+/g, " ").trim();
+  if (!s) return "";
+  // Durchgehende Großschreibung ("WO SEID IHR") auf Normalform bringen.
+  if (s === s.toUpperCase() && s !== s.toLowerCase()) s = s.toLowerCase();
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  if (!/[?.!…]$/.test(s)) s += "?";
+  return s;
+}
+/** Normalschlüssel zum Zusammenführen ähnlicher Formulierungen. */
+function suggestionKey(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[?!.,;:…"'`´()\-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+/** Bewertet eine Schreibweise: gemischte Groß-/Kleinschreibung wirkt am natürlichsten. */
+function surfaceScore(t: string): number {
+  const hasLower = t !== t.toUpperCase();
+  const hasUpper = t !== t.toLowerCase();
+  return hasLower && hasUpper ? 2 : hasLower ? 1 : 0; // gemischt > klein > GROSS
+}
+
+export function suggestedQuestions(botId: string, limit = 3): string[] {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT question, COUNT(*) AS count, MAX(created_at) AS mx FROM chat_logs
+       WHERE bot_id = ? AND question IS NOT NULL AND TRIM(question) <> ''
+       GROUP BY question ORDER BY count DESC LIMIT 200`,
+    )
+    .all(botId) as unknown as { question: string; count: number; mx: number }[];
+
+  // Ähnliche Formulierungen zusammenführen; je Gruppe die häufigste, natürlichste
+  // Schreibweise wählen (so gewinnt "Was kostet …?" gegen "WAS KOSTET …").
+  interface Group { count: number; mx: number; surfaces: { text: string; c: number }[] }
+  const groups = new Map<string, Group>();
+  for (const r of rows) {
+    const key = suggestionKey(r.question);
+    if (!key) continue;
+    let g = groups.get(key);
+    if (!g) { g = { count: 0, mx: 0, surfaces: [] }; groups.set(key, g); }
+    g.count += Number(r.count);
+    g.mx = Math.max(g.mx, Number(r.mx));
+    g.surfaces.push({ text: r.question, c: Number(r.count) });
+  }
+  const ordered = [...groups.values()].sort((a, b) => b.count - a.count || b.mx - a.mx);
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const push = (raw: string) => {
+    const cleaned = cleanSuggestion(raw);
+    if (!cleaned || cleaned.length < 6 || cleaned.length > 90) return;
+    const key = suggestionKey(cleaned);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    out.push(cleaned);
+  };
+
+  for (const g of ordered) {
+    if (out.length >= limit) break;
+    const best = g.surfaces.sort(
+      (a, b) => b.c - a.c || surfaceScore(b.text) - surfaceScore(a.text),
+    )[0];
+    push(best.text);
+  }
+  // Auffüllen mit manuellen FAQ-Fragen (redaktionell, immer sauber).
+  if (out.length < limit) {
+    const faqs = db
+      .prepare(`SELECT question FROM manual_faqs WHERE bot_id = ? ORDER BY created_at DESC LIMIT 10`)
+      .all(botId) as unknown as { question: string }[];
+    for (const f of faqs) {
+      if (out.length >= limit) break;
+      push(f.question);
+    }
+  }
+  // Zuletzt generische Standardfragen, damit immer bis zu N Vorschläge erscheinen.
+  for (const g of GENERIC_SUGGESTIONS) {
+    if (out.length >= limit) break;
+    push(g);
+  }
+  return out.slice(0, limit);
+}
+
 // ── App-Einstellungen (JSON pro Schlüssel) ───────────────────────────────────
 
 export function getSetting(key: string): string | undefined {
@@ -602,6 +705,29 @@ export function listStaleSystemBotIds(tenantEmail: string, maxAgeMs: number): st
        WHERE t.email = ? AND b.created_at < ?`,
     )
     .all(tenantEmail, BigInt(cutoff)) as unknown as { id: string }[];
+  return rows.map((r) => r.id);
+}
+
+/**
+ * Demo-/System-Bots, die endgültig gelöscht werden dürfen: ENTWEDER älter als
+ * maxAgeMs, ODER ihr Trial ist bereits abgelaufen bzw. das Kontingent aufgebraucht.
+ * So bleibt eine verbrauchte oder abgelaufene Vorschau nicht sinnlos am Server
+ * liegen (Datenschutz: „halb-lokal", nichts Fremdes bleibt dauerhaft gespeichert).
+ */
+export function listPurgeableSystemBotIds(tenantEmail: string, maxAgeMs: number): string[] {
+  const now = Date.now();
+  const cutoff = now - maxAgeMs;
+  const rows = getDb()
+    .prepare(
+      `SELECT b.id FROM bots b JOIN tenants t ON t.id = b.tenant_id
+       WHERE t.email = ?
+         AND (
+           b.created_at < ?
+           OR (b.trial_expires_at IS NOT NULL AND b.trial_expires_at <= ?)
+           OR b.trial_request_count >= b.trial_request_cap
+         )`,
+    )
+    .all(tenantEmail, BigInt(cutoff), BigInt(now)) as unknown as { id: string }[];
   return rows.map((r) => r.id);
 }
 
@@ -1088,11 +1214,12 @@ export function insertChatLog(entry: {
   provider: string | null;
   latencyMs: number | null;
   ipHash?: string | null;
+  msgId?: string | null;
 }): void {
   getDb()
     .prepare(
-      `INSERT INTO chat_logs(bot_id, question, answer, answered, top_score, provider, latency_ms, ip_hash, created_at)
-       VALUES (?,?,?,?,?,?,?,?,?)`,
+      `INSERT INTO chat_logs(bot_id, question, answer, answered, top_score, provider, latency_ms, ip_hash, msg_id, created_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?)`,
     )
     .run(
       entry.botId,
@@ -1103,8 +1230,36 @@ export function insertChatLog(entry: {
       entry.provider,
       entry.latencyMs === null ? null : BigInt(entry.latencyMs),
       entry.ipHash ?? null,
+      entry.msgId ?? null,
       BigInt(Date.now()),
     );
+}
+
+/**
+ * Antwort-Bewertung (Daumen hoch/runter). Idempotent je Antwort (msg_id UNIQUE):
+ * ein erneuter Klick ersetzt die vorherige Wertung. Speichert bewusst KEINEN Inhalt
+ * und KEINE IP — nur Bot, Antwort-ID, Wertung, Zeit.
+ */
+export function insertFeedback(botId: string, msgId: string, rating: "up" | "down"): void {
+  getDb()
+    .prepare(
+      `INSERT INTO message_feedback(bot_id, msg_id, rating, created_at) VALUES (?,?,?,?)
+       ON CONFLICT(msg_id) DO UPDATE SET rating = excluded.rating, created_at = excluded.created_at`,
+    )
+    .run(botId, msgId, rating, BigInt(Date.now()));
+}
+
+/** Bewertungs-Zusammenfassung eines Bots (fürs Dashboard/Portal). */
+export function feedbackSummary(botId: string): { up: number; down: number } {
+  const row = getDb()
+    .prepare(
+      `SELECT
+         SUM(CASE WHEN rating = 'up' THEN 1 ELSE 0 END) AS up,
+         SUM(CASE WHEN rating = 'down' THEN 1 ELSE 0 END) AS down
+       FROM message_feedback WHERE bot_id = ?`,
+    )
+    .get(botId) as { up: number | null; down: number | null } | undefined;
+  return { up: Number(row?.up ?? 0), down: Number(row?.down ?? 0) };
 }
 
 /** Chat-Log-Detailansicht (jüngste zuerst). Zeigt gehashte IP, nicht die echte IP. */

@@ -17,6 +17,7 @@ import PDFDocument from "pdfkit";
 import { config } from "../config.js";
 import { planName } from "./plans.js";
 import { operatorConfig } from "../config/operator.js";
+import { epcQrPngBuffer } from "../util/epc-qr.js";
 import { sendEmail } from "../notify/email.js";
 import {
   getInvoiceForBotPeriod,
@@ -185,6 +186,15 @@ async function writeInvoice(
   fs.mkdirSync(invoicesDir, { recursive: true });
   const pdfPath = path.join(invoicesDir, `${number}.pdf`);
 
+  // EPC-/Giro-QR (Betrag + Verwendungszweck vorbefüllt) — null bei Platzhalter-IBAN.
+  const qrPng = await epcQrPngBuffer({
+    name: op.bank.accountHolder,
+    iban: op.bank.iban,
+    bic: op.bank.bic,
+    amountCents: totalCents,
+    reference: number,
+  });
+
   await renderPdf(pdfPath, {
     number,
     dateLabel: args.when.toLocaleDateString("de-AT"),
@@ -200,6 +210,7 @@ async function writeInvoice(
     items: args.items,
     totalCents,
     currency,
+    qrPng,
   });
 
   const id = insertInvoice({
@@ -257,6 +268,7 @@ interface PdfData {
   items: LineItem[];
   totalCents: number;
   currency: string;
+  qrPng?: Buffer | null;
 }
 
 function money(cents: number, currency: string): string {
@@ -318,13 +330,24 @@ function renderPdf(filePath: string, d: PdfData): Promise<void> {
     line("Gesamtbetrag", d.totalCents, true);
     doc.font("Helvetica");
 
-    // Zahlungsinformationen (Bank aus operator.config.json)
-    doc.moveDown(1.5).fontSize(10).fillColor("#000").text("Zahlbar auf folgendes Konto:");
+    // Zahlungsinformationen (Bank aus operator.config.json) — links; QR rechts.
+    doc.moveDown(1.5);
+    const payY = doc.y;
+    doc.fontSize(10).fillColor("#000").text("Zahlbar auf folgendes Konto:", 56, payY, { width: 350 });
     doc.fontSize(9).fillColor("#555");
-    doc.text(`Kontoinhaber: ${d.issuerBank.accountHolder}`);
-    doc.text(`IBAN: ${d.issuerBank.iban}    BIC: ${d.issuerBank.bic}`);
-    doc.text(`Bank: ${d.issuerBank.bankName}`);
-    doc.text(`Verwendungszweck: ${d.number}`);
+    doc.text(`Kontoinhaber: ${d.issuerBank.accountHolder}`, 56, undefined, { width: 350 });
+    doc.text(`IBAN: ${d.issuerBank.iban}    BIC: ${d.issuerBank.bic}`, 56, undefined, { width: 350 });
+    doc.text(`Bank: ${d.issuerBank.bankName}`, 56, undefined, { width: 350 });
+    doc.text(`Verwendungszweck: ${d.number}`, 56, undefined, { width: 350 });
+    const payTextBottom = doc.y;
+
+    // EPC-/Giro-QR rechts (nur wenn vorhanden = gültige IBAN).
+    if (d.qrPng) {
+      doc.image(d.qrPng, 452, payY, { width: 88 });
+      doc.fontSize(7.5).fillColor("#777").text("Mit Banking-App scannen", 442, payY + 90, { width: 108, align: "center" });
+    }
+    // Cursor unter beide Spalten setzen.
+    doc.y = Math.max(payTextBottom, d.qrPng ? payY + 108 : payTextBottom);
 
     doc.moveDown(1.5).fontSize(9).fillColor("#777");
     if (d.issuerTaxNote) doc.text(d.issuerTaxNote);

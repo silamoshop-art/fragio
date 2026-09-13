@@ -14,7 +14,7 @@ import cron from "node-cron";
 import { config } from "./config.js";
 import {
   listStaleTrialBotIds,
-  listStaleSystemBotIds,
+  listPurgeableSystemBotIds,
   deleteBot,
   listActiveBotsWithUrl,
   setCrawlResult,
@@ -22,20 +22,22 @@ import {
   listPayingBots,
 } from "./db/repo.js";
 import { crawlAndIndex } from "./crawler/index.js";
+import { DEMO_TENANT_EMAIL } from "./routes/demo.js";
 import { generateInvoiceForBot } from "./billing/invoice.js";
 import { runBackupOnce } from "./db/backup.js";
 import { deleteExpiredChatLogs } from "./db/repo.js";
 
 const DAY = 24 * 60 * 60 * 1000;
 const TRIAL_DELETE_DAYS = 30;
-const DEMO_DELETE_DAYS = 7;
-const DEMO_TENANT_EMAIL = "demo@sitebot.local";
+// Self-Service-Demos höchstens 24 h vorhalten; aufgebrauchte/abgelaufene früher
+// (siehe listPurgeableSystemBotIds) — nichts Fremdes bleibt dauerhaft am Server.
+const DEMO_DELETE_MS = 24 * 60 * 60 * 1000;
 
 export function runCleanupOnce(): { trials: number; demos: number } {
   const staleTrials = listStaleTrialBotIds(TRIAL_DELETE_DAYS * DAY);
   for (const id of staleTrials) deleteBot(id);
-  // Alte Bots des System-/Demo-Tenants (aus früheren Vorschau-Crawls) aufräumen.
-  const staleDemos = listStaleSystemBotIds(DEMO_TENANT_EMAIL, DEMO_DELETE_DAYS * DAY);
+  // Demo-Bots: älter als 24 h ODER Trial abgelaufen/aufgebraucht -> endgültig löschen.
+  const staleDemos = listPurgeableSystemBotIds(DEMO_TENANT_EMAIL, DEMO_DELETE_MS);
   for (const id of staleDemos) deleteBot(id);
 
   if (staleTrials.length || staleDemos.length) {

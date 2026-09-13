@@ -21,10 +21,13 @@ import { getBot, ensureOperatorTenant } from "./db/repo.js";
 import { sha256 } from "./util/id.js";
 import { botIdFromUrl, parseAllowedOrigins, isOriginAllowed } from "./util/origin.js";
 import { chatRoutes } from "./routes/chat.js";
+import { demoRoutes } from "./routes/demo.js";
+import { signupRoutes } from "./routes/signup.js";
 import { widgetConfigRoutes } from "./routes/widget-config.js";
 import { adminRoutes } from "./routes/admin.js";
 import { portalRoutes } from "./routes/portal.js";
 import { stripeRoutes } from "./routes/stripe.js";
+import { lemonSqueezyRoutes } from "./routes/lemonsqueezy.js";
 import { startCron } from "./cron.js";
 
 export async function buildServer() {
@@ -108,10 +111,33 @@ export async function buildServer() {
     },
   });
 
-  // Landing-/Onboarding-Seite unter "/".
+  // Landing-/Onboarding-Seite unter "/". Mit Sicherheits-Headern gehärtet:
+  //  - CSP: alles nur von der eigenen Herkunft; Netzwerk-Calls (Demo/Chat) nur
+  //    same-origin (connect-src 'self'); Einbetten in fremde Frames verboten.
+  //    'unsafe-inline' ist nötig, weil die statischen Seiten Inline-Styles/-Script
+  //    nutzen — es werden aber KEINE server-seitig eingefügten Inhalte gerendert,
+  //    daher kein Injection-Vektor.
+  //  - Kein Sniffing, kein Clickjacking, sparsame Referrer, keine Sensor-APIs.
+  const landingCsp =
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline'; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "img-src 'self' data:; " +
+    "font-src 'self'; " +
+    "connect-src 'self'; " +
+    "form-action 'self'; " +
+    "base-uri 'none'; " +
+    "frame-ancestors 'none'";
   await app.register(fastifyStatic, {
     root: path.join(config.repoRoot, "packages", "landing", "public"),
     prefix: "/",
+    setHeaders: (res) => {
+      res.setHeader("Content-Security-Policy", landingCsp);
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("X-Frame-Options", "DENY");
+      res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+      res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+    },
   });
   // Widget-Assets unter /widget/.
   await app.register(fastifyStatic, {
@@ -143,10 +169,43 @@ export async function buildServer() {
   }
 
   await app.register(chatRoutes);
+  await app.register(demoRoutes);
+  await app.register(signupRoutes);
   await app.register(widgetConfigRoutes);
   await app.register(portalRoutes);
   await app.register(stripeRoutes);
+  await app.register(lemonSqueezyRoutes);
   await app.register(adminRoutes);
+
+  // Custom 404: echte Seitenaufrufe bekommen die gestaltete 404-Seite, API-/App-
+  // Pfade weiterhin ein sauberes JSON-404 (keine HTML-Seite an einen fetch-Client).
+  const notFoundPage = path.join(config.repoRoot, "packages", "landing", "public", "404.html");
+  app.setNotFoundHandler((request, reply) => {
+    const url = request.url || "";
+    const isApiLike =
+      request.method !== "GET" ||
+      url.startsWith("/api/") ||
+      url.startsWith("/admin/") ||
+      url.startsWith("/portal/") ||
+      url.startsWith("/logos/") ||
+      url.startsWith("/widget/") ||
+      url.startsWith("/health");
+    const wantsHtml = (request.headers.accept || "").includes("text/html");
+    if (isApiLike || !wantsHtml) {
+      return reply.code(404).send({ error: "Nicht gefunden.", statusCode: 404 });
+    }
+    try {
+      const html = fs.readFileSync(notFoundPage, "utf8");
+      return reply
+        .code(404)
+        .header("Content-Type", "text/html; charset=utf-8")
+        .header("X-Content-Type-Options", "nosniff")
+        .header("Referrer-Policy", "strict-origin-when-cross-origin")
+        .send(html);
+    } catch {
+      return reply.code(404).send({ error: "Nicht gefunden.", statusCode: 404 });
+    }
+  });
 
   return app;
 }

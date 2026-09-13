@@ -6,7 +6,7 @@
  * Enthalten bewusst KEINE Keys/Origins/Tenant-Daten.
  */
 import type { FastifyInstance } from "fastify";
-import { getBot, logConsent } from "../db/repo.js";
+import { getBot, logConsent, suggestedQuestions } from "../db/repo.js";
 import { backendBase } from "../util/embed.js";
 import { CONSENT_NOTICE, defaultPrivacyText } from "../legal/privacy.js";
 
@@ -48,6 +48,13 @@ export async function widgetConfigRoutes(app: FastifyInstance): Promise<void> {
       consentNotice: CONSENT_NOTICE,
       privacyUrl: `${backendBase()}/privacy.html?bot=${bot.id}`,
     };
+  });
+
+  // Die (bis zu) drei häufigsten Besucherfragen als Vorauswahl-Chips — bereinigt.
+  app.get<{ Params: { botId: string } }>("/api/widget/:botId/top-questions", async (request, reply) => {
+    const bot = getBot(request.params.botId);
+    if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
+    return { questions: suggestedQuestions(bot.id, 3) };
   });
 
   app.get<{ Params: { botId: string } }>("/api/widget/:botId/privacy", async (request, reply) => {

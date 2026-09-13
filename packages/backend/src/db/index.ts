@@ -156,6 +156,8 @@ function runMigrations(db: DatabaseSync): void {
     { table: "bots", column: "last_embedded_at", ddl: "INTEGER" },
     // Gehashte IP-Adresse pro Chat-Log (Auftrag 2.3, SHA-256 mit Salt; keine Klartext-IP).
     { table: "chat_logs", column: "ip_hash", ddl: "TEXT" },
+    // Pro Antwort erzeugte ID — verknüpft eine Daumen-hoch/runter-Bewertung mit dem Log.
+    { table: "chat_logs", column: "msg_id", ddl: "TEXT" },
     { table: "tenants", column: "billing_name", ddl: "TEXT" },
     { table: "tenants", column: "billing_address", ddl: "TEXT" },
     { table: "tenants", column: "billing_email", ddl: "TEXT" },

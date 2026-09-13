@@ -53,6 +53,17 @@ const EnvSchema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
 
+  // --- Zahlungen: Lemon Squeezy (Merchant of Record) — Default AUS ---
+  // "true" => Self-Service-Kauf läuft über Lemon-Squeezy-Checkout; USt. übernimmt LS.
+  // Variant-IDs = die in Lemon Squeezy angelegten Abo-Produkte je Tarif.
+  LEMONSQUEEZY_ENABLED: z.string().default("false"),
+  LEMONSQUEEZY_API_KEY: z.string().optional(),
+  LEMONSQUEEZY_STORE_ID: z.string().optional(),
+  LEMONSQUEEZY_WEBHOOK_SECRET: z.string().optional(),
+  LEMONSQUEEZY_VARIANT_STARTER: z.string().optional(),
+  LEMONSQUEEZY_VARIANT_BUSINESS: z.string().optional(),
+  LEMONSQUEEZY_VARIANT_PRO: z.string().optional(),
+
   // --- Standard-Engine für die Antwort-Generierung ---
   // "anthropic" (Default): Claude Haiku 4.5 über den Operator-Key ANTHROPIC_API_KEY.
   // "ollama": optionaler lokaler Modus (nur falls Ollama betrieben wird).
@@ -168,6 +179,11 @@ export const config = {
   secretKey: deriveSecretKey(env.APP_SECRET),
   adminApiKey: deriveAdminKey(env.ADMIN_API_KEY),
   stripeEnabled: env.STRIPE_ENABLED === "true",
+  lemonSqueezyEnabled:
+    env.LEMONSQUEEZY_ENABLED === "true" &&
+    !!env.LEMONSQUEEZY_API_KEY &&
+    !!env.LEMONSQUEEZY_STORE_ID &&
+    !!env.LEMONSQUEEZY_WEBHOOK_SECRET,
   smtpEnabled: !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS),
   smtpSecure: env.SMTP_SECURE === "true",
 };

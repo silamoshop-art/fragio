@@ -25,7 +25,32 @@ import { matchManualFaq } from "./faq.js";
 const RELEVANCE_DISTANCE = 0.24; // bester Treffer schlechter -> "weiß ich nicht" (ohne LLM)
 const CONTEXT_DISTANCE = 0.3; // Chunks darüber nicht in den Kontext
 const TOP_K = 8;
-const DEFAULT_ANSWER_TOKENS = 250; // Fallback, falls Bot keinen Wert gesetzt hat
+const DEFAULT_ANSWER_TOKENS = 500; // Fallback, falls Bot keinen Wert gesetzt hat
+// Untergrenze: verhindert, dass Antworten (v. a. mit Links) mitten im Satz/Link
+// abgeschnitten werden. Bestands-Bots hatten teils nur 250 -> zu wenig für
+// detaillierte Antworten (realer Fall: Link mitten in der URL abgeschnitten).
+const MIN_ANSWER_TOKENS = 450;
+
+/**
+ * Findet den Startindex eines am Ende des Puffers OFFENEN Markdown-Links
+ * (`[text`, `[text]`, `[text](teil-url` ohne schließende `)`), sonst -1. Alles vor
+ * diesem Index ist sicher auszugeben; der Rest wird zurückgehalten, bis der Link
+ * vollständig ist ODER der Stream endet (dann wird ein unfertiger Link verworfen).
+ */
+export function openLinkStart(buf: string): number {
+  const m = buf.match(/\[[^\]\n]*$|\[[^\]\n]*\]$|\[[^\]\n]*\]\([^)\s\n]*$/);
+  return m ? (m.index as number) : -1;
+}
+
+/**
+ * Rest-Puffer am Stream-Ende bereinigen: einen unfertigen `[text](teil-url`-Link
+ * (Abschneiden mitten in der URL) komplett verwerfen; bloßes `[text` / `[text]`
+ * (harmloser Text) bleibt erhalten.
+ */
+export function finalizeTail(tail: string): string {
+  if (/\[[^\]\n]*\]\([^)\s\n]*$/.test(tail)) return ""; // abgeschnittene URL -> weg
+  return tail;
+}
 
 // Manuelle FAQ (Prompt 14 #5): Passt die Besucherfrage sehr stark zu einer
 // redaktionellen FAQ, wird deren Antwort wörtlich ausgegeben. Konservativ
@@ -167,6 +192,8 @@ export interface AnswerOptions {
    * Retrieval (vorige Nutzerfrage anreichern) und als Kontext im LLM-Prompt.
    */
   history?: HistoryTurn[];
+  /** Pro Antwort erzeugte ID (für die spätere Daumen-hoch/runter-Bewertung). */
+  msgId?: string | null;
 }
 
 export async function* answerQuestion(
@@ -177,6 +204,7 @@ export async function* answerQuestion(
 ): AsyncGenerator<string> {
   const storeContent = opts?.storeContent !== false; // Default: loggen (Cron/Tests)
   const ipHash = opts?.ipHash ?? null;
+  const msgId = opts?.msgId ?? null;
   const history = opts?.history ?? [];
   const started = Date.now();
   const branding = safeParseBranding(bot.branding);
@@ -212,6 +240,7 @@ export async function* answerQuestion(
         provider: "faq",
         latencyMs: Date.now() - started,
         ipHash,
+        msgId,
       });
     }
     yield answerText;
@@ -267,6 +296,7 @@ export async function* answerQuestion(
         provider: "none",
         latencyMs: Date.now() - started,
         ipHash,
+        msgId,
       });
     }
     yield reply;
@@ -292,14 +322,31 @@ export async function* answerQuestion(
   );
 
   let full = "";
+  // Puffer, um einen am Ende noch offenen Markdown-Link zurückzuhalten (er wird
+  // erst ausgegeben, wenn er vollständig ist — sonst nie ein abgeschnittener Link).
+  let buffer = "";
   try {
     for await (const piece of provider.streamAnswer({
       system,
       messages: [{ role: "user", content: userMessage }],
-      maxTokens: bot.max_answer_tokens || DEFAULT_ANSWER_TOKENS,
+      // Untergrenze gegen Mitten-im-Link-Abschneiden (siehe MIN_ANSWER_TOKENS).
+      maxTokens: Math.max(bot.max_answer_tokens || DEFAULT_ANSWER_TOKENS, MIN_ANSWER_TOKENS),
     })) {
-      full += piece;
-      yield piece;
+      buffer += piece;
+      const cut = openLinkStart(buffer);
+      const boundary = cut === -1 ? buffer.length : cut;
+      if (boundary > 0) {
+        const emit = buffer.slice(0, boundary);
+        full += emit;
+        buffer = buffer.slice(boundary);
+        yield emit;
+      }
+    }
+    // Stream zu Ende: Rest ausgeben, aber einen abgeschnittenen Link verwerfen.
+    const tail = finalizeTail(buffer);
+    if (tail) {
+      full += tail;
+      yield tail;
     }
   } finally {
     // Trial-Kontingent erhöhen (nur wenn der Trial-Key wirklich verwendet wurde).
@@ -319,6 +366,7 @@ export async function* answerQuestion(
         provider: provider.id,
         latencyMs: Date.now() - started,
         ipHash,
+        msgId,
       });
     }
   }

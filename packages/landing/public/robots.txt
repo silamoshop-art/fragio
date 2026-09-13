@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /$
+Allow: /impressum.html
+Allow: /datenschutz.html
+Allow: /agb.html
+Disallow: /api/
+Disallow: /admin/
+Disallow: /portal/
+Disallow: /logos/
+Disallow: /widget/
+Disallow: /preview.html
+Disallow: /privacy.html
+
+Sitemap: https://fragio.at/sitemap.xml
