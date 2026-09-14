@@ -9,7 +9,7 @@
 <link rel="canonical" href="https://fragio.at/agb.html" />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="icon" href="/favicon.ico" sizes="any" />
-<link rel="apple-touch-icon" href="/favicon.svg" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 <meta name="theme-color" content="#ffffff" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Fragio" />
@@ -22,98 +22,124 @@
 <meta name="twitter:title" content="AGB — Fragio" />
 <meta name="twitter:description" content="Allgemeine Geschäftsbedingungen von Fragio." />
 <meta name="twitter:image" content="https://fragio.at/og-image.png" />
-<style>
-  :root {
-    --sand: oklch(0.985 0.003 258); --paper: #fff; --ink: oklch(0.22 0.01 258); --ink-2: oklch(0.22 0.01 258); --green: oklch(0.55 0.16 258);
-    --rust: oklch(0.55 0.16 258); --muted: oklch(0.48 0.01 258); --muted-2: oklch(0.6 0.01 258); --line: oklch(0.92 0.005 258); --line-2: oklch(0.88 0.006 258);
-    --serif: var(--sans);
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  }
-  html { scroll-behavior:smooth; }
-  body { margin:0; background:var(--sand); color:var(--ink-2); font-family:var(--sans); -webkit-font-smoothing:antialiased; }
-  * { box-sizing:border-box; }
-  a { color:var(--green); text-decoration:underline; text-underline-offset:2px; }
-  a:hover { color:var(--rust); }
-  h1,h2 { font-family:var(--serif); font-weight:700; }
-  :focus-visible { outline:2px solid var(--green); outline-offset:2px; border-radius:4px; }
-</style>
+<link rel="stylesheet" href="/site.css" />
 </head>
 <body>
-<a href="#main" style="position:absolute;left:-9999px;top:0;background:var(--paper);color:var(--ink);padding:10px 16px;border-radius:8px;z-index:100" onfocus="this.style.left='12px'" onblur="this.style.left='-9999px'">Zum Inhalt springen</a>
-<div style="min-height:100vh;background:var(--sand)">
-  <header style="border-bottom:1px solid var(--line);background:oklch(0.985 0.003 258 / 0.92)">
-    <nav aria-label="Hauptnavigation" style="max-width:820px;margin:0 auto;padding:16px clamp(20px,4vw,40px);display:flex;align-items:center;gap:20px">
-      <a href="/" style="font-family:var(--serif);font-weight:700;font-size:26px;color:var(--ink-2);text-decoration:none;margin-right:auto">Fragio</a>
-      <a href="/" style="font-size:15px;color:var(--muted);text-decoration:none">← Zur Startseite</a>
-    </nav>
-  </header>
+<a href="#main" class="skip-link">Zum Inhalt springen</a>
 
-  <main id="main" style="max-width:820px;margin:0 auto;padding:clamp(40px,6vw,72px) clamp(20px,4vw,40px) clamp(56px,7vw,96px)">
-    <h1 style="margin:0 0 12px;font-size:clamp(34px,4.6vw,50px);line-height:1.08;letter-spacing:-0.02em;color:var(--ink)">Allgemeine Geschäftsbedingungen</h1>
-    <p style="margin:0 0 40px;font-size:16px;line-height:1.6;color:var(--muted)">Für die Nutzung des Dienstes „Fragio". Stand: September 2026.</p>
-
-    <section style="margin-bottom:36px">
-      <h2 style="margin:0 0 14px;font-size:24px;color:var(--ink)">1. Anbieter und Geltungsbereich</h2>
-      <p style="margin:0 0 12px;font-size:16.5px;line-height:1.75;color:var(--ink-2);text-wrap:pretty">Anbieter des Dienstes „Fragio" ist Peter Obermüller, Mesnerweg 2, 4203 Altenberg bei Linz, Österreich (nachfolgend „Anbieter"). Diese Bedingungen gelten für alle Verträge über die Bereitstellung des KI-Chat-Assistenten sowie für die kostenlose Testfunktion auf dieser Website. Abweichende Bedingungen des Kunden gelten nur, wenn der Anbieter ihnen schriftlich zustimmt.</p>
-    </section>
-
-    <section style="margin-bottom:36px">
-      <h2 style="margin:0 0 14px;font-size:24px;color:var(--ink)">2. Leistungsgegenstand</h2>
-      <p style="margin:0 0 12px;font-size:16.5px;line-height:1.75;color:var(--ink-2);text-wrap:pretty">Fragio liest die öffentlich zugänglichen Inhalte der Website des Kunden ein und stellt einen Chat-Assistenten bereit, der Besucherfragen auf Basis dieser Inhalte beantwortet. Der Assistent gibt ausschließlich Informationen wieder, die sich aus den eingelesenen Inhalten ergeben; er trifft keine rechtsverbindlichen Zusagen im Namen des Kunden. Der konkrete Funktionsumfang richtet sich nach dem gewählten Tarif.</p>
-    </section>
-
-    <section style="margin-bottom:36px">
-      <h2 style="margin:0 0 14px;font-size:24px;color:var(--ink)">3. Kostenlose Testfunktion</h2>
-      <p style="margin:0 0 12px;font-size:16.5px;line-height:1.75;color:var(--ink-2);text-wrap:pretty">Über die Testfunktion kann eine Website-Adresse eingegeben werden, um eine unverbindliche Vorschau zu erhalten. Die Nutzung ist auf eine begrenzte Anzahl an Anfragen je Vorschau beschränkt; die eingelesenen Inhalte werden automatisch, spätestens nach 24 Stunden, gelöscht. Es dürfen nur Adressen eingegeben werden, für deren öffentliche Inhalte der Nutzer zur Testnutzung berechtigt ist. Ein Anspruch auf ständige Verfügbarkeit der Testfunktion besteht nicht.</p>
-    </section>
-
-    <section style="margin-bottom:36px">
-      <h2 style="margin:0 0 14px;font-size:24px;color:var(--ink)">4. Vertragsabschluss</h2>
-      <p style="margin:0 0 12px;font-size:16.5px;line-height:1.75;color:var(--ink-2);text-wrap:pretty">Ein kostenpflichtiger Vertrag kommt erst durch eine ausdrückliche Beauftragung (z. B. per E-Mail) und deren Bestätigung durch den Anbieter zustande. Die Darstellung der Tarife auf dieser Website ist kein bindendes Angebot, sondern eine Einladung zur Anfrage.</p>
-    </section>
-
-    <section style="margin-bottom:36px">
-      <h2 style="margin:0 0 14px;font-size:24px;color:var(--ink)">5. Preise und Zahlung</h2>
-      <p style="margin:0 0 12px;font-size:16.5px;line-height:1.75;color:var(--ink-2);text-wrap:pretty">Es gelten die zum Zeitpunkt der Beauftragung vereinbarten Preise. Sofern nicht anders angegeben, verstehen sich Preise als monatliche Entgelte zuzüglich einer allfälligen einmaligen Einrichtungsgebühr. Die Verrechnung erfolgt im Voraus. Bei Zahlungsverzug kann der Anbieter den Dienst nach angemessener Fristsetzung aussetzen.</p>
-    </section>
-
-    <section style="margin-bottom:36px">
-      <h2 style="margin:0 0 14px;font-size:24px;color:var(--ink)">6. Laufzeit und Kündigung</h2>
-      <p style="margin:0 0 12px;font-size:16.5px;line-height:1.75;color:var(--ink-2);text-wrap:pretty">Verträge werden, sofern nicht anders vereinbart, monatlich abgeschlossen und können mit einer Frist von 14 Tagen zum Monatsende gekündigt werden. Abweichende Mindestlaufzeiten (etwa im Gegenzug für eine entfallende Einrichtungsgebühr) gelten nur bei ausdrücklicher Vereinbarung. Kündigungen bedürfen der Textform (z. B. E-Mail).</p>
-    </section>
-
-    <section style="margin-bottom:36px">
-      <h2 style="margin:0 0 14px;font-size:24px;color:var(--ink)">7. Pflichten des Kunden</h2>
-      <p style="margin:0 0 12px;font-size:16.5px;line-height:1.75;color:var(--ink-2);text-wrap:pretty">Der Kunde stellt sicher, dass die von ihm bereitgestellten Website-Inhalte richtig sind und keine Rechte Dritter verletzen. Wird der Assistent auf der Website des Kunden eingesetzt, ist der Kunde datenschutzrechtlich Verantwortlicher; der Anbieter handelt insoweit als Auftragsverarbeiter auf Grundlage eines gesonderten Auftragsverarbeitungsvertrags. Der Kunde bindet die erforderlichen Datenschutzhinweise auf seiner Website ein.</p>
-    </section>
-
-    <section style="margin-bottom:36px">
-      <h2 style="margin:0 0 14px;font-size:24px;color:var(--ink)">8. Verfügbarkeit</h2>
-      <p style="margin:0 0 12px;font-size:16.5px;line-height:1.75;color:var(--ink-2);text-wrap:pretty">Der Anbieter bemüht sich um eine hohe Verfügbarkeit des Dienstes, schuldet jedoch keine ununterbrochene Erreichbarkeit. Wartungsarbeiten, Störungen bei Vorleistern (insbesondere dem KI-Dienstleister) oder höhere Gewalt können zu vorübergehenden Einschränkungen führen.</p>
-    </section>
-
-    <section style="margin-bottom:36px">
-      <h2 style="margin:0 0 14px;font-size:24px;color:var(--ink)">9. Haftung</h2>
-      <p style="margin:0 0 12px;font-size:16.5px;line-height:1.75;color:var(--ink-2);text-wrap:pretty">Der Anbieter haftet unbeschränkt bei Vorsatz und grober Fahrlässigkeit sowie bei Verletzung von Leben, Körper oder Gesundheit. Bei leichter Fahrlässigkeit haftet der Anbieter nur bei Verletzung wesentlicher Vertragspflichten und der Höhe nach begrenzt auf den vorhersehbaren, vertragstypischen Schaden. Da der Assistent automatisiert Antworten erzeugt, übernimmt der Anbieter keine Gewähr für die inhaltliche Richtigkeit einzelner Antworten; maßgeblich bleiben stets die offiziellen Angaben des Kunden.</p>
-    </section>
-
-    <section style="margin-bottom:36px">
-      <h2 style="margin:0 0 14px;font-size:24px;color:var(--ink)">10. Schlussbestimmungen</h2>
-      <p style="margin:0 0 12px;font-size:16.5px;line-height:1.75;color:var(--ink-2);text-wrap:pretty">Es gilt österreichisches Recht unter Ausschluss der Verweisungsnormen. Zwingende Verbraucherschutzbestimmungen bleiben unberührt. Sollte eine Bestimmung unwirksam sein, bleibt die Wirksamkeit der übrigen Bestimmungen unberührt. Ergänzend gelten das <a href="/impressum.html">Impressum</a> und die <a href="/datenschutz.html">Datenschutzerklärung</a>.</p>
-    </section>
-  </main>
-
-  <footer style="background:var(--sand);border-top:1px solid var(--line);color:var(--muted)">
-    <div style="max-width:820px;margin:0 auto;padding:30px clamp(20px,4vw,40px);display:flex;gap:20px;flex-wrap:wrap;align-items:baseline">
-      <span style="font-family:var(--serif);font-weight:700;font-size:20px;color:var(--ink)">Fragio</span>
-      <span style="margin-left:auto;display:flex;gap:20px;flex-wrap:wrap;font-size:14px">
-        <a href="/" style="color:var(--muted);text-decoration:none">Start</a>
-        <a href="/impressum.html" style="color:var(--muted);text-decoration:none">Impressum</a>
-        <a href="/datenschutz.html" style="color:var(--muted);text-decoration:none">Datenschutz</a>
-      </span>
+<header class="site-header">
+  <nav class="nav" aria-label="Hauptnavigation">
+    <a href="/" class="brand" aria-label="Fragio Startseite">
+      <img class="brand-mark" src="/logo-mark.png" width="34" height="34" alt="" />
+      <span>Fragio</span>
+    </a>
+    <button class="nav-toggle" aria-label="Menü" aria-expanded="false"><span></span><span></span><span></span></button>
+    <div class="nav-links">
+      <a href="/funktionen.html">Funktionen</a>
+      <a href="/ablauf.html">So funktioniert's</a>
+      <a href="/preise.html">Preise</a>
+      <a href="/faq.html">FAQ</a>
+      <a href="/kontakt.html">Kontakt</a>
+      <a href="/portal/">Login</a>
+      <button type="button" class="lang-toggle" aria-label="Switch to English">EN</button>
+      <a href="/preise.html" class="btn btn-primary btn-sm">Jetzt bestellen</a>
     </div>
-  </footer>
-</div>
+  </nav>
+</header>
+
+<main id="main">
+  <section class="section">
+    <div class="wrap">
+      <div class="page-head">
+        <h1 data-reveal>Allgemeine Geschäftsbedingungen</h1>
+        <p class="section-sub" data-reveal="80">Für die Nutzung des Dienstes „Fragio". Stand: September&nbsp;2026.</p>
+      </div>
+
+      <div class="prose" data-reveal="120">
+        <section>
+          <h2>1. Anbieter und Geltungsbereich</h2>
+          <p>Anbieter des Dienstes „Fragio" ist Peter Obermüller, Mesnerweg 2, 4203 Altenberg bei Linz, Österreich (nachfolgend „Anbieter"). Diese Bedingungen gelten für alle Verträge über die Bereitstellung des KI-Chat-Assistenten sowie für die kostenlose Testfunktion auf dieser Website. Abweichende Bedingungen des Kunden gelten nur, wenn der Anbieter ihnen schriftlich zustimmt.</p>
+        </section>
+
+        <section>
+          <h2>2. Leistungsgegenstand</h2>
+          <p>Fragio liest die öffentlich zugänglichen Inhalte der Website des Kunden ein und stellt einen Chat-Assistenten bereit, der Besucherfragen auf Basis dieser Inhalte beantwortet. Der Assistent gibt ausschließlich Informationen wieder, die sich aus den eingelesenen Inhalten ergeben; er trifft keine rechtsverbindlichen Zusagen im Namen des Kunden. Der konkrete Funktionsumfang richtet sich nach dem gewählten Tarif.</p>
+        </section>
+
+        <section>
+          <h2>3. Kostenlose Testfunktion</h2>
+          <p>Über die Testfunktion kann eine Website-Adresse eingegeben werden, um eine unverbindliche Vorschau zu erhalten. Die Nutzung ist auf eine begrenzte Anzahl an Anfragen je Vorschau beschränkt; die eingelesenen Inhalte werden automatisch, spätestens nach 24 Stunden, gelöscht. Es dürfen nur Adressen eingegeben werden, für deren öffentliche Inhalte der Nutzer zur Testnutzung berechtigt ist. Ein Anspruch auf ständige Verfügbarkeit der Testfunktion besteht nicht.</p>
+        </section>
+
+        <section>
+          <h2>4. Vertragsabschluss</h2>
+          <p>Ein kostenpflichtiger Vertrag kommt zustande, indem der Kunde über das Bestellformular auf dieser Website einen Tarif verbindlich bestellt („Zahlungspflichtig bestellen"). Unmittelbar danach erhält der Kunde eine Rechnung per E-Mail; die Bereitstellung des Chatbots erfolgt nach Zahlungseingang. Alternativ bleibt ein Vertragsabschluss per ausdrücklicher Beauftragung (z.&nbsp;B. per E-Mail) und deren Bestätigung durch den Anbieter möglich.</p>
+        </section>
+
+        <section>
+          <h2>5. Preise und Zahlung</h2>
+          <p>Es gelten die zum Zeitpunkt der Bestellung angegebenen Preise. Sofern nicht anders angegeben, verstehen sich die Preise als monatliche Entgelte zuzüglich der gesetzlichen Umsatzsteuer; eine Einrichtungsgebühr fällt nicht an. Die Bezahlung erfolgt per Rechnung (Überweisung oder PayPal) im Voraus. Bei Zahlungsverzug kann der Anbieter den Dienst nach angemessener Fristsetzung aussetzen.</p>
+        </section>
+
+        <section>
+          <h2>6. Laufzeit und Kündigung</h2>
+          <p>Verträge werden, sofern nicht anders vereinbart, monatlich abgeschlossen und können jederzeit zum Ende des laufenden Abrechnungsmonats gekündigt werden. Abweichende Mindestlaufzeiten gelten nur bei ausdrücklicher Vereinbarung. Kündigungen bedürfen der Textform (z.&nbsp;B. E-Mail).</p>
+        </section>
+
+        <section>
+          <h2>7. Pflichten des Kunden</h2>
+          <p>Der Kunde stellt sicher, dass die von ihm bereitgestellten Website-Inhalte richtig sind und keine Rechte Dritter verletzen. Wird der Assistent auf der Website des Kunden eingesetzt, ist der Kunde datenschutzrechtlich Verantwortlicher; der Anbieter handelt insoweit als Auftragsverarbeiter auf Grundlage eines gesonderten Auftragsverarbeitungsvertrags. Der Kunde bindet die erforderlichen Datenschutzhinweise auf seiner Website ein.</p>
+        </section>
+
+        <section>
+          <h2>8. Verfügbarkeit</h2>
+          <p>Der Anbieter bemüht sich um eine hohe Verfügbarkeit des Dienstes, schuldet jedoch keine ununterbrochene Erreichbarkeit. Wartungsarbeiten, Störungen bei Vorleistern (insbesondere dem KI-Dienstleister) oder höhere Gewalt können zu vorübergehenden Einschränkungen führen.</p>
+        </section>
+
+        <section>
+          <h2>9. Haftung</h2>
+          <p>Der Anbieter haftet unbeschränkt bei Vorsatz und grober Fahrlässigkeit sowie bei Verletzung von Leben, Körper oder Gesundheit. Bei leichter Fahrlässigkeit haftet der Anbieter nur bei Verletzung wesentlicher Vertragspflichten und der Höhe nach begrenzt auf den vorhersehbaren, vertragstypischen Schaden. Da der Assistent automatisiert Antworten erzeugt, übernimmt der Anbieter keine Gewähr für die inhaltliche Richtigkeit einzelner Antworten; maßgeblich bleiben stets die offiziellen Angaben des Kunden.</p>
+        </section>
+
+        <section>
+          <h2>10. Schlussbestimmungen</h2>
+          <p>Es gilt österreichisches Recht unter Ausschluss der Verweisungsnormen. Zwingende Verbraucherschutzbestimmungen bleiben unberührt. Sollte eine Bestimmung unwirksam sein, bleibt die Wirksamkeit der übrigen Bestimmungen unberührt. Ergänzend gelten das <a href="/impressum.html">Impressum</a> und die <a href="/datenschutz.html">Datenschutzerklärung</a>.</p>
+        </section>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="footer-brand">
+      <span class="brand-name">Fragio</span>
+      <p>KI-Chat für Website-Inhalte. Ehrliche Antworten aus Ihren eigenen Seiten. Standort Linz, Oberösterreich.</p>
+    </div>
+    <div>
+      <p class="footer-h">Produkt</p>
+      <a href="/funktionen.html">Funktionen</a>
+      <a href="/ablauf.html">So funktioniert's</a>
+      <a href="/testen.html">Live testen</a>
+      <a href="/preise.html">Preise</a>
+    </div>
+    <div>
+      <p class="footer-h">Unternehmen</p>
+      <a href="/ueber.html">Über Fragio</a>
+      <a href="/kontakt.html">Kontakt</a>
+      <a href="/portal/">Kunden-Login</a>
+    </div>
+    <div>
+      <p class="footer-h">Rechtliches</p>
+      <a href="/impressum.html">Impressum</a>
+      <a href="/datenschutz.html">Datenschutz</a>
+      <a href="/agb.html">AGB</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>Dies ist ein KI-Assistent.</span></div>
+</footer>
+
+<script src="/site.js" defer></script>
+<script src="/i18n.js" defer></script>
 </body>
 </html>

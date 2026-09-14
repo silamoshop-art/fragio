@@ -30,7 +30,7 @@
 <header class="site-header">
   <nav class="nav" aria-label="Hauptnavigation">
     <a href="/" class="brand" aria-label="Fragio Startseite">
-      <img class="brand-mark" src="/logo.svg" width="34" height="34" alt="" />
+      <img class="brand-mark" src="/logo-mark.png" width="34" height="34" alt="" />
       <span>Fragio</span>
     </a>
     <button class="nav-toggle" aria-label="Menü" aria-expanded="false"><span></span><span></span><span></span></button>
@@ -41,6 +41,7 @@
       <a href="/faq.html">FAQ</a>
       <a href="/kontakt.html">Kontakt</a>
       <a href="/portal/">Login</a>
+      <button type="button" class="lang-toggle" aria-label="Switch to English">EN</button>
       <a href="/preise.html" class="btn btn-primary btn-sm">Jetzt bestellen</a>
     </div>
   </nav>
@@ -50,15 +51,14 @@
   <section class="section">
     <div class="wrap">
       <div style="max-width:640px;margin:0 0 clamp(32px,4vw,52px)">
-        <p class="eyebrow" data-reveal>Funktionen</p>
-        <h1 data-reveal="60" style="font-size:clamp(32px,4.6vw,50px)">Ein Assistent, der ehrlich bleibt.</h1>
+        <h1 data-reveal style="font-size:clamp(32px,4.6vw,50px)">Ein Assistent, der ehrlich bleibt.</h1>
         <p class="section-sub" data-reveal="120">Fragio beantwortet Besucherfragen ausschließlich aus Ihren eigenen Website-Inhalten — und macht dabei vieles, was gute Beratung ausmacht.</p>
       </div>
 
       <div class="grid-3">
         <article class="card" data-lift data-reveal>
           <h3>Antwortet rund um die Uhr</h3>
-          <p>Die Fragen, die sonst am Telefon landen, sind auch um 21:30 beantwortet — sofort und in Ihrer Sprache.</p>
+          <p data-i18n-en="The questions that usually end up on the phone are answered at 9:30 p.m. too — instantly and in your language.">Die Fragen, die sonst am Telefon landen, sind auch um 21:30 beantwortet — sofort und in Ihrer Sprache.</p>
         </article>
         <article class="card" data-lift data-reveal="70">
           <h3>Nennt die Quelle</h3>
@@ -70,7 +70,7 @@
         </article>
         <article class="card" data-lift data-reveal>
           <h3>Bleibt automatisch aktuell</h3>
-          <p>Einmal pro Woche wird Ihre Website neu gelesen. Neue Preise oder Seiten kennt der Bot ab dem nächsten Lauf — ohne Ihr Zutun.</p>
+          <p data-i18n-en="Your website is re-read once a week. The bot knows new prices or pages from the next run on — without you lifting a finger.">Einmal pro Woche wird Ihre Website neu gelesen. Neue Preise oder Seiten kennt der Bot ab dem nächsten Lauf — ohne Ihr Zutun.</p>
         </article>
         <article class="card" data-lift data-reveal="70">
           <h3>Spricht wie Ihr Betrieb</h3>
@@ -90,7 +90,7 @@
         </article>
         <article class="card" data-lift data-reveal="140">
           <h3>PDF-Dokumente inklusive</h3>
-          <p>Fragio liest auch verlinkte PDFs (z.&nbsp;B. Preislisten oder Info-Blätter) mit ein — nicht nur normale Seiten.</p>
+          <p data-i18n-en="Fragio also reads linked PDFs (e.g. price lists or info sheets) — not just normal pages.">Fragio liest auch verlinkte PDFs (z.&nbsp;B. Preislisten oder Info-Blätter) mit ein — nicht nur normale Seiten.</p>
         </article>
       </div>
     </div>
@@ -136,9 +136,10 @@
       <a href="/agb.html">AGB</a>
     </div>
   </div>
-  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>ℹ️ Dies ist ein KI-Assistent.</span></div>
+  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>Dies ist ein KI-Assistent.</span></div>
 </footer>
 
 <script src="/site.js" defer></script>
+<script src="/i18n.js" defer></script>
 </body>
 </html>

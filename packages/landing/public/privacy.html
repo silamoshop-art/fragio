@@ -85,7 +85,7 @@
       }
 
       if (!botId) {
-        document.getElementById("err").textContent = "⚠️ Kein Bot angegeben (?bot=… fehlt).";
+        document.getElementById("err").textContent = "Kein Bot angegeben (?bot=… fehlt).";
         contentEl.innerHTML = "";
       } else {
         fetch("/api/widget/" + encodeURIComponent(botId) + "/privacy")
@@ -96,7 +96,7 @@
           })
           .catch(function () {
             contentEl.innerHTML = "";
-            document.getElementById("err").textContent = "⚠️ Datenschutztext konnte nicht geladen werden.";
+            document.getElementById("err").textContent = "Datenschutztext konnte nicht geladen werden.";
           });
       }
     </script>

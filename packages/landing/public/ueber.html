@@ -30,7 +30,7 @@
 <header class="site-header">
   <nav class="nav" aria-label="Hauptnavigation">
     <a href="/" class="brand" aria-label="Fragio Startseite">
-      <img class="brand-mark" src="/logo.svg" width="34" height="34" alt="" />
+      <img class="brand-mark" src="/logo-mark.png" width="34" height="34" alt="" />
       <span>Fragio</span>
     </a>
     <button class="nav-toggle" aria-label="Menü" aria-expanded="false"><span></span><span></span><span></span></button>
@@ -41,6 +41,7 @@
       <a href="/faq.html">FAQ</a>
       <a href="/kontakt.html">Kontakt</a>
       <a href="/portal/">Login</a>
+      <button type="button" class="lang-toggle" aria-label="Switch to English">EN</button>
       <a href="/preise.html" class="btn btn-primary btn-sm">Jetzt bestellen</a>
     </div>
   </nav>
@@ -49,9 +50,8 @@
 <main id="main">
   <section class="section">
     <div class="wrap" style="max-width:760px">
-      <p class="eyebrow" data-reveal>Über Fragio</p>
       <h1 data-reveal="60" style="font-size:clamp(32px,4.6vw,50px)">Ehrliche Antworten statt schöner Erfindungen.</h1>
-      <p class="lead" data-reveal="120" style="max-width:none">Die meisten Chatbots klingen überzeugend — und liegen manchmal daneben. Fragio geht den umgekehrten Weg: Der Bot antwortet <strong>ausschließlich</strong> aus den Inhalten Ihrer eigenen Website. Und wenn dort etwas nicht steht, sagt er das offen, statt eine Zahl, Adresse oder einen Termin zu erfinden.</p>
+      <p class="lead" data-reveal="120" style="max-width:none" data-i18n-en='Most chatbots sound convincing — and are sometimes wrong. Fragio takes the opposite path: the bot answers <strong>exclusively</strong> from the content of your own website. And if something isn&#39;t there, it says so openly instead of inventing a number, address or appointment.'>Die meisten Chatbots klingen überzeugend — und liegen manchmal daneben. Fragio geht den umgekehrten Weg: Der Bot antwortet <strong>ausschließlich</strong> aus den Inhalten Ihrer eigenen Website. Und wenn dort etwas nicht steht, sagt er das offen, statt eine Zahl, Adresse oder einen Termin zu erfinden.</p>
 
       <div style="margin-top:clamp(32px,4vw,48px);display:flex;flex-direction:column;gap:28px">
         <div data-reveal>
@@ -106,9 +106,10 @@
       <a href="/agb.html">AGB</a>
     </div>
   </div>
-  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>ℹ️ Dies ist ein KI-Assistent.</span></div>
+  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>Dies ist ein KI-Assistent.</span></div>
 </footer>
 
 <script src="/site.js" defer></script>
+<script src="/i18n.js" defer></script>
 </body>
 </html>

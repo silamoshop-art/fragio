@@ -30,7 +30,7 @@
 <header class="site-header">
   <nav class="nav" aria-label="Hauptnavigation">
     <a href="/" class="brand" aria-label="Fragio Startseite">
-      <img class="brand-mark" src="/logo.svg" width="34" height="34" alt="" />
+      <img class="brand-mark" src="/logo-mark.png" width="34" height="34" alt="" />
       <span>Fragio</span>
     </a>
     <button class="nav-toggle" aria-label="Menü" aria-expanded="false"><span></span><span></span><span></span></button>
@@ -41,6 +41,7 @@
       <a href="/faq.html">FAQ</a>
       <a href="/kontakt.html">Kontakt</a>
       <a href="/portal/">Login</a>
+      <button type="button" class="lang-toggle" aria-label="Switch to English">EN</button>
       <a href="/preise.html" class="btn btn-primary btn-sm">Jetzt bestellen</a>
     </div>
   </nav>
@@ -50,9 +51,8 @@
   <section class="section">
     <div class="wrap" style="max-width:820px">
       <div style="margin:0 0 clamp(28px,4vw,44px)">
-        <p class="eyebrow" data-reveal>FAQ</p>
-        <h1 data-reveal="60" style="font-size:clamp(32px,4.6vw,50px)">Häufige Fragen</h1>
-        <p class="section-sub" data-reveal="120">Kurz beantwortet — und wenn Ihre Frage fehlt, <a href="/kontakt.html">schreiben Sie uns</a>.</p>
+        <h1 data-reveal style="font-size:clamp(32px,4.6vw,50px)">Häufige Fragen</h1>
+        <p class="section-sub" data-reveal="120" data-i18n-en='Answered briefly — and if your question is missing, <a href="/kontakt.html">write to us</a>.'>Kurz beantwortet — und wenn Ihre Frage fehlt, <a href="/kontakt.html">schreiben Sie uns</a>.</p>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px">
         <details class="faq-item" data-reveal><summary>Woher nimmt der Bot seine Antworten?</summary><p>Ausschließlich aus den Inhalten Ihrer eigenen Website, inklusive verlinkter PDF-Dokumente. Der Bot erfindet nichts — steht eine Information nicht auf der Seite, sagt er das offen und nennt die Quelle, aus der eine Antwort stammt.</p></details>
@@ -107,7 +107,7 @@
       <a href="/agb.html">AGB</a>
     </div>
   </div>
-  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>ℹ️ Dies ist ein KI-Assistent.</span></div>
+  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>Dies ist ein KI-Assistent.</span></div>
 </footer>
 
 <script type="application/ld+json">
@@ -123,5 +123,6 @@
 ]}
 </script>
 <script src="/site.js" defer></script>
+<script src="/i18n.js" defer></script>
 </body>
 </html>

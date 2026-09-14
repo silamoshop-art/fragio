@@ -30,8 +30,8 @@
   .demo-in { flex: 1 1 220px; min-width: 0; padding: 13px 16px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--surface); color: var(--ink); font-family: var(--sans); font-size: 16px; outline: none; }
   .demo-in:focus { border-color: var(--accent); }
   .demo-body { padding: clamp(22px,3.5vw,36px); }
-  .demo-crawl-row { display: flex; gap: 12px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 15px; color: var(--ink); }
-  .demo-crawl-row .ok { color: var(--accent); font-weight: 700; }
+  .demo-crawl-row { display: flex; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 15px; color: var(--ink); }
+  .demo-crawl-row .ok { color: var(--accent); display: inline-flex; flex: 0 0 auto; }
   .demo-crawl-row .u { font-family: var(--mono); font-size: 13.5px; color: var(--muted); overflow-wrap: anywhere; }
   .demo-msgs { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
   .d-user { align-self: flex-end; max-width: 82%; background: var(--accent); color: #fff; padding: 12px 15px; border-radius: 16px 16px 4px 16px; font-size: 15px; line-height: 1.5; }
@@ -40,6 +40,17 @@
   .chip { padding: 10px 16px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface); color: var(--accent); font-family: var(--sans); font-size: 14.5px; font-weight: 600; cursor: pointer; }
   .chip:hover { border-color: var(--accent); background: var(--accent-soft); }
   .demo-label { margin: 0 0 10px; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted-2); font-weight: 600; }
+  /* Scraping-Aktivität: zeigt, dass etwas passiert — auch vor der ersten Seite. */
+  .scan-bar { height: 3px; border-radius: 999px; background: var(--line); overflow: hidden; margin: 0 0 18px; position: relative; }
+  .scan-bar::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 38%; border-radius: 999px; background: linear-gradient(90deg, transparent, var(--accent), transparent); animation: scan 1.15s var(--ease-in-out) infinite; }
+  @keyframes scan { 0% { transform: translateX(-110%); } 100% { transform: translateX(360%); } }
+  .crawl-head { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; }
+  .crawl-head .pulse { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex: 0 0 auto; animation: pulse 1s var(--ease-in-out) infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.65); } }
+  .crawl-count { margin-left: auto; font-size: 13px; color: var(--muted-2); font-variant-numeric: tabular-nums; }
+  .demo-crawl-row { animation: rowin 0.35s var(--ease-out) both; }
+  @keyframes rowin { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .scan-bar::before, .crawl-head .pulse, .demo-crawl-row { animation: none; } }
 </style>
 </head>
 <body>
@@ -48,7 +59,7 @@
 <header class="site-header">
   <nav class="nav" aria-label="Hauptnavigation">
     <a href="/" class="brand" aria-label="Fragio Startseite">
-      <img class="brand-mark" src="/logo.svg" width="34" height="34" alt="" />
+      <img class="brand-mark" src="/logo-mark.png" width="34" height="34" alt="" />
       <span>Fragio</span>
     </a>
     <button class="nav-toggle" aria-label="Menü" aria-expanded="false"><span></span><span></span><span></span></button>
@@ -59,6 +70,7 @@
       <a href="/faq.html">FAQ</a>
       <a href="/kontakt.html">Kontakt</a>
       <a href="/portal/">Login</a>
+      <button type="button" class="lang-toggle" aria-label="Switch to English">EN</button>
       <a href="/preise.html" class="btn btn-primary btn-sm">Jetzt bestellen</a>
     </div>
   </nav>
@@ -68,8 +80,7 @@
   <section class="section">
     <div class="wrap" style="max-width:820px">
       <div style="margin:0 0 clamp(28px,4vw,44px)">
-        <p class="eyebrow" data-reveal>Live testen</p>
-        <h1 data-reveal="60" style="font-size:clamp(32px,4.6vw,50px)">Probieren Sie es mit Ihrer Website.</h1>
+        <h1 data-reveal style="font-size:clamp(32px,4.6vw,50px)">Probieren Sie es mit Ihrer Website.</h1>
         <p class="section-sub" data-reveal="120">Adresse eintragen, kurz warten, Fragen stellen. Fragio liest ein paar Seiten live ein und antwortet mit Ihren echten Inhalten. Kein Konto, keine Zahlungsdaten — die Demo-Daten werden automatisch wieder gelöscht.</p>
       </div>
 
@@ -82,10 +93,15 @@
         <div class="demo-body">
           <div id="demo-idle" style="display:flex;flex-direction:column;gap:10px">
             <p style="margin:0;color:var(--muted);max-width:52ch">Noch keine Website eingelesen. Tragen Sie oben Ihre Adresse ein — es wird nichts an Ihrer Website verändert.</p>
-            <p style="margin:0;font-size:14px;color:var(--muted-2)">ℹ️ Dies ist ein KI-Assistent. Antworten stammen ausschließlich aus den gelesenen Website-Inhalten.</p>
+            <p style="margin:0;font-size:14px;color:var(--muted-2)">Dies ist ein KI-Assistent. Antworten stammen ausschließlich aus den gelesenen Website-Inhalten.</p>
           </div>
           <div id="demo-crawling" hidden>
-            <p id="demo-crawl-label" style="margin:0 0 16px;font-weight:600;color:var(--accent)">Seiten werden gelesen …</p>
+            <div class="scan-bar" aria-hidden="true"></div>
+            <div class="crawl-head">
+              <span class="pulse" aria-hidden="true"></span>
+              <p id="demo-crawl-label" style="margin:0;font-weight:600;color:var(--accent)" data-i18n-en="Reading your website …">Ihre Website wird gelesen …</p>
+              <span id="demo-crawl-count" class="crawl-count" aria-live="polite"></span>
+            </div>
             <div id="demo-crawl-list"></div>
           </div>
           <div id="demo-ready" hidden>
@@ -149,10 +165,11 @@
       <a href="/agb.html">AGB</a>
     </div>
   </div>
-  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>ℹ️ Dies ist ein KI-Assistent.</span></div>
+  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>Dies ist ein KI-Assistent.</span></div>
 </footer>
 
 <script src="/site.js" defer></script>
+<script src="/i18n.js" defer></script>
 <script>
 (function () {
   "use strict";
@@ -160,13 +177,33 @@
   var el = function (id) { return document.getElementById(id); };
   var urlInput = el("demo-url"), startBtn = el("demo-start");
   var views = { idle: el("demo-idle"), crawling: el("demo-crawling"), ready: el("demo-ready"), error: el("demo-error") };
-  var crawlList = el("demo-crawl-list");
+  var crawlList = el("demo-crawl-list"), crawlCount = el("demo-crawl-count");
   var readyInfo = el("demo-ready-info"), messagesEl = el("demo-messages");
   var qInput = el("demo-q"), sendBtn = el("demo-send"), suggestionsEl = el("demo-suggestions");
   var remainingEl = el("demo-remaining"), resetBtn = el("demo-reset");
   var errorMsg = el("demo-error-msg"), errorBack = el("demo-error-back");
   var state = { botId: null, domain: "", asked: [], remaining: null, busy: false };
-  var SUGGESTIONS = ["Wann habt ihr geöffnet?", "Wo finde ich euch?", "Was bietet ihr an?", "Wie kann ich euch kontaktieren?", "Was kostet das?", "Nehmt ihr neue Kund:innen auf?"];
+  // Sprache dynamisch aus localStorage (folgt dem Website-Umschalter, auch nachträglich).
+  function lang() { try { return localStorage.getItem("fragio_lang") === "en" ? "en" : "de"; } catch (e) { return "de"; } }
+  var STR = {
+    readBtn: { de: "Website einlesen", en: "Read website" },
+    readingBtn: { de: "Liest …", en: "Reading …" },
+    reReadBtn: { de: "Neu einlesen", en: "Read again" },
+    found: { de: " gefunden", en: " found" },
+    readFrom: { de: " eingelesen von ", en: " read from " },
+    failRead: { de: "Die Website konnte nicht eingelesen werden.", en: "The website could not be read." },
+    failConn: { de: "Verbindung unterbrochen. Bitte erneut versuchen.", en: "Connection lost. Please try again." },
+    answerErr: { de: "Es ist ein Fehler aufgetreten.", en: "An error occurred." }
+  };
+  function T(key) { var e = STR[key]; return e ? e[lang()] : key; }
+  function pagesWord(n) { return lang() === "en" ? (n === 1 ? "page" : "pages") : (n === 1 ? "Seite" : "Seiten"); }
+  function remainingText(n) {
+    if (n > 0) return lang() === "en" ? "Still " + n + " of 20 test questions left." : "Noch " + n + " von 20 Test-Fragen übrig.";
+    return lang() === "en" ? "Test quota (20 questions) used up. Just order the real bot." : "Test-Kontingent (20 Fragen) aufgebraucht. Für den echten Bot einfach bestellen.";
+  }
+  var SUGGESTIONS_DE = ["Wann habt ihr geöffnet?", "Wo finde ich euch?", "Was bietet ihr an?", "Wie kann ich euch kontaktieren?", "Was kostet das?", "Nehmt ihr neue Kund:innen auf?"];
+  var SUGGESTIONS_EN = ["When are you open?", "Where can I find you?", "What do you offer?", "How can I contact you?", "What does it cost?", "Do you take on new clients?"];
+  function suggestionList() { return lang() === "en" ? SUGGESTIONS_EN : SUGGESTIONS_DE; }
 
   function show(name) { for (var k in views) views[k].hidden = (k !== name); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -201,27 +238,28 @@
     if (state.busy) return;
     var raw = (urlInput.value || "").trim();
     if (!raw || raw.indexOf(".") < 0) { urlInput.focus(); return; }
-    state.busy = true; startBtn.disabled = true; startBtn.textContent = "Liest …";
-    crawlList.innerHTML = ""; show("crawling");
+    state.busy = true; startBtn.disabled = true; startBtn.textContent = T("readingBtn");
+    crawlList.innerHTML = ""; if (crawlCount) crawlCount.textContent = ""; show("crawling");
     var done = false;
     streamSSE(API + "/api/demo/start", { url: raw }, function (ev, data) {
       if (ev === "progress" && data.url) {
         var row = document.createElement("div"); row.className = "demo-crawl-row";
-        row.innerHTML = '<span class="ok">✓</span><span class="u">' + esc(data.url) + "</span>";
+        row.innerHTML = '<span class="ok" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="u">' + esc(data.url) + "</span>";
         crawlList.appendChild(row);
+        if (crawlCount) crawlCount.textContent = crawlList.children.length + T("found");
       } else if (ev === "done") {
         done = true; state.botId = data.botId; state.domain = data.domain || raw; state.asked = []; state.remaining = data.remaining != null ? data.remaining : 20;
         messagesEl.innerHTML = "";
-        readyInfo.innerHTML = '<strong style="color:var(--accent)">' + esc(String(data.pageCount)) + ' Seiten</strong> eingelesen von <span style="font-family:var(--mono);font-size:14px">' + esc(state.domain) + "</span>";
+        readyInfo.innerHTML = '<strong style="color:var(--accent)">' + esc(String(data.pageCount)) + " " + esc(pagesWord(data.pageCount)) + '</strong>' + esc(T("readFrom")) + '<span style="font-family:var(--mono);font-size:14px">' + esc(state.domain) + "</span>";
         renderSuggestions(); updateRemaining(); show("ready"); qInput.focus();
-      } else if (ev === "error") { done = true; fail(data.message || "Die Website konnte nicht eingelesen werden."); }
-    }).catch(function () { if (!done) fail("Verbindung unterbrochen. Bitte erneut versuchen."); })
-      .finally(function () { state.busy = false; startBtn.disabled = false; startBtn.textContent = "Neu einlesen"; });
+      } else if (ev === "error") { done = true; fail(data.message || T("failRead")); }
+    }).catch(function () { if (!done) fail(T("failConn")); })
+      .finally(function () { state.busy = false; startBtn.disabled = false; startBtn.textContent = T("reReadBtn"); });
   }
   function fail(msg) { errorMsg.textContent = msg; show("error"); }
   function renderSuggestions() {
     suggestionsEl.innerHTML = "";
-    SUGGESTIONS.filter(function (q) { return state.asked.indexOf(q) < 0; }).slice(0, 4).forEach(function (q) {
+    suggestionList().filter(function (q) { return state.asked.indexOf(q) < 0; }).slice(0, 4).forEach(function (q) {
       var b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = q;
       b.onclick = function () { qInput.value = q; sendQuestion(); };
       suggestionsEl.appendChild(b);
@@ -229,7 +267,7 @@
   }
   function updateRemaining() {
     if (state.remaining == null) { remainingEl.textContent = ""; return; }
-    remainingEl.textContent = state.remaining > 0 ? "Noch " + state.remaining + " von 20 Test-Fragen übrig." : "Test-Kontingent (20 Fragen) aufgebraucht. Für den echten Bot einfach bestellen.";
+    remainingEl.textContent = remainingText(state.remaining);
   }
   function addMessage(text, isUser) {
     var d = document.createElement("div"); d.className = isUser ? "d-user" : "d-bot";
@@ -245,11 +283,18 @@
     var bot = addMessage("…", false); var acc = "", answered = false;
     streamSSE(API + "/api/chat/" + encodeURIComponent(state.botId), { message: q }, function (ev, data) {
       if (ev === "token" && data.t != null) { acc += data.t; answered = true; bot.innerHTML = renderAnswer(acc); bot.scrollIntoView({ block: "nearest" }); }
-      else if (ev === "error") { bot.innerHTML = renderAnswer(data.message || "Es ist ein Fehler aufgetreten."); }
-    }).catch(function () { if (!acc) bot.textContent = "Verbindung unterbrochen. Bitte erneut versuchen."; })
+      else if (ev === "error") { bot.innerHTML = renderAnswer(data.message || T("answerErr")); }
+    }).catch(function () { if (!acc) bot.textContent = T("failConn"); })
       .finally(function () { state.busy = false; sendBtn.disabled = false; if (answered && state.remaining != null) state.remaining = Math.max(0, state.remaining - 1); updateRemaining(); qInput.focus(); });
   }
-  function reset() { state = { botId: null, domain: "", asked: [], remaining: null, busy: false }; urlInput.value = ""; startBtn.textContent = "Website einlesen"; show("idle"); urlInput.focus(); }
+  function reset() { state = { botId: null, domain: "", asked: [], remaining: null, busy: false }; urlInput.value = ""; startBtn.textContent = T("readBtn"); show("idle"); urlInput.focus(); }
+  // Platzhalter sind Attribute -> nicht vom i18n-textContent-Mechanismus erfasst, hier selbst setzen.
+  function applyPlaceholders() {
+    var en = lang() === "en";
+    if (urlInput) urlInput.placeholder = en ? "your-company.at" : "ihre-firma.at";
+    if (qInput) qInput.placeholder = en ? "Your question for the website …" : "Ihre Frage an die Website …";
+  }
+  applyPlaceholders();
   startBtn.addEventListener("click", startCrawl);
   urlInput.addEventListener("keydown", function (e) { if (e.key === "Enter") startCrawl(); });
   sendBtn.addEventListener("click", sendQuestion);

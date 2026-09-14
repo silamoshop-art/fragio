@@ -30,7 +30,7 @@
 <header class="site-header">
   <nav class="nav" aria-label="Hauptnavigation">
     <a href="/" class="brand" aria-label="Fragio Startseite">
-      <img class="brand-mark" src="/logo.svg" width="34" height="34" alt="" />
+      <img class="brand-mark" src="/logo-mark.png" width="34" height="34" alt="" />
       <span>Fragio</span>
     </a>
     <button class="nav-toggle" aria-label="Menü" aria-expanded="false"><span></span><span></span><span></span></button>
@@ -41,6 +41,7 @@
       <a href="/faq.html">FAQ</a>
       <a href="/kontakt.html">Kontakt</a>
       <a href="/portal/">Login</a>
+      <button type="button" class="lang-toggle" aria-label="Switch to English">EN</button>
       <a href="/preise.html" class="btn btn-primary btn-sm">Jetzt bestellen</a>
     </div>
   </nav>
@@ -50,8 +51,7 @@
   <section class="section">
     <div class="wrap">
       <div style="max-width:640px;margin:0 0 clamp(32px,4vw,52px)">
-        <p class="eyebrow" data-reveal>So funktioniert's</p>
-        <h1 data-reveal="60" style="font-size:clamp(32px,4.6vw,50px)">In drei Schritten startklar.</h1>
+        <h1 data-reveal style="font-size:clamp(32px,4.6vw,50px)">In drei Schritten startklar.</h1>
         <p class="section-sub" data-reveal="120">Kein technisches Vorwissen nötig — auf Wunsch übernehmen wir die Einrichtung komplett für Sie.</p>
       </div>
 
@@ -59,7 +59,7 @@
         <li data-reveal>
           <span class="step-n">1</span>
           <h3>Website eintragen</h3>
-          <p>Sie nennen uns Ihre Adresse — z.&nbsp;B. <span style="font-family:var(--mono);font-size:14px;color:var(--accent)">ihre-firma.at</span>. Fragio liest alle Unterseiten ein, auch verlinkte PDF-Dokumente, und baut daraus eine durchsuchbare Wissensbasis.</p>
+          <p data-i18n-en='You give us your address — e.g. <span style="font-family:var(--mono);font-size:14px;color:var(--accent)">your-company.at</span>. Fragio reads every subpage, including linked PDF documents, and builds a searchable knowledge base from them.'>Sie nennen uns Ihre Adresse — z.&nbsp;B. <span style="font-family:var(--mono);font-size:14px;color:var(--accent)">ihre-firma.at</span>. Fragio liest alle Unterseiten ein, auch verlinkte PDF-Dokumente, und baut daraus eine durchsuchbare Wissensbasis.</p>
         </li>
         <li data-reveal="70">
           <span class="step-n">2</span>
@@ -122,9 +122,10 @@
       <a href="/agb.html">AGB</a>
     </div>
   </div>
-  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>ℹ️ Dies ist ein KI-Assistent.</span></div>
+  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>Dies ist ein KI-Assistent.</span></div>
 </footer>
 
 <script src="/site.js" defer></script>
+<script src="/i18n.js" defer></script>
 </body>
 </html>

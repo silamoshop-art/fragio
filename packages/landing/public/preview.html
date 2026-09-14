@@ -52,7 +52,7 @@
       <div class="card">
         <h2>So testest du</h2>
         <ol>
-          <li>Klick unten rechts auf „💬 Chat".</li>
+          <li>Klick unten rechts auf „Chat".</li>
           <li>Stell eine Frage, die deine Kund:innen oft stellen (z. B. Öffnungszeiten, Kontakt, Leistungen).</li>
           <li>Der Bot antwortet nur mit echten Infos von deiner Website — erfindet nichts.</li>
         </ol>
@@ -66,7 +66,7 @@
       var params = new URLSearchParams(location.search);
       var botId = params.get("bot");
       if (!botId) {
-        document.getElementById("err").textContent = "⚠️ Kein Bot angegeben (?bot=… fehlt).";
+        document.getElementById("err").textContent = "Kein Bot angegeben (?bot=… fehlt).";
       } else {
         var s = document.createElement("script");
         s.src = "/widget/widget.js";

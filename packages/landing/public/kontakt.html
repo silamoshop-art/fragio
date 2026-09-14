@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Kontakt — Fragio</title>
-<meta name="description" content="Fragen zu Fragio? Schreiben Sie uns an hallo@fragio.at — Antwort meist innerhalb eines Werktags. Standort Linz, Oberösterreich." />
+<meta name="description" content="Fragen zu Fragio? Schreiben Sie uns an peter.fragio@gmail.com — Antwort meist innerhalb eines Werktags. Standort Linz, Oberösterreich." />
 <link rel="canonical" href="https://fragio.at/kontakt.html" />
 <meta name="robots" content="index,follow" />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -30,7 +30,7 @@
 <header class="site-header">
   <nav class="nav" aria-label="Hauptnavigation">
     <a href="/" class="brand" aria-label="Fragio Startseite">
-      <img class="brand-mark" src="/logo.svg" width="34" height="34" alt="" />
+      <img class="brand-mark" src="/logo-mark.png" width="34" height="34" alt="" />
       <span>Fragio</span>
     </a>
     <button class="nav-toggle" aria-label="Menü" aria-expanded="false"><span></span><span></span><span></span></button>
@@ -41,6 +41,7 @@
       <a href="/faq.html">FAQ</a>
       <a href="/kontakt.html">Kontakt</a>
       <a href="/portal/">Login</a>
+      <button type="button" class="lang-toggle" aria-label="Switch to English">EN</button>
       <a href="/preise.html" class="btn btn-primary btn-sm">Jetzt bestellen</a>
     </div>
   </nav>
@@ -49,15 +50,14 @@
 <main id="main">
   <section class="section">
     <div class="wrap" style="max-width:760px">
-      <p class="eyebrow" data-reveal>Kontakt</p>
       <h1 data-reveal="60" style="font-size:clamp(32px,4.6vw,50px)">Schreiben Sie uns.</h1>
       <p class="section-sub" data-reveal="120" style="margin-bottom:clamp(28px,4vw,44px)">Ob Frage zur Einrichtung, zu einem Tarif oder zur Integration — wir helfen gern. Antwort meist innerhalb eines Werktags.</p>
 
       <div class="grid-3" style="grid-template-columns:1fr 1fr">
         <div class="card" data-reveal>
           <p class="footer-h" style="margin-bottom:8px">E-Mail</p>
-          <p style="margin:0 0 16px;font-size:19px;font-weight:600;color:var(--ink);word-break:break-all">hallo@fragio.at</p>
-          <a href="mailto:hallo@fragio.at?subject=Anfrage%20zu%20Fragio" class="btn btn-primary btn-block">E-Mail schreiben</a>
+          <p style="margin:0 0 16px;font-size:19px;font-weight:600;color:var(--ink);word-break:break-all">peter.fragio@gmail.com</p>
+          <a href="mailto:peter.fragio@gmail.com?subject=Anfrage%20zu%20Fragio" class="btn btn-primary btn-block">E-Mail schreiben</a>
         </div>
         <div class="card" data-reveal="70">
           <p class="footer-h" style="margin-bottom:8px">Standort</p>
@@ -67,7 +67,7 @@
       </div>
 
       <div style="margin-top:26px;background:var(--accent-soft);border:1px solid var(--line);border-radius:16px;padding:22px 24px" data-reveal>
-        <p style="margin:0;color:var(--ink);font-size:16px"><strong>Lieber direkt loslegen?</strong> Testen Sie den Bot <a href="/testen.html">kostenlos mit Ihrer Website</a> oder <a href="/preise.html">bestellen Sie online</a> — die Rechnung kommt per E-Mail.</p>
+        <p style="margin:0;color:var(--ink);font-size:16px" data-i18n-en='<strong>Prefer to get started right away?</strong> Test the bot <a href="/testen.html">free with your website</a> or <a href="/preise.html">order online</a> — the invoice comes by email.'><strong>Lieber direkt loslegen?</strong> Testen Sie den Bot <a href="/testen.html">kostenlos mit Ihrer Website</a> oder <a href="/preise.html">bestellen Sie online</a> — die Rechnung kommt per E-Mail.</p>
       </div>
     </div>
   </section>
@@ -99,9 +99,10 @@
       <a href="/agb.html">AGB</a>
     </div>
   </div>
-  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>ℹ️ Dies ist ein KI-Assistent.</span></div>
+  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>Dies ist ein KI-Assistent.</span></div>
 </footer>
 
 <script src="/site.js" defer></script>
+<script src="/i18n.js" defer></script>
 </body>
 </html>
