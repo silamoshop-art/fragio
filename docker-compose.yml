@@ -15,6 +15,11 @@ services:
       context: .
       dockerfile: packages/backend/Dockerfile
     restart: unless-stopped
+    # Alle weiteren Variablen (SMTP_*, PUBLIC_BACKEND_URL, ADMIN_API_KEY, Cron …)
+    # kommen aus der .env im Repo-Root. Ohne PUBLIC_BACKEND_URL zeigen alle nach
+    # außen sichtbaren Links (Widget-Snippet, E-Mail-/Rechnungslinks) auf localhost.
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
@@ -36,6 +41,10 @@ services:
       - sitebot_data:/app/data
       # Cache für das lokale Embedding-Modell (spart Re-Download bei Rebuilds).
       - sitebot_models:/app/node_modules/@xenova/transformers/.cache
+      # Betreiberdaten (Bank/UID/Steuerhinweis) — liegt NICHT im Image (gitignored),
+      # daher read-only vom Host einbinden. Ohne diese Datei zeigt die Rechnung nur
+      # Platzhalter und es wird KEIN QR-Code erzeugt.
+      - ./operator.config.json:/app/operator.config.json:ro
 
 volumes:
   sitebot_data:
