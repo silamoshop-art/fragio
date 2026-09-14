@@ -38,6 +38,14 @@ const MAX_LOW_PAGES = 3; // höchstens so viele Kalender-/Buchungsseiten crawlen
 // MÜSSEN vor dem Seitenlimit gecrawlt werden, sonst fehlt genau die Preisinfo.
 const PRICE_PATH = /(preislist|preise|\bpreis\b|tarif|kostenuebersicht|preisuebersicht)/i;
 
+// HOHE Priorität: Kontakt-/Impressum-/Standortseiten. Öffnungszeiten, Adresse und
+// Telefonnummer gehören zu den häufigsten Chatbot-Fragen — diese Seiten müssen VOR
+// der Flut an Produkt-/Inhaltsseiten gecrawlt werden, sonst kann der Bot bei knappem
+// Seitenbudget (v. a. Demo) keine Kontaktfragen beantworten. Teilmenge von KEY_PATH,
+// daher VOR KEY_PATH prüfen.
+const CONTACT_PATH =
+  /(kontakt|contact|impressum|imprint|standort|anfahrt|filiale|oeffnungszeit|öffnungszeit|opening-hours)/i;
+
 export interface CrawlOptions {
   maxPages?: number;
   maxDepth?: number;
@@ -234,6 +242,7 @@ export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<
           // Vier Prioritäten: Preislisten (TOP) > Inhalts-/Angebotsseiten (KEY_PATH)
           // > Normal > Kalender-/Buchungsseiten (LOW, gedeckelt, zuletzt).
           const pricePriority: { url: string; depth: number }[] = [];
+          const contactPriority: { url: string; depth: number }[] = [];
           const priority: { url: string; depth: number }[] = [];
           const normal: { url: string; depth: number }[] = [];
           const low: { url: string; depth: number }[] = [];
@@ -269,15 +278,19 @@ export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<
               }
             } else if (PRICE_PATH.test(path)) {
               pricePriority.push(item);
+            } else if (CONTACT_PATH.test(path)) {
+              contactPriority.push(item);
             } else if (KEY_PATH.test(path)) {
               priority.push(item);
             } else {
               normal.push(item);
             }
           }
-          // Reihenfolge: Preislisten ganz vorne, dann Inhalt, dann Normal, Kalender zuletzt.
+          // Reihenfolge (vorne -> hinten): Preislisten, Kontakt/Impressum, sonstige
+          // Inhaltsseiten, Normal, Kalender zuletzt. Letztes unshift landet ganz vorne.
           queue.unshift(...priority);
-          queue.unshift(...pricePriority); // zuletzt unshift = frontmost
+          queue.unshift(...contactPriority);
+          queue.unshift(...pricePriority);
           queue.push(...normal);
           queue.push(...low);
         }
