@@ -48,6 +48,7 @@
   .crawl-head .pulse { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex: 0 0 auto; animation: pulse 1s var(--ease-in-out) infinite; }
   @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.65); } }
   .crawl-count { margin-left: auto; font-size: 13px; color: var(--muted-2); font-variant-numeric: tabular-nums; }
+  .crawl-hint { margin: 0 0 18px; font-size: 13.5px; line-height: 1.5; color: var(--muted-2); }
   .demo-crawl-row { animation: rowin 0.35s var(--ease-out) both; }
   @keyframes rowin { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) { .scan-bar::before, .crawl-head .pulse, .demo-crawl-row { animation: none; } }
@@ -102,6 +103,7 @@
               <p id="demo-crawl-label" style="margin:0;font-weight:600;color:var(--accent)" data-i18n-en="Reading your website …">Ihre Website wird gelesen …</p>
               <span id="demo-crawl-count" class="crawl-count" aria-live="polite"></span>
             </div>
+            <p class="crawl-hint" data-i18n-en="This can take up to a minute — the bot reads several pages and builds a searchable index from them. Please keep this tab open.">Das kann bis zu einer Minute dauern — der Bot liest mehrere Seiten und baut daraus einen durchsuchbaren Index. Bitte diesen Tab offen lassen.</p>
             <div id="demo-crawl-list"></div>
           </div>
           <div id="demo-ready" hidden>
@@ -216,7 +218,15 @@
   }
   function streamSSE(url, body, onEvent) {
     return fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(function (res) {
-      if (!res.ok && !res.body) throw new Error("HTTP " + res.status);
+      if (!res.ok) {
+        // Fehlerantworten kommen als JSON (kein SSE-Stream) — Meldung auslesen und weiterreichen,
+        // damit die Ansicht nicht still im „wird gelesen …" hängen bleibt.
+        return res.text().then(function (t) {
+          var m = ""; try { m = (JSON.parse(t) || {}).error || ""; } catch (e) {}
+          throw new Error(m || ("HTTP " + res.status));
+        });
+      }
+      if (!res.body) throw new Error("HTTP " + res.status);
       var reader = res.body.getReader(), dec = new TextDecoder(), buf = "";
       function pump() {
         return reader.read().then(function (r) {
@@ -253,7 +263,7 @@
         readyInfo.innerHTML = '<strong style="color:var(--accent)">' + esc(String(data.pageCount)) + " " + esc(pagesWord(data.pageCount)) + '</strong>' + esc(T("readFrom")) + '<span style="font-family:var(--mono);font-size:14px">' + esc(state.domain) + "</span>";
         renderSuggestions(); updateRemaining(); show("ready"); qInput.focus();
       } else if (ev === "error") { done = true; fail(data.message || T("failRead")); }
-    }).catch(function () { if (!done) fail(T("failConn")); })
+    }).catch(function (e) { if (!done) fail((e && e.message) ? e.message : T("failConn")); })
       .finally(function () { state.busy = false; startBtn.disabled = false; startBtn.textContent = T("reReadBtn"); });
   }
   function fail(msg) { errorMsg.textContent = msg; show("error"); }
@@ -284,7 +294,7 @@
     streamSSE(API + "/api/chat/" + encodeURIComponent(state.botId), { message: q }, function (ev, data) {
       if (ev === "token" && data.t != null) { acc += data.t; answered = true; bot.innerHTML = renderAnswer(acc); bot.scrollIntoView({ block: "nearest" }); }
       else if (ev === "error") { bot.innerHTML = renderAnswer(data.message || T("answerErr")); }
-    }).catch(function () { if (!acc) bot.textContent = T("failConn"); })
+    }).catch(function (e) { if (!acc) bot.textContent = (e && e.message) ? e.message : T("failConn"); })
       .finally(function () { state.busy = false; sendBtn.disabled = false; if (answered && state.remaining != null) state.remaining = Math.max(0, state.remaining - 1); updateRemaining(); qInput.focus(); });
   }
   function reset() { state = { botId: null, domain: "", asked: [], remaining: null, busy: false }; urlInput.value = ""; startBtn.textContent = T("readBtn"); show("idle"); urlInput.focus(); }
