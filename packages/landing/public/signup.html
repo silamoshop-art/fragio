@@ -45,7 +45,7 @@
 
   <main style="max-width:760px;margin:0 auto;padding:clamp(36px,6vw,64px) clamp(20px,4vw,40px)">
     <h1 style="margin:0 0 10px;font-size:clamp(30px,4.4vw,44px);line-height:1.1;letter-spacing:-0.02em;color:var(--ink)">Chatbot bestellen</h1>
-    <p style="margin:0 0 28px;font-size:17px;line-height:1.6;color:var(--muted);max-width:52ch">Zwei Angaben genügen. Nach der Zahlung richten wir alles automatisch ein und schicken dir die Zugangsdaten fürs Dashboard per E-Mail.</p>
+    <p style="margin:0 0 28px;font-size:17px;line-height:1.6;color:var(--muted);max-width:56ch">Tarif wählen, Rechnungs- und Website-Daten eintragen. Du bekommst sofort die Rechnung per E-Mail — sobald deine Zahlung eingegangen ist, richten wir alles automatisch ein und schicken dir die Zugangsdaten fürs Dashboard.</p>
 
     <div id="cancel-note" hidden style="background:oklch(0.97 0.03 70);border:1px solid oklch(0.85 0.09 70);border-radius:12px;padding:14px 16px;margin-bottom:24px;font-size:15px;color:oklch(0.45 0.12 55)">Die Zahlung wurde abgebrochen — es wurde nichts berechnet. Du kannst es jederzeit erneut versuchen.</div>
 
@@ -86,8 +86,20 @@
       <div id="billing-fields">
         <label for="bname">Name / Firma (für die Rechnung)</label>
         <input id="bname" type="text" autocomplete="name" placeholder="Vor- und Nachname oder Firmenname" />
-        <label for="baddr" style="margin-top:12px">Anschrift (für die Rechnung)</label>
-        <input id="baddr" type="text" autocomplete="street-address" placeholder="Straße Nr., PLZ Ort" />
+        <label for="bstreet" style="margin-top:14px">Straße und Hausnummer</label>
+        <input id="bstreet" type="text" autocomplete="address-line1" placeholder="Musterstraße 1" />
+        <div style="display:flex;gap:12px;margin-top:14px">
+          <div style="flex:0 0 110px">
+            <label for="bzip">PLZ</label>
+            <input id="bzip" type="text" inputmode="numeric" autocomplete="postal-code" placeholder="4020" />
+          </div>
+          <div style="flex:1;min-width:0">
+            <label for="bcity">Ort</label>
+            <input id="bcity" type="text" autocomplete="address-level2" placeholder="Linz" />
+          </div>
+        </div>
+        <label for="bcountry" style="margin-top:14px">Land</label>
+        <input id="bcountry" type="text" autocomplete="country-name" value="Österreich" />
       </div>
       <div>
         <label for="url">Deine Website</label>
@@ -164,7 +176,8 @@
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
 
   function showSuccess(o) {
-    el("order-form").hidden = true;
+    // Inline display:grid schlägt das [hidden]-Attribut -> hier per style ausblenden.
+    el("order-form").style.display = "none";
     document.getElementById("cancel-note").hidden = true;
     el("os-invnum").textContent = o.invoiceNumber || "";
     el("os-amount").textContent = eur(o.amountCents);
@@ -197,11 +210,18 @@
     var email = el("email").value.trim();
     var url = el("url").value.trim();
     var name = el("bname").value.trim();
-    var addr = el("baddr").value.trim();
+    var street = el("bstreet").value.trim();
+    var zip = el("bzip").value.trim();
+    var city = el("bcity").value.trim();
+    var country = el("bcountry").value.trim() || "Österreich";
     if (!email || email.indexOf("@") < 0) { showErr("Bitte eine gültige E-Mail-Adresse angeben."); el("email").focus(); return; }
     if (name.length < 2) { showErr("Bitte Name oder Firma für die Rechnung angeben."); el("bname").focus(); return; }
-    if (addr.length < 5) { showErr("Bitte die Anschrift für die Rechnung angeben."); el("baddr").focus(); return; }
+    if (street.length < 3) { showErr("Bitte Straße und Hausnummer angeben."); el("bstreet").focus(); return; }
+    if (zip.length < 3) { showErr("Bitte die PLZ angeben."); el("bzip").focus(); return; }
+    if (city.length < 2) { showErr("Bitte den Ort angeben."); el("bcity").focus(); return; }
     if (!url || url.indexOf(".") < 0) { showErr("Bitte deine Website-Adresse angeben."); el("url").focus(); return; }
+    // Saubere mehrzeilige Rechnungsadresse (so erscheint sie auf der Rechnung).
+    var addr = street + "\n" + zip + " " + city + "\n" + country;
     state.busy = true; el("submit").disabled = true; el("submit").textContent = "Wird gesendet …";
     fetch("/api/signup", {
       method: "POST", headers: { "Content-Type": "application/json" },

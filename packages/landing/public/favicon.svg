@@ -1,4 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Fragio">
-  <rect width="64" height="64" rx="14" fill="#4a57d6"/>
-  <path d="M22 46V18h21v6H29v6h12v6H29v10z" fill="#ffffff"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><linearGradient id="fgGrad" x1="0" y1="0.05" x2="1" y2="0.95"><stop offset="0" stop-color="#3d8bff"/><stop offset="0.55" stop-color="#5a63f0"/><stop offset="1" stop-color="#8a37e6"/></linearGradient></defs>
+  <circle cx="64" cy="12" r="9.5" fill="url(#fgGrad)"/>
+  <rect x="60.5" y="16" width="7" height="18" rx="3.5" fill="url(#fgGrad)"/>
+  <path d="M40 30 H92 a26 26 0 0 1 26 26 v18 a26 26 0 0 1 -26 26 H44 l-16 16 v-16.6 a26 26 0 0 1 -22 -25.4 V56 a26 26 0 0 1 26 -26 Z" fill="url(#fgGrad)"/>
+  <rect x="34" y="46" width="60" height="42" rx="18" fill="#0c1424"/>
+  <rect x="34" y="46" width="60" height="42" rx="18" fill="none" stroke="#2a3550" stroke-width="1.5" opacity="0.6"/>
+  <path d="M46 66 q6.5 9 13 0" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round"/>
+  <path d="M63 66 q6.5 9 13 0" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round"/></svg>
