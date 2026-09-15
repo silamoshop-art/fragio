@@ -43,6 +43,13 @@ export function checkPublicHttpUrl(input: string): UrlCheck {
   }
   const host = u.hostname;
   if (!host) return { ok: false, reason: "Kein Host." };
+  // Nicht-gepunktete IP-Kodierungen (dezimal wie "2130706433" = 127.0.0.1, hex
+  // "0x7f000001", oktal) umgehen die Muster unten, werden vom Browser aber zu (oft
+  // privaten) IPs aufgelöst. Ein echter öffentlicher Host hat immer einen Punkt und
+  // eine Buchstaben-TLD -> reine Ziffern-/Hex-Hosts und die Null-IPv6 blocken.
+  if (/^\d+$/.test(host) || /^0x/i.test(host) || host === "::" || host === "[::]") {
+    return { ok: false, reason: "Ungültige/gefährliche Host-Kodierung." };
+  }
   for (const re of PRIVATE_HOST_PATTERNS) {
     if (re.test(host)) {
       return { ok: false, reason: "Interne/private Adressen sind nicht erlaubt." };
