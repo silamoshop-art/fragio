@@ -596,7 +596,25 @@ export function listBotsByTenant(tenantId: string): BotRow[] {
 export function deleteBot(id: string): void {
   const db = getDb();
   clearBotKnowledge(id); // vec_chunks hat keinen FK-Cascade
-  db.prepare("DELETE FROM bots WHERE id = ?").run(id); // chat_logs/chunks/pages via FK-Cascade
+  // Rechnungs-/Mahnungs-PDFs vom Datenträger entfernen (keine FK-Referenz auf die
+  // Datei; Rechnungszeilen inkl. Mahnungs-Zeitstempel gehen per Cascade). DSGVO-Löschung.
+  try {
+    const rows = db.prepare("SELECT pdf_path FROM invoices WHERE bot_id = ?").all(id) as {
+      pdf_path: string | null;
+    }[];
+    for (const r of rows) {
+      if (r.pdf_path && fs.existsSync(r.pdf_path)) {
+        try {
+          fs.unlinkSync(r.pdf_path);
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  db.prepare("DELETE FROM bots WHERE id = ?").run(id); // chat_logs/chunks/pages/invoices via FK-Cascade
   // Hochgeladenes Logo mitlöschen (kein FK; auch relevant für DSGVO-Löschung).
   const logosDir = path.join(path.dirname(config.DATABASE_PATH), "logos");
   for (const ext of ["png", "jpg", "svg"]) {

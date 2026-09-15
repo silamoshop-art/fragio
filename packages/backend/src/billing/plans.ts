@@ -9,6 +9,7 @@ export type VariantId = "setup" | "commit";
 export type PlanId = "starter" | "business" | "pro";
 
 export interface Pricing {
+  setupFeeEnabled: boolean; // Einrichtungsgebühr aktiv? (sonst 0 € für Neukunden)
   setupFeeCents: number; // Einrichtungsgebühr (setup-Variante)
   commitMonths: number; // Mindestlaufzeit der commit-Variante
   plans: Record<PlanId, { limit: number; setupMonthlyCents: number; commitMonthlyCents: number }>;
@@ -16,6 +17,7 @@ export interface Pricing {
 }
 
 export const DEFAULT_PRICING: Pricing = {
+  setupFeeEnabled: false, // standardmäßig KEINE Einrichtungsgebühr
   setupFeeCents: 30000, // 300 €
   commitMonths: 6,
   plans: {
@@ -35,6 +37,7 @@ export function getPricing(): Pricing {
   try {
     const s = JSON.parse(raw) as Partial<Pricing>;
     return {
+      setupFeeEnabled: s.setupFeeEnabled ?? DEFAULT_PRICING.setupFeeEnabled,
       setupFeeCents: s.setupFeeCents ?? DEFAULT_PRICING.setupFeeCents,
       commitMonths: s.commitMonths ?? DEFAULT_PRICING.commitMonths,
       plans: {

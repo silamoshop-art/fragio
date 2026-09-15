@@ -149,6 +149,8 @@ export interface ExtraInvoiceInput {
   amountCents: number;
   description: string;
   periodLabel: string; // freier Zeitraum-Text, z. B. "Juli 2026 (anteilig)"
+  /** Zusätzliche Positionen (z. B. einmalige Einrichtungsgebühr auf der Erstrechnung). */
+  extraItems?: { label: string; cents: number }[];
 }
 
 /**
@@ -172,7 +174,10 @@ export async function generateExtraInvoice(
   return writeInvoice(bot, {
     period,
     periodLabel: input.periodLabel || "Einzelrechnung",
-    items: [{ label: input.description.trim(), cents: input.amountCents }],
+    items: [
+      { label: input.description.trim(), cents: input.amountCents },
+      ...(input.extraItems ?? []).filter((it) => it.cents > 0),
+    ],
     plan: "Zusatzrechnung",
     when,
   });

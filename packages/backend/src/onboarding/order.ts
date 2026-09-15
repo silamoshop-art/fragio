@@ -11,7 +11,7 @@
  * unbezahlte Bestellungen) — der Crawl passiert erst bei „bezahlt".
  */
 import { createBot, updateBot, getBot, OPERATOR_TENANT_ID } from "../db/repo.js";
-import { planById, planName } from "../billing/plans.js";
+import { planById, planName, getPricing } from "../billing/plans.js";
 import { generateExtraInvoice, dayPeriod } from "../billing/invoice.js";
 import { operatorConfig } from "../config/operator.js";
 import { epcQrDataUrl } from "../util/epc-qr.js";
@@ -47,6 +47,11 @@ export async function createOrder(input: OrderInput): Promise<OrderResult> {
   const plan = planById(input.planId);
   if (!plan) throw new Error("Unbekannter Tarif.");
   const monthly = plan.setup.monthlyCents;
+  // Einmalige Einrichtungsgebühr NUR bei Neubestellung und nur wenn im Admin aktiviert.
+  // Bestandskunden zahlen sie dadurch nicht erneut (Folgerechnungen enthalten sie nie).
+  const pricing = getPricing();
+  const setupCents = pricing.setupFeeEnabled ? pricing.setupFeeCents : 0;
+  const total = monthly + setupCents;
 
   const host = hostOf(input.url);
   const bot = createBot({
@@ -76,6 +81,7 @@ export async function createOrder(input: OrderInput): Promise<OrderResult> {
     description: `Fragio ${planName(plan.id)} — Monatsbeitrag`,
     // Abo läuft ab dem Bestelltag (nicht ab Monatsanfang).
     periodLabel: dayPeriod().label,
+    extraItems: setupCents > 0 ? [{ label: "Einmalige Einrichtungsgebühr", cents: setupCents }] : undefined,
   });
   const invoiceNumber = res.invoice?.invoice_number || "";
 
@@ -88,12 +94,12 @@ export async function createOrder(input: OrderInput): Promise<OrderResult> {
     name: op.bank.accountHolder,
     iban: op.bank.iban,
     bic: op.bank.bic,
-    amountCents: monthly,
+    amountCents: total, // Gesamtbetrag inkl. evtl. Einrichtungsgebühr
     reference,
   });
   return {
     invoiceNumber,
-    amountCents: monthly,
+    amountCents: total,
     currency: op.currency || "EUR",
     reference,
     bank: op.bank,

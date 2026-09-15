@@ -208,6 +208,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         commitMonthlyCents: z.number().int().min(0),
       });
       const schema = z.object({
+        setupFeeEnabled: z.boolean(),
         setupFeeCents: z.number().int().min(0),
         commitMonths: z.number().int().min(0).max(60),
         plans: z.object({ starter: planSchema, business: planSchema, pro: planSchema }),

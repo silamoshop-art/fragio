@@ -202,7 +202,9 @@ export async function* answerQuestion(
   onMeta?: (meta: AnswerMeta) => void,
   opts?: AnswerOptions,
 ): AsyncGenerator<string> {
-  const storeContent = opts?.storeContent !== false; // Default: loggen (Cron/Tests)
+  // Default: loggen (Cron/Tests). Test-/Demo-Bots (trial_mode) speichern NIE Gesprächs-
+  // daten — unabhängig vom Flag (DSGVO/„Testbot-Daten nicht speichern").
+  const storeContent = opts?.storeContent !== false && !bot.trial_mode;
   const ipHash = opts?.ipHash ?? null;
   const msgId = opts?.msgId ?? null;
   const history = opts?.history ?? [];

@@ -75,6 +75,7 @@ export interface ManualFaq {
 }
 
 export interface Pricing {
+  setupFeeEnabled: boolean;
   setupFeeCents: number;
   commitMonths: number;
   plans: Record<"starter" | "business" | "pro", { limit: number; setupMonthlyCents: number; commitMonthlyCents: number }>;

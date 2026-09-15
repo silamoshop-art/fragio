@@ -12,7 +12,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { checkPublicHttpUrl } from "../util/url-guard.js";
-import { getPlanDefs, planById } from "../billing/plans.js";
+import { getPlanDefs, planById, getPricing } from "../billing/plans.js";
 import { stripeEnabled, createCheckoutSession } from "../payments/stripe.js";
 import { lsEnabled, createLsCheckout } from "../payments/lemonsqueezy.js";
 import { createOrder } from "../onboarding/order.js";
@@ -43,17 +43,20 @@ export async function signupRoutes(app: FastifyInstance): Promise<void> {
   // Öffentliche Tarifliste (Self-Service-Variante „setup": Monatspreis + einmalige Gebühr).
   app.get("/api/signup/plans", async () => {
     const currency = operatorConfig().currency || "EUR";
+    const pricing = getPricing();
+    // Einmalige Einrichtungsgebühr nur, wenn im Admin aktiviert (sonst 0).
+    const setupCents = pricing.setupFeeEnabled ? pricing.setupFeeCents : 0;
     return {
       currency,
-      // "online" = Karten-Checkout (LS/Stripe); "invoice" = Rechnung/Überweisung+PayPal.
+      // "online" = Karten-Checkout (LS/Stripe); "invoice" = Rechnung/Überweisung.
       mode: onlinePaymentReady() ? "online" : "invoice",
-      // Self-Service = reines Monatsabo ohne Einrichtungsgebühr (setupCents: 0).
+      setupFeeEnabled: pricing.setupFeeEnabled,
       plans: getPlanDefs().map((p) => ({
         id: p.id,
         name: p.name,
         limit: p.limit,
         monthlyCents: p.setup.monthlyCents,
-        setupCents: 0,
+        setupCents,
       })),
     };
   });

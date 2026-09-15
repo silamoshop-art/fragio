@@ -47,8 +47,13 @@ export function PricingSettings() {
 
       <section className="sec">
         <h3>Einrichtung & Bindung</h3>
+        <label className="field" style={{ cursor: "pointer" }}><span>Einrichtungsgebühr aktiv?</span>
+          <input type="checkbox" checked={p.setupFeeEnabled} onChange={(e) => setP({ ...p, setupFeeEnabled: e.target.checked })} /></label>
         <div className="field"><span>Einrichtungsgebühr (€)</span>
           <input type="number" step="0.01" defaultValue={euro(p.setupFeeCents)} onBlur={(e) => setP({ ...p, setupFeeCents: toCents(e.target.value) })} /></div>
+        <p className="muted" style={{ margin: "2px 0 10px", fontSize: 13 }}>
+          Aktiv: Neukunden zahlen die Gebühr einmalig auf der ersten Rechnung, und sie wird auf der Website angezeigt. Bestandskunden zahlen sie nicht (Folgerechnungen enthalten sie nie).
+        </p>
         <div className="field"><span>Bindung (Monate)</span>
           <input type="number" defaultValue={p.commitMonths} onBlur={(e) => setP({ ...p, commitMonths: Math.round(+e.target.value) })} /></div>
       </section>

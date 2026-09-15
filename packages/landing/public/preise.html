@@ -97,7 +97,7 @@
         </article>
       </div>
 
-      <p style="margin:26px 0 0;text-align:center;color:var(--muted);font-size:15px" data-i18n-en="<strong style=&quot;color:var(--ink)&quot;>No setup fee.</strong> No VAT charged (small-business scheme), cancellable monthly. Payment by invoice — bank transfer with QR code."><strong style="color:var(--ink)">Keine Einrichtungsgebühr.</strong> Keine Umsatzsteuer (Kleinunternehmer), monatlich kündbar. Bezahlung per Rechnung — Überweisung mit QR-Code.</p>
+      <p id="price-note" style="margin:26px 0 0;text-align:center;color:var(--muted);font-size:15px" data-i18n-en="<strong style=&quot;color:var(--ink)&quot;>No setup fee.</strong> No VAT charged (small-business scheme), cancellable monthly. Payment by invoice — bank transfer with QR code."><strong style="color:var(--ink)">Keine Einrichtungsgebühr.</strong> Keine Umsatzsteuer (Kleinunternehmer), monatlich kündbar. Bezahlung per Rechnung — Überweisung mit QR-Code.</p>
     </div>
   </section>
 
@@ -159,5 +159,22 @@
 
 <script src="/site.js" defer></script>
 <script src="/i18n.js" defer></script>
+<script>
+// Einrichtungsgebühr auf der Website anzeigen, sobald sie im Admin aktiviert ist.
+document.addEventListener("DOMContentLoaded", function () {
+  fetch("/api/signup/plans").then(function (r) { return r.json(); }).then(function (d) {
+    var sc = (d.plans && d.plans[0] && d.plans[0].setupCents) || 0;
+    var note = document.getElementById("price-note");
+    if (sc <= 0 || !note) return;
+    var en = document.documentElement.lang === "en";
+    var eur = (sc / 100).toLocaleString(en ? "en-IE" : "de-AT", { style: "currency", currency: d.currency || "EUR" });
+    note.removeAttribute("data-i18n-en"); // ab jetzt ist dieses Skript die Quelle
+    note.innerHTML = '<strong style="color:var(--ink)">' +
+      (en ? ("One-time setup fee: " + eur + ".") : ("Einmalige Einrichtungsgebühr: " + eur + ".")) + "</strong> " +
+      (en ? "No VAT charged (small-business scheme), cancellable monthly. Payment by invoice — bank transfer with QR code."
+          : "Keine Umsatzsteuer (Kleinunternehmer), monatlich kündbar. Bezahlung per Rechnung — Überweisung mit QR-Code.");
+  }).catch(function () {});
+});
+</script>
 </body>
 </html>
