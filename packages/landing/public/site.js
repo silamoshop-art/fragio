@@ -4,16 +4,26 @@
 
   // --- Mobile-Navigation ---
   var toggle = document.querySelector(".nav-toggle");
-  if (toggle) {
-    toggle.addEventListener("click", function () {
-      var open = document.body.classList.toggle("nav-open");
+  var navLinks = document.querySelector(".nav-links");
+  if (toggle && navLinks) {
+    if (!navLinks.id) navLinks.id = "nav-menu";
+    toggle.setAttribute("aria-controls", navLinks.id);
+    var setNav = function (open) {
+      document.body.classList.toggle("nav-open", open);
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    };
+    toggle.addEventListener("click", function () {
+      setNav(!document.body.classList.contains("nav-open"));
     });
-    Array.prototype.forEach.call(document.querySelectorAll(".nav-links a"), function (a) {
-      a.addEventListener("click", function () {
-        document.body.classList.remove("nav-open");
-        toggle.setAttribute("aria-expanded", "false");
-      });
+    Array.prototype.forEach.call(navLinks.querySelectorAll("a"), function (a) {
+      a.addEventListener("click", function () { setNav(false); });
+    });
+    // Escape schließt das offene Menü und gibt den Fokus an den Auslöser zurück.
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && document.body.classList.contains("nav-open")) {
+        setNav(false);
+        toggle.focus();
+      }
     });
   }
 
