@@ -114,7 +114,10 @@ async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const res = await fetch(path, {
     ...opts,
     headers: {
-      "Content-Type": "application/json",
+      // Content-Type nur bei vorhandenem Body setzen. Sonst lehnt Fastify eine
+      // DELETE-/GET-Anfrage mit "application/json" + leerem Body als 400
+      // "Body cannot be empty" ab (das war der „Bad Request" beim Bot-Löschen).
+      ...(opts.body != null ? { "Content-Type": "application/json" } : {}),
       ...(key ? { Authorization: `Bearer ${key}` } : {}),
       ...(opts.headers || {}),
     },
