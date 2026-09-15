@@ -33,7 +33,11 @@ export class AnthropicProvider implements LLMProvider {
         model: this.chatModel,
         max_tokens: opts.maxTokens ?? 512,
         temperature: opts.temperature ?? 0.2,
-        system: opts.system,
+        // System-Prompt (Regeln/Branding) ist pro Bot stabil und wird bei jeder Frage
+        // unverändert erneut gesendet -> Prompt-Caching spart Input-Tokens (~90 % auf
+        // Cache-Reads). Liegt der Prefix unter der Cache-Mindestgröße, ignoriert die
+        // API cache_control folgenlos (kein Risiko). Kontext/Frage stehen in messages.
+        system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
         messages: opts.messages.map((m) => ({ role: m.role, content: m.content })),
       });
       for await (const event of stream) {
