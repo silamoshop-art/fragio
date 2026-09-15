@@ -6,9 +6,25 @@
  * Enthalten bewusst KEINE Keys/Origins/Tenant-Daten.
  */
 import type { FastifyInstance } from "fastify";
-import { getBot, logConsent, suggestedQuestions } from "../db/repo.js";
+import {
+  getBot,
+  logConsent,
+  suggestedQuestions,
+  listBotsByTenant,
+  OPERATOR_TENANT_ID,
+  getSetting,
+} from "../db/repo.js";
 import { backendBase } from "../util/embed.js";
 import { CONSENT_NOTICE, defaultPrivacyText } from "../legal/privacy.js";
+
+/** Host aus einer URL (ohne www.), leer bei ungültig. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
 
 interface Branding {
   botName?: string;
@@ -25,6 +41,26 @@ const DEFAULTS: Required<Branding> = {
 };
 
 export async function widgetConfigRoutes(app: FastifyInstance): Promise<void> {
+  // Eigener Website-Bot: liefert die Bot-ID für DIESE Domain (Betreiber-Tenant),
+  // damit das Widget auf der Fragio-Seite selbst erscheint — ohne fest verdrahtete
+  // ID (funktioniert lokal wie live). Reihenfolge: explizite Einstellung
+  // "site_widget_bot_id", sonst der aktive Betreiber-Bot, dessen Crawl-Host dem
+  // eigenen Host (PUBLIC_BACKEND_URL) entspricht.
+  app.get("/api/widget/site", async () => {
+    const forced = getSetting("site_widget_bot_id");
+    if (forced) {
+      const b = getBot(forced);
+      if (b && b.status === "active") return { botId: b.id };
+    }
+    const ownHost = hostOf(backendBase());
+    if (!ownHost) return { botId: null };
+    const bots = listBotsByTenant(OPERATOR_TENANT_ID);
+    const match = bots.find(
+      (b) => b.status === "active" && !b.trial_mode && hostOf(b.crawl_start_url ?? "") === ownHost,
+    );
+    return { botId: match ? match.id : null };
+  });
+
   app.get<{ Params: { botId: string } }>("/api/widget/:botId/config", async (request, reply) => {
     const bot = getBot(request.params.botId);
     if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });

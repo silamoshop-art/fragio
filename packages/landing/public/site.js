@@ -64,3 +64,24 @@
   // Sicherheitsnetz: nach kurzer Zeit .reveal entfernen -> garantiert sichtbar.
   setTimeout(function () { els.forEach(function (el) { el.classList.remove("reveal"); }); }, 1700);
 })();
+
+// --- Fragios eigenes Chat-Widget site-weit laden ---
+// Wir sind selbst ein Fragio-Kunde: existiert für diese Domain ein Betreiber-Bot,
+// erscheint das Widget (Sprechblase unten rechts) automatisch. Nicht auf der
+// Testseite (die hat ihre eigene Demo).
+(function () {
+  "use strict";
+  if (/testen(\.html)?$/.test(location.pathname)) return;
+  fetch("/api/widget/site")
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d || !d.botId) return;
+      if (document.querySelector('script[data-sitebot], script[data-bot-id]')) return;
+      var s = document.createElement("script");
+      s.src = "/widget/widget.js";
+      s.setAttribute("data-bot-id", d.botId);
+      s.async = true;
+      document.body.appendChild(s);
+    })
+    .catch(function () {});
+})();
