@@ -28,7 +28,7 @@ const SignupSchema = z.object({
   email: z.string().email().max(200),
   url: z.string().min(3).max(2048),
   planId: z.enum(["starter", "business", "pro"]),
-  // Für die Rechnung (Überweisung/PayPal) nötig; bei Online-Zahlung optional.
+  // Für die Rechnung (Banküberweisung) nötig; bei Online-Zahlung optional.
   name: z.string().max(200).optional(),
   address: z.string().max(500).optional(),
   vat: z.string().max(80).optional(),
@@ -104,7 +104,7 @@ export async function signupRoutes(app: FastifyInstance): Promise<void> {
       }
     }
 
-    // 2) Sonst: Kauf per Rechnung (Überweisung / PayPal). Name + Adresse Pflicht.
+    // 2) Sonst: Kauf per Rechnung (Banküberweisung). Name + Adresse Pflicht.
     const name = (parsed.data.name || "").trim();
     const address = (parsed.data.address || "").trim();
     if (name.length < 2 || address.length < 5) {

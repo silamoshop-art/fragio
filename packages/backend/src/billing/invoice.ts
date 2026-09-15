@@ -63,6 +63,21 @@ function monthPeriod(year: number, monthIndex: number): Period {
 }
 
 /**
+ * Abrechnungszeitraum AB DEM Start-/Bestelltag — genau ein Monat, nicht
+ * kalendermonatlich. Beispiel: Start 15.09.2026 → „15.09.2026 – 14.10.2026".
+ * So läuft das Abo ab dem Tag der Bestellung, nicht ab Monatsanfang.
+ */
+export function dayPeriod(start = new Date()): Period {
+  const s = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+  // Ende = ein Monat nach dem Start, minus ein Tag.
+  const end = new Date(Date.UTC(s.getUTCFullYear(), s.getUTCMonth() + 1, s.getUTCDate() - 1));
+  const fmt = (d: Date) =>
+    `${String(d.getUTCDate()).padStart(2, "0")}.${String(d.getUTCMonth() + 1).padStart(2, "0")}.${d.getUTCFullYear()}`;
+  const tag = `${s.getUTCFullYear()}${String(s.getUTCMonth() + 1).padStart(2, "0")}${String(s.getUTCDate()).padStart(2, "0")}`;
+  return { period: `day-${tag}`, label: `${fmt(s)} – ${fmt(end)}`, year: s.getUTCFullYear() };
+}
+
+/**
  * Anteiliger Betrag (Proration) für den Rest des Kalendermonats ab `from`
  * (inklusive dem Tag von `from`). Für Tarifwechsel mitten im Monat.
  */
@@ -186,17 +201,23 @@ async function writeInvoice(
   fs.mkdirSync(invoicesDir, { recursive: true });
   const pdfPath = path.join(invoicesDir, `${number}.pdf`);
 
+  // Verwendungszweck = Rechnungsnummer + Firmen-/Kundenname. Wird beim Scannen des
+  // QR-Codes automatisch vorbefüllt und ist bei manueller Überweisung eindeutig
+  // zuordenbar. Auf SEPA-übliche 140 Zeichen begrenzt.
+  const paymentRef = (bot.customer_name ? `${number} ${bot.customer_name}` : number).slice(0, 140);
+
   // EPC-/Giro-QR (Betrag + Verwendungszweck vorbefüllt) — null bei Platzhalter-IBAN.
   const qrPng = await epcQrPngBuffer({
     name: op.bank.accountHolder,
     iban: op.bank.iban,
     bic: op.bank.bic,
     amountCents: totalCents,
-    reference: number,
+    reference: paymentRef,
   });
 
   await renderPdf(pdfPath, {
     number,
+    reference: paymentRef,
     dateLabel: args.when.toLocaleDateString("de-AT"),
     periodLabel: args.periodLabel,
     issuerName: op.name,
@@ -255,6 +276,7 @@ async function writeInvoice(
 
 interface PdfData {
   number: string;
+  reference: string;
   dateLabel: string;
   periodLabel: string;
   issuerName: string;
@@ -338,7 +360,7 @@ function renderPdf(filePath: string, d: PdfData): Promise<void> {
     doc.text(`Kontoinhaber: ${d.issuerBank.accountHolder}`, 56, undefined, { width: 350 });
     doc.text(`IBAN: ${d.issuerBank.iban}    BIC: ${d.issuerBank.bic}`, 56, undefined, { width: 350 });
     doc.text(`Bank: ${d.issuerBank.bankName}`, 56, undefined, { width: 350 });
-    doc.text(`Verwendungszweck: ${d.number}`, 56, undefined, { width: 350 });
+    doc.text(`Verwendungszweck: ${d.reference}`, 56, undefined, { width: 350 });
     const payTextBottom = doc.y;
 
     // EPC-/Giro-QR rechts (nur wenn vorhanden = gültige IBAN).

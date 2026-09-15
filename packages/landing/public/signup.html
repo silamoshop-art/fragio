@@ -51,7 +51,7 @@
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="oklch(0.5 0.14 150)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <h2 style="margin:0 0 10px;font-size:28px">Bestellung erhalten — danke!</h2>
-        <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:var(--muted)">Deine Rechnung <strong id="os-invnum" style="color:var(--ink)"></strong> über <strong id="os-amount" style="color:var(--ink)"></strong> ist unterwegs an deine E-Mail. Bitte begleiche sie per Überweisung oder PayPal:</p>
+        <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:var(--muted)">Deine Rechnung <strong id="os-invnum" style="color:var(--ink)"></strong> über <strong id="os-amount" style="color:var(--ink)"></strong> ist unterwegs an deine E-Mail. Bitte begleiche sie per Überweisung:</p>
         <div class="pay-box">
           <p class="pay-h">Überweisung</p>
           <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
@@ -61,10 +61,6 @@
               <p style="margin:6px 0 0;font-size:12px;color:var(--muted-2)">Mit Banking-App scannen</p>
             </div>
           </div>
-        </div>
-        <div id="os-paypal-box" hidden class="pay-box">
-          <p class="pay-h">PayPal</p>
-          <a id="os-paypal" href="#" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Mit PayPal bezahlen</a>
         </div>
         <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:var(--muted)">Sobald deine Zahlung eingegangen ist, richten wir deinen Chatbot automatisch ein und schicken dir die Zugangsdaten fürs Dashboard.</p>
         <a href="/" class="btn btn-primary">Zur Startseite</a>
@@ -110,7 +106,7 @@
         <div class="summary-box">
           <div class="summary-row"><span>Monatlich</span><span id="sum-monthly">—</span></div>
           <div id="sum-setup-row" class="summary-row"><span>Einmalige Einrichtung</span><span id="sum-setup">—</span></div>
-          <p style="margin:10px 0 0;font-size:12.5px;color:var(--muted-2)">Endpreise, keine Umsatzsteuer (Kleinunternehmer). Monatlich kündbar. Bezahlung per Rechnung — Überweisung oder PayPal.</p>
+          <p style="margin:10px 0 0;font-size:12.5px;color:var(--muted-2)">Endpreise, keine Umsatzsteuer (Kleinunternehmer). Monatlich kündbar. Bezahlung per Rechnung — Überweisung mit QR-Code.</p>
         </div>
 
         <div>
@@ -204,15 +200,6 @@
     if (o.qrDataUrl) {
       el("os-qr").src = o.qrDataUrl;
       document.getElementById("os-qr-box").hidden = false;
-    }
-    if (o.paypal && /^https?:\/\//.test(o.paypal)) {
-      el("os-paypal").href = o.paypal;
-      document.getElementById("os-paypal-box").hidden = false;
-    } else if (o.paypal) {
-      document.getElementById("os-paypal-box").hidden = false;
-      el("os-paypal").outerHTML =
-        '<span style="font-size:15px;color:var(--ink)">PayPal an <strong>' + esc(o.paypal) +
-        "</strong> (Verwendungszweck " + esc(o.reference) + ")</span>";
     }
     document.getElementById("order-success").hidden = false;
     window.scrollTo(0, 0);

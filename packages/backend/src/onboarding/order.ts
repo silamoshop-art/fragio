@@ -1,9 +1,9 @@
 /**
- * Self-Service-Kauf per RECHNUNG (Überweisung / PayPal) — halbautomatisch.
+ * Self-Service-Kauf per RECHNUNG (Banküberweisung) — halbautomatisch.
  *
  * Ablauf: Kunde bestellt -> Bot wird als „paused" (noch nicht freigeschaltet)
  * mit Rechnungsdaten angelegt -> eine Rechnung wird erzeugt und per E-Mail
- * geschickt (IBAN + Verwendungszweck) -> der Kunde überweist / zahlt per PayPal
+ * geschickt (IBAN + Verwendungszweck) -> der Kunde überweist den Betrag
  * -> der Betreiber markiert die Rechnung im Admin als bezahlt, was die
  * Freischaltung + Provisionierung auslöst (siehe routes/admin.ts).
  *
@@ -12,7 +12,7 @@
  */
 import { createBot, updateBot, getBot, OPERATOR_TENANT_ID } from "../db/repo.js";
 import { planById, planName } from "../billing/plans.js";
-import { generateExtraInvoice, currentPeriod } from "../billing/invoice.js";
+import { generateExtraInvoice, dayPeriod } from "../billing/invoice.js";
 import { operatorConfig } from "../config/operator.js";
 import { epcQrDataUrl } from "../util/epc-qr.js";
 
@@ -31,7 +31,6 @@ export interface OrderResult {
   currency: string;
   reference: string;
   bank: { accountHolder: string; iban: string; bic: string; bankName: string };
-  paypal: string;
   /** EPC-/Giro-QR als data:-URL (Betrag + Verwendungszweck vorbefüllt) — null bei Platzhalter-IBAN. */
   qrDataUrl: string | null;
 }
@@ -75,9 +74,14 @@ export async function createOrder(input: OrderInput): Promise<OrderResult> {
   const res = await generateExtraInvoice(fresh, {
     amountCents: monthly,
     description: `Fragio ${planName(plan.id)} — Monatsbeitrag`,
-    periodLabel: currentPeriod().label,
+    // Abo läuft ab dem Bestelltag (nicht ab Monatsanfang).
+    periodLabel: dayPeriod().label,
   });
   const invoiceNumber = res.invoice?.invoice_number || "";
+
+  // Verwendungszweck identisch zur Rechnung: Rechnungsnummer + Firmen-/Kundenname
+  // (wird beim QR-Scan automatisch vorbefüllt, bei manueller Überweisung eindeutig).
+  const reference = `${invoiceNumber} ${input.name}`.slice(0, 140);
 
   const op = operatorConfig();
   const qrDataUrl = await epcQrDataUrl({
@@ -85,15 +89,14 @@ export async function createOrder(input: OrderInput): Promise<OrderResult> {
     iban: op.bank.iban,
     bic: op.bank.bic,
     amountCents: monthly,
-    reference: invoiceNumber,
+    reference,
   });
   return {
     invoiceNumber,
     amountCents: monthly,
     currency: op.currency || "EUR",
-    reference: invoiceNumber,
+    reference,
     bank: op.bank,
-    paypal: op.paypal || "",
     qrDataUrl,
   };
 }
