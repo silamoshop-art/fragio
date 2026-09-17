@@ -56,7 +56,7 @@
       </div>
 
       <div class="grid-3" style="align-items:stretch">
-        <article class="price-card" data-lift data-reveal>
+        <article class="price-card" data-lift data-reveal data-plan="starter">
           <p class="plan">Starter</p>
           <p class="price">49&nbsp;€<span> /Monat</span></p>
           <p class="quota">500 Anfragen im Monat</p>
@@ -69,7 +69,7 @@
           <a href="/signup.html?plan=starter" class="btn btn-ghost btn-block">Jetzt bestellen</a>
         </article>
 
-        <article class="price-card featured" data-lift data-reveal="70">
+        <article class="price-card featured" data-lift data-reveal="70" data-plan="business">
           <span class="badge">Empfohlen</span>
           <p class="plan">Business</p>
           <p class="price">129&nbsp;€<span> /Monat</span></p>
@@ -83,7 +83,7 @@
           <a href="/signup.html?plan=business" class="btn btn-primary btn-block">Jetzt bestellen</a>
         </article>
 
-        <article class="price-card" data-lift data-reveal="140">
+        <article class="price-card" data-lift data-reveal="140" data-plan="pro">
           <p class="plan">Pro</p>
           <p class="price">249&nbsp;€<span> /Monat</span></p>
           <p class="quota">5.000 Anfragen im Monat</p>
@@ -159,22 +159,5 @@
 
 <script src="/site.js" defer></script>
 <script src="/i18n.js" defer></script>
-<script>
-// Einrichtungsgebühr auf der Website anzeigen, sobald sie im Admin aktiviert ist.
-document.addEventListener("DOMContentLoaded", function () {
-  fetch("/api/signup/plans").then(function (r) { return r.json(); }).then(function (d) {
-    var sc = (d.plans && d.plans[0] && d.plans[0].setupCents) || 0;
-    var note = document.getElementById("price-note");
-    if (sc <= 0 || !note) return;
-    var en = document.documentElement.lang === "en";
-    var eur = (sc / 100).toLocaleString(en ? "en-IE" : "de-AT", { style: "currency", currency: d.currency || "EUR" });
-    note.removeAttribute("data-i18n-en"); // ab jetzt ist dieses Skript die Quelle
-    note.innerHTML = '<strong style="color:var(--ink)">' +
-      (en ? ("One-time setup fee: " + eur + ".") : ("Einmalige Einrichtungsgebühr: " + eur + ".")) + "</strong> " +
-      (en ? "No VAT charged (small-business scheme), cancellable monthly. Payment by invoice — bank transfer with QR code."
-          : "Keine Umsatzsteuer (Kleinunternehmer), monatlich kündbar. Bezahlung per Rechnung — Überweisung mit QR-Code.");
-  }).catch(function () {});
-});
-</script>
 </body>
 </html>

@@ -76,7 +76,15 @@ export async function buildServer() {
       const authed = !!req.headers["authorization"];
       if (authed && url.startsWith("/api/admin/")) return 600; // Betreiber-Dashboard
       if (authed && url.startsWith("/api/portal/")) return 240; // Kunden-Portal
-      return 60; // öffentlicher Chat/Widget + alles Übrige
+      // Leichte, häufige GETs (Widget-Bootstrap, Tarifliste, Bot-Config) zählen
+      // pro Seitenaufruf mehrfach -> großzügiger, sonst 429 beim normalen Klicken.
+      if (
+        url.startsWith("/api/widget/") ||
+        url.startsWith("/api/signup/plans") ||
+        url === "/api/widget/site"
+      )
+        return 300;
+      return 120; // öffentlicher Chat + alles Übrige
     },
     timeWindow: "1 minute",
     keyGenerator: (req) => {

@@ -252,27 +252,27 @@ async function writeInvoice(
     sent: 0,
   });
 
-  // Echter E-Mail-Versand nur wenn pro Bot aktiviert und Empfänger (des Bots) vorhanden.
+  // E-Mail-Versand bewusst NICHT awaiten: Ein langsamer oder fehlkonfigurierter
+  // SMTP-Server darf den Bestell-/Checkout-Request NIEMALS blockieren (sonst hängt
+  // die Bestellung). Die Rechnung ist bereits in DB + PDF gespeichert; die E-Mail
+  // läuft im Hintergrund und markiert bei Erfolg als versendet.
   if (bot.auto_send_invoice && bot.customer_email) {
-    try {
-      await sendEmail(
-        bot.customer_email,
-        `Rechnung ${number}`,
-        [
-          `Guten Tag ${bot.customer_name},`,
-          ``,
-          `im Anhang findest du die Rechnung ${number} (Leistungszeitraum ${args.periodLabel}) ` +
-            `über ${money(totalCents, currency)}.`,
-          ``,
-          `Mit freundlichen Grüßen`,
-          op.name,
-        ].join("\n"),
-        [{ filename: `Rechnung-${number}.pdf`, path: pdfPath }],
-      );
-      markInvoiceSent(id);
-    } catch (e) {
-      console.error(`✉️  Rechnungsversand ${number} fehlgeschlagen:`, (e as Error).message);
-    }
+    void sendEmail(
+      bot.customer_email,
+      `Rechnung ${number}`,
+      [
+        `Guten Tag ${bot.customer_name},`,
+        ``,
+        `im Anhang findest du die Rechnung ${number} (Leistungszeitraum ${args.periodLabel}) ` +
+          `über ${money(totalCents, currency)}.`,
+        ``,
+        `Mit freundlichen Grüßen`,
+        op.name,
+      ].join("\n"),
+      [{ filename: `Rechnung-${number}.pdf`, path: pdfPath }],
+    )
+      .then(() => markInvoiceSent(id))
+      .catch((e) => console.error(`✉️  Rechnungsversand ${number} fehlgeschlagen:`, (e as Error).message));
   }
 
   const invoice = getInvoiceForBotPeriod(bot.id, args.period)!;

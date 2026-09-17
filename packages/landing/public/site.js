@@ -65,6 +65,66 @@
   setTimeout(function () { els.forEach(function (el) { el.classList.remove("reveal"); }); }, 1700);
 })();
 
+// --- Preise/Kontingente live aus der Admin-Preisliste übernehmen ---
+// Preiskarten (data-plan) und der Einrichtungsgebühr-Hinweis (#price-note)
+// werden aus /api/signup/plans befüllt -> eine Preisänderung im Admin wirkt
+// sofort auf allen Seiten. Es wird nur die ZAHL ersetzt; das Label (inkl.
+// i18n-Übersetzung, die vorher lief) bleibt unangetastet.
+(function () {
+  "use strict";
+  var cards = document.querySelectorAll("[data-plan]");
+  var note = document.getElementById("price-note");
+  if (!cards.length && !note) return;
+
+  function fmt(n, en) {
+    // de-DE liefert zuverlässig den Punkt als Tausendertrennzeichen (2.000),
+    // passend zum übrigen Seitentext; de-AT nutzt hier ein schmales Leerzeichen.
+    try { return Number(n).toLocaleString(en ? "en-US" : "de-DE"); }
+    catch (e) { return String(n); }
+  }
+  // Ersetzt die erste Zahl im ersten ziffernhaltigen Textknoten; behält € und
+  // ein evtl. <span>-Suffix ("/Monat") sowie die Sprache des Labels.
+  function setNumber(el, numStr) {
+    if (!el) return;
+    for (var i = 0; i < el.childNodes.length; i++) {
+      var node = el.childNodes[i];
+      if (node.nodeType === 3 && /\d/.test(node.nodeValue)) {
+        node.nodeValue = node.nodeValue.replace(/[\d.,  ]*\d/, numStr);
+        return;
+      }
+    }
+    if (!el.children.length) el.textContent = numStr;
+  }
+
+  fetch("/api/signup/plans")
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d || !d.plans) return;
+      var en = document.documentElement.lang === "en";
+      var by = {};
+      d.plans.forEach(function (p) { by[p.id] = p; });
+      Array.prototype.forEach.call(cards, function (card) {
+        var p = by[card.getAttribute("data-plan")];
+        if (!p) return;
+        setNumber(card.querySelector(".price"), fmt(p.monthlyCents / 100, en));
+        setNumber(card.querySelector(".quota"), fmt(p.limit, en));
+      });
+      // Einrichtungsgebühr-Hinweis nur, wenn im Admin aktiviert.
+      if (note && d.setupFeeEnabled) {
+        var sc = (d.plans[0] && d.plans[0].setupCents) || 0;
+        if (sc > 0) {
+          var eur = (sc / 100).toLocaleString(en ? "en-IE" : "de-AT", { style: "currency", currency: d.currency || "EUR" });
+          note.removeAttribute("data-i18n-en"); // ab jetzt ist dieses Skript die Quelle
+          note.innerHTML = '<strong style="color:var(--ink)">' +
+            (en ? ("One-time setup fee: " + eur + ".") : ("Einmalige Einrichtungsgebühr: " + eur + ".")) + "</strong> " +
+            (en ? "No VAT charged (small-business scheme), cancellable monthly. Payment by invoice — bank transfer with QR code."
+                : "Keine Umsatzsteuer (Kleinunternehmer), monatlich kündbar. Bezahlung per Rechnung — Überweisung mit QR-Code.");
+        }
+      }
+    })
+    .catch(function () {});
+})();
+
 // --- Fragios eigenes Chat-Widget site-weit laden ---
 // Wir sind selbst ein Fragio-Kunde: existiert für diese Domain ein Betreiber-Bot,
 // erscheint das Widget (Sprechblase unten rechts) automatisch. Nicht auf der
