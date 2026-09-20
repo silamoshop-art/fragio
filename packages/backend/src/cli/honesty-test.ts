@@ -17,7 +17,7 @@
  */
 import fs from "node:fs";
 import { getBot } from "../db/repo.js";
-import { answerQuestion, type AnswerMeta } from "../rag/answer.js";
+import { answerQuestion, looksLikeNonAnswer, type AnswerMeta } from "../rag/answer.js";
 
 interface TestItem {
   question: string;
@@ -34,7 +34,11 @@ async function runOne(botId: string, item: TestItem) {
   })) {
     full += piece;
   }
-  const answered = meta ? (meta as AnswerMeta).answered && !(meta as AnswerMeta).escalated : false;
+  // „Beantwortet" = Kontext gefunden UND finaler Text ist keine Absage (gleiche
+  // Logik wie das Chat-Log). meta.answered wird optimistisch vor dem LLM gesetzt;
+  // erst der finale Antworttext entscheidet, ob wirklich beantwortet wurde.
+  const m = meta as AnswerMeta | null;
+  const answered = !!m && m.answered && !m.escalated && !looksLikeNonAnswer(full);
   const correct = item.expect === "answer" ? answered : !answered;
   return { question: item.question, expect: item.expect, answered, correct, answer: full };
 }

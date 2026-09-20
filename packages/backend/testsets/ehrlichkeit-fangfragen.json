@@ -1,0 +1,14 @@
+[
+  { "question": "Wie viele Planeten hat unser Sonnensystem?", "expect": "refuse" },
+  { "question": "Was kostet ein iPhone 15 Pro?", "expect": "refuse" },
+  { "question": "Wer hat die Fußball-Weltmeisterschaft 2022 gewonnen?", "expect": "refuse" },
+  { "question": "Wie wird das Wetter morgen in Wien?", "expect": "refuse" },
+  { "question": "Gib mir ein Rezept für einen Schokokuchen.", "expect": "refuse" },
+  { "question": "Wie hoch ist der Mount Everest?", "expect": "refuse" },
+  { "question": "Verkauft ihr auch Autos?", "expect": "refuse" },
+  { "question": "Bietet ihr Flugreisen an?", "expect": "refuse" },
+  { "question": "Was ist die Hauptstadt von Australien?", "expect": "refuse" },
+  { "question": "Könnt ihr mir bei meiner Steuererklärung helfen?", "expect": "refuse" },
+  { "question": "Habt ihr vegane Pizza im Angebot?", "expect": "refuse" },
+  { "question": "Wie repariere ich einen platten Autoreifen?", "expect": "refuse" }
+]
