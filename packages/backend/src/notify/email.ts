@@ -28,6 +28,11 @@ function transport(): Transporter | null {
     port: mc.port,
     secure: mc.secure, // true => 465 (implizites TLS), false => STARTTLS auf 587
     auth: { user: mc.user, pass: mc.pass },
+    // Schnell scheitern statt lange hängen (z. B. wenn der Server ausgehende
+    // SMTP-Ports blockiert -> Connection Timeout).
+    connectionTimeout: 12000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
   });
   _sig = sig;
   return _transport;

@@ -293,7 +293,15 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
           .send({ error: "Kein SMTP-Zugang hinterlegt — bitte Host, Benutzer und Passwort eintragen und speichern." });
       }
       if (!v.ok) {
-        return reply.code(400).send({ error: "SMTP-Verbindung fehlgeschlagen: " + (v.error || "unbekannt") });
+        const raw = (v.error || "unbekannt").toLowerCase();
+        const timeout = raw.includes("timeout") || raw.includes("etimedout") || raw.includes("econnrefused");
+        const hint = timeout
+          ? ` Der Server konnte ${mc.host}:${mc.port} nicht erreichen. Häufigste Ursache: dein Hoster blockiert ausgehende SMTP-Ports. ` +
+            `Versuche Port 465 mit „SSL" aktiviert (statt 587), oder frage beim Hoster nach dem erlaubten Mail-Versand/Relay.`
+          : ` Prüfe Host, Port, Benutzer und Passwort (bei GMX/Gmail ggf. ein App-Passwort nötig).`;
+        return reply
+          .code(400)
+          .send({ error: `SMTP-Verbindung fehlgeschlagen (${mc.host}:${mc.port}): ${v.error || "unbekannt"}.${hint}` });
       }
       try {
         await sendEmail(
