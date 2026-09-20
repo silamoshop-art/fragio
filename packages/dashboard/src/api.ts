@@ -69,7 +69,7 @@ export interface Bot {
   bookingUrl: string | null;
   escalationTopics: string[];
   multilingual: boolean;
-  widgetPosition: "right" | "left";
+  widgetPosition: "bottom-right" | "bottom-left" | "top-right" | "top-left";
   newLeads: number;
 }
 

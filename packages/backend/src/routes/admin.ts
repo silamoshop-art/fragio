@@ -61,6 +61,7 @@ import {
   InvoiceDataError,
 } from "../billing/invoice.js";
 import { snippetFor, previewUrlFor, backendBase } from "../util/embed.js";
+import { normalizeWidgetPosition } from "./widget-config.js";
 import { hashPassword } from "../crypto/password.js";
 import fs from "node:fs";
 import { encryptSecret } from "../crypto/secrets.js";
@@ -137,7 +138,7 @@ function presentBot(bot: BotRow) {
     bookingUrl: bot.booking_url,
     escalationTopics: safeArray(bot.escalation_topics ?? "[]"),
     multilingual: !!bot.multilingual,
-    widgetPosition: bot.widget_position === "left" ? "left" : "right",
+    widgetPosition: normalizeWidgetPosition(bot.widget_position),
     newLeads: countNewLeads(bot.id),
     previewUrl: previewUrlFor(bot.id),
     portalUrl: `${backendBase()}/portal/`,
@@ -516,7 +517,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         bookingUrl: z.union([z.string().url().max(2048), z.literal(""), z.null()]).optional(),
         escalationTopics: z.array(z.string().max(80)).max(30).nullable().optional(),
         multilingual: z.boolean().optional(),
-        widgetPosition: z.enum(["right", "left"]).optional(),
+        widgetPosition: z.enum(["bottom-right", "bottom-left", "top-right", "top-left"]).optional(),
       });
       const parsed = schema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Ungültige Eingabe." });

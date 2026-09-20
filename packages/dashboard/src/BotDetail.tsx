@@ -331,8 +331,10 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
         <Field label="Logo-URL"><input defaultValue={bot.branding.logoUrl || ""} onBlur={(e) => save({ branding: { ...bot.branding, logoUrl: e.target.value } })} placeholder="https://…/logo.png" /></Field>
         <Field label="Position der Sprechblase">
           <select defaultValue={bot.widgetPosition} onChange={(e) => save({ widgetPosition: e.target.value })}>
-            <option value="right">Unten rechts (Standard)</option>
-            <option value="left">Unten links</option>
+            <option value="bottom-right">Unten rechts (Standard)</option>
+            <option value="bottom-left">Unten links</option>
+            <option value="top-right">Oben rechts</option>
+            <option value="top-left">Oben links</option>
           </select>
         </Field>
       </Section>

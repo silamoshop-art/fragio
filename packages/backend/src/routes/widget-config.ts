@@ -17,6 +17,14 @@ import {
 import { backendBase } from "../util/embed.js";
 import { CONSENT_NOTICE, defaultPrivacyText } from "../legal/privacy.js";
 
+/** Erlaubte Widget-Positionen (vier Ecken); Legacy 'right'/'left' -> unten. */
+export const WIDGET_POSITIONS = ["bottom-right", "bottom-left", "top-right", "top-left"] as const;
+export function normalizeWidgetPosition(v: string | null | undefined): string {
+  if (v === "right" || !v) return "bottom-right";
+  if (v === "left") return "bottom-left";
+  return (WIDGET_POSITIONS as readonly string[]).includes(v) ? v : "bottom-right";
+}
+
 /** Host aus einer URL (ohne www.), leer bei ungültig. */
 function hostOf(url: string): string {
   try {
@@ -86,8 +94,8 @@ export async function widgetConfigRoutes(app: FastifyInstance): Promise<void> {
         bot.lead_intro ||
         "Ich konnte deine Frage nicht aus der Website beantworten. Sollen wir uns bei dir melden? Hinterlasse einfach deine Kontaktdaten.",
       bookingUrl: bot.booking_url || "",
-      // Position der Sprechblase: 'right' (Standard) oder 'left'.
-      position: bot.widget_position === "left" ? "left" : "right",
+      // Position der Sprechblase: eine der vier Ecken (Legacy 'right'/'left' -> unten).
+      position: normalizeWidgetPosition(bot.widget_position),
       // Consent (DSGVO/AI-Act)
       consentNotice: CONSENT_NOTICE,
       privacyUrl: `${backendBase()}/privacy.html?bot=${bot.id}`,
