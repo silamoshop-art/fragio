@@ -28,12 +28,17 @@ function transport(): Transporter | null {
     port: mc.port,
     secure: mc.secure, // true => 465 (implizites TLS), false => STARTTLS auf 587
     auth: { user: mc.user, pass: mc.pass },
+    // IPv4 erzwingen: auf Dual-Stack-Servern (z. B. netcup-VPS) versucht Node oft
+    // zuerst IPv6; ist der IPv6-Ausgang zum Mailserver nicht sauber geroutet, führt
+    // das zu „Connection timeout". Über IPv4 ist SMTP praktisch immer erreichbar.
+    // (family wird von nodemailer an net.connect durchgereicht, ist aber nicht typisiert.)
+    family: 4,
     // Schnell scheitern statt lange hängen (z. B. wenn der Server ausgehende
     // SMTP-Ports blockiert -> Connection Timeout).
     connectionTimeout: 12000,
     greetingTimeout: 10000,
     socketTimeout: 20000,
-  });
+  } as Parameters<typeof nodemailer.createTransport>[0] & { family: number });
   _sig = sig;
   return _transport;
 }
