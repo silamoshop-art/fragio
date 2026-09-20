@@ -391,13 +391,22 @@ function Plans({ isMobile }: { isMobile: boolean }) {
                 ))}
               </div>
 
-              <button
-                onClick={() => request(p.id, v)}
-                disabled={busy === p.id}
-                style={{ width: "100%", padding: "13px 20px", borderRadius: 12, fontSize: 15, fontWeight: 600, border: "none", cursor: "pointer", background: C.accent, color: "#fff" }}
-              >
-                {busy === p.id ? "…" : "Anfragen"}
-              </button>
+              {(() => {
+                const ORDER = ["starter", "business", "pro"];
+                const rank = (id: string | null) => ORDER.indexOf(id || "");
+                let label = "Anfragen";
+                if (isCurrent) label = "Aktueller Tarif";
+                else if (currentId) label = rank(p.id) > rank(currentId) ? "Upgraden" : "Downgraden";
+                return (
+                  <button
+                    onClick={() => request(p.id, v)}
+                    disabled={busy === p.id || isCurrent}
+                    style={{ width: "100%", padding: "13px 20px", borderRadius: 12, fontSize: 15, fontWeight: 600, border: "none", cursor: isCurrent ? "default" : "pointer", background: isCurrent ? "oklch(0.95 0.005 258)" : C.accent, color: isCurrent ? C.textSecondary : "#fff" }}
+                  >
+                    {busy === p.id ? "…" : label}
+                  </button>
+                );
+              })()}
             </div>
           );
         })}
@@ -516,7 +525,13 @@ function Addons({ onMessage }: { onMessage: (m: string) => void }) {
 
   return (
     <div style={{ marginTop: 40 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 650, color: C.textPrimary, margin: "0 0 4px" }}>Zusatzoptionen</h2>
+      <h2 style={{ fontSize: 18, fontWeight: 650, color: C.textPrimary, margin: "0 0 4px" }}>Branding &amp; Zusatzoptionen</h2>
+      {a.brandingIncluded ? (
+        <p style={{ fontSize: 14, color: C.textSecondary, margin: "0 0 16px", lineHeight: 1.5 }}>
+          In deinem Tarif enthalten: <strong>eigenes Logo &amp; Bot-Name</strong>. Lade dein Logo unten hoch — es sind keine kostenpflichtigen Zusatzoptionen nötig.
+        </p>
+      ) : (
+      <>
       <p style={{ fontSize: 14, color: C.textSecondary, margin: "0 0 16px" }}>Erst nach Freischaltung nutzbar.</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
         {items.map((it) => {
@@ -543,8 +558,10 @@ function Addons({ onMessage }: { onMessage: (m: string) => void }) {
           );
         })}
       </div>
+      </>
+      )}
 
-      {a.logo.status === "active" && (
+      {(a.logo.status === "active" || a.brandingIncluded) && (
         <div style={{ marginTop: 20, background: "#fff", border: `1px solid ${C.border}`, borderRadius: 16, padding: 20 }}>
           <strong style={{ color: C.textPrimary }}>Logo hochladen</strong>
           <p style={{ fontSize: 13, color: C.textSecondary, margin: "4px 0 12px" }}>

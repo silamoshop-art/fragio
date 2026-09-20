@@ -107,6 +107,22 @@ export function getAddons(): Pricing["addons"] {
   return getPricing().addons;
 }
 
+/** Rangfolge der Tarife (für Upgrade-/Downgrade-Logik im Portal). */
+export const PLAN_ORDER: PlanId[] = ["starter", "business", "pro"];
+export function planRank(id: string | null | undefined): number {
+  const i = PLAN_ORDER.indexOf(id as PlanId);
+  return i < 0 ? -1 : i;
+}
+
+/**
+ * Enthält der Tarif das Branding (eigenes Logo + Bot-Name) bereits? Der Pro-Tarif
+ * beinhaltet es laut Website — dann werden die Branding-Zusatzoptionen NICHT als
+ * separate (kostenpflichtige) Upsells angeboten, und der Logo-Upload ist frei.
+ */
+export function planIncludesBranding(plan: string | null | undefined): boolean {
+  return plan === "pro";
+}
+
 // ── Pro-Kunde-Rabatt ──────────────────────────────────────────────────────────
 
 export type DiscountType = "percent" | "fixed" | null;

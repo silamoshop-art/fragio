@@ -57,7 +57,10 @@ async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const res = await fetch(path, {
     ...opts,
     headers: {
-      "Content-Type": "application/json",
+      // Content-Type nur bei vorhandenem Body setzen — sonst lehnt Fastify eine
+      // POST-Anfrage mit "application/json" + leerem Body als 400 ab (das war der
+      // „Bad Request" beim Website-neu-Einlesen / Recrawl im Portal).
+      ...(opts.body != null ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(opts.headers || {}),
     },
@@ -186,8 +189,9 @@ export interface PortalChatLog {
   createdAt: number;
 }
 
-export type AddonStatus = "active" | "pending" | "available";
+export type AddonStatus = "active" | "pending" | "available" | "included";
 export interface AddonsResp {
+  brandingIncluded: boolean;
   logo: { priceCents: number; status: AddonStatus };
   name: { priceCents: number; status: AddonStatus };
   bundle: { priceCents: number; status: AddonStatus };

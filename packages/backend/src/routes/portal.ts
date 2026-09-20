@@ -37,7 +37,7 @@ import { crawlAndIndex } from "../crawler/index.js";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "../config.js";
-import { getPlanDefs, planById, planName, planVariant, getAddons } from "../billing/plans.js";
+import { getPlanDefs, planById, planName, planVariant, getAddons, planIncludesBranding } from "../billing/plans.js";
 import { createPlanChangeRequest, listOpenRequestKinds } from "../db/repo.js";
 import { sendOperatorEmail, sendEmail } from "../notify/email.js";
 import { stripeEnabled, createCheckoutSession } from "../payments/stripe.js";
@@ -206,9 +206,12 @@ export async function portalRoutes(app: FastifyInstance): Promise<void> {
       if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
       const a = getAddons();
       const open = listOpenRequestKinds(bot.id);
-      const st = (active: boolean, kinds: string[]): "active" | "pending" | "available" =>
-        active ? "active" : kinds.some((k) => open.includes(k)) ? "pending" : "available";
+      // Enthält der Tarif Branding schon (Pro), gelten Logo & Name als „enthalten".
+      const included = planIncludesBranding(bot.plan);
+      const st = (active: boolean, kinds: string[]): "active" | "pending" | "available" | "included" =>
+        included ? "included" : active ? "active" : kinds.some((k) => open.includes(k)) ? "pending" : "available";
       return {
+        brandingIncluded: included,
         logo: { priceCents: a.logoCents, status: st(!!bot.addon_logo, ["addon_logo", "addon_bundle"]) },
         name: { priceCents: a.nameCents, status: st(!!bot.addon_name, ["addon_name", "addon_bundle"]) },
         bundle: {
@@ -502,7 +505,7 @@ export async function portalRoutes(app: FastifyInstance): Promise<void> {
     secured.post("/api/portal/logo", async (request, reply) => {
       const bot = loadBot(request);
       if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
-      if (!bot.addon_logo) {
+      if (!bot.addon_logo && !planIncludesBranding(bot.plan)) {
         return reply.code(403).send({ error: "Logo-Option ist für diesen Bot nicht freigeschaltet." });
       }
       const mp = await request.file();
