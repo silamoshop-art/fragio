@@ -70,7 +70,9 @@ export interface BotRow {
   escalation_topics: string | null; // JSON-Array von Stichwörtern
   multilingual: number;
   quota_warned_period: string | null;
-  widget_position: string; // 'right' | 'left'
+  widget_position: string; // bottom-right | bottom-left | top-right | top-left
+  widget_offset_x: number; // px von der horizontalen Kante
+  widget_offset_y: number; // px von der vertikalen Kante
 }
 
 export interface ChunkHit {
@@ -683,6 +685,8 @@ export interface BotUpdate {
   multilingual?: number;
   quota_warned_period?: string | null;
   widget_position?: string;
+  widget_offset_x?: number;
+  widget_offset_y?: number;
 }
 
 export function updateBot(id: string, patch: BotUpdate): void {
@@ -707,6 +711,8 @@ export function updateBot(id: string, patch: BotUpdate): void {
     "retention_days",
     "lead_capture",
     "multilingual",
+    "widget_offset_x",
+    "widget_offset_y",
   ]);
   for (const [key, value] of Object.entries(patch)) {
     if (value === undefined) continue;

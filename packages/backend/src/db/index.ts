@@ -168,6 +168,9 @@ function runMigrations(db: DatabaseSync): void {
     // Position der Chat-Sprechblase: eine der vier Ecken (Standard bottom-right).
     // Legacy-Werte 'right'/'left' werden beim Ausliefern normalisiert.
     { table: "bots", column: "widget_position", ddl: "TEXT NOT NULL DEFAULT 'bottom-right'" },
+    // Genauer Abstand der Sprechblase von den gewählten Kanten (in Pixeln).
+    { table: "bots", column: "widget_offset_x", ddl: "INTEGER NOT NULL DEFAULT 20" },
+    { table: "bots", column: "widget_offset_y", ddl: "INTEGER NOT NULL DEFAULT 20" },
     // Zuletzt echte Widget-Einbindung erkannt: Zeitpunkt der letzten Chat-Anfrage,
     // deren Origin zur hinterlegten (nicht-leeren) Kunden-Domain passt. Grundlage
     // für "Bereits eingebunden" im Portal — Test-/Vorschau-Traffic zählt NICHT.

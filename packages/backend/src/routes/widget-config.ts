@@ -24,6 +24,12 @@ export function normalizeWidgetPosition(v: string | null | undefined): string {
   if (v === "left") return "bottom-left";
   return (WIDGET_POSITIONS as readonly string[]).includes(v) ? v : "bottom-right";
 }
+/** Abstand auf einen sinnvollen Bereich begrenzen (0–400 px). */
+export function clampOffset(v: number | null | undefined): number {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 20;
+  return Math.max(0, Math.min(400, Math.round(n)));
+}
 
 /** Host aus einer URL (ohne www.), leer bei ungültig. */
 function hostOf(url: string): string {
@@ -94,8 +100,10 @@ export async function widgetConfigRoutes(app: FastifyInstance): Promise<void> {
         bot.lead_intro ||
         "Ich konnte deine Frage nicht aus der Website beantworten. Sollen wir uns bei dir melden? Hinterlasse einfach deine Kontaktdaten.",
       bookingUrl: bot.booking_url || "",
-      // Position der Sprechblase: eine der vier Ecken (Legacy 'right'/'left' -> unten).
+      // Position der Sprechblase: Ecke + genauer Abstand (px), begrenzt auf 0–400.
       position: normalizeWidgetPosition(bot.widget_position),
+      offsetX: clampOffset(bot.widget_offset_x),
+      offsetY: clampOffset(bot.widget_offset_y),
       // Consent (DSGVO/AI-Act)
       consentNotice: CONSENT_NOTICE,
       privacyUrl: `${backendBase()}/privacy.html?bot=${bot.id}`,

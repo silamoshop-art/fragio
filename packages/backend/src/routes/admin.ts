@@ -139,6 +139,8 @@ function presentBot(bot: BotRow) {
     escalationTopics: safeArray(bot.escalation_topics ?? "[]"),
     multilingual: !!bot.multilingual,
     widgetPosition: normalizeWidgetPosition(bot.widget_position),
+    widgetOffsetX: bot.widget_offset_x,
+    widgetOffsetY: bot.widget_offset_y,
     newLeads: countNewLeads(bot.id),
     previewUrl: previewUrlFor(bot.id),
     portalUrl: `${backendBase()}/portal/`,
@@ -518,6 +520,8 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         escalationTopics: z.array(z.string().max(80)).max(30).nullable().optional(),
         multilingual: z.boolean().optional(),
         widgetPosition: z.enum(["bottom-right", "bottom-left", "top-right", "top-left"]).optional(),
+        widgetOffsetX: z.number().int().min(0).max(400).optional(),
+        widgetOffsetY: z.number().int().min(0).max(400).optional(),
       });
       const parsed = schema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Ungültige Eingabe." });
@@ -576,6 +580,8 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
               : JSON.stringify(d.escalationTopics.map((t) => t.trim()).filter(Boolean)),
         multilingual: d.multilingual === undefined ? undefined : d.multilingual ? 1 : 0,
         widget_position: d.widgetPosition,
+        widget_offset_x: d.widgetOffsetX,
+        widget_offset_y: d.widgetOffsetY,
       });
       // Rabatt-/Preisänderung -> effektiven Preis aus Basispreis neu berechnen.
       if (d.discountType !== undefined || d.discountValue !== undefined) {

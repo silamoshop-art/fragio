@@ -329,7 +329,7 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
         <Field label="Farbe"><input type="color" defaultValue={bot.branding.primaryColor || "#4f46e5"} onBlur={(e) => save({ branding: { ...bot.branding, primaryColor: e.target.value } })} /></Field>
         <Field label="Begrüßung"><input defaultValue={bot.branding.greeting || ""} onBlur={(e) => save({ branding: { ...bot.branding, greeting: e.target.value } })} /></Field>
         <Field label="Logo-URL"><input defaultValue={bot.branding.logoUrl || ""} onBlur={(e) => save({ branding: { ...bot.branding, logoUrl: e.target.value } })} placeholder="https://…/logo.png" /></Field>
-        <Field label="Position der Sprechblase">
+        <Field label="Position der Sprechblase (Ecke)">
           <select defaultValue={bot.widgetPosition} onChange={(e) => save({ widgetPosition: e.target.value })}>
             <option value="bottom-right">Unten rechts (Standard)</option>
             <option value="bottom-left">Unten links</option>
@@ -337,6 +337,13 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
             <option value="top-left">Oben links</option>
           </select>
         </Field>
+        <Field label="Abstand horizontal (px von der Seitenkante)">
+          <input type="number" min={0} max={400} defaultValue={bot.widgetOffsetX} onBlur={(e) => save({ widgetOffsetX: Math.max(0, Math.min(400, Number(e.target.value) || 0)) })} />
+        </Field>
+        <Field label="Abstand vertikal (px von oben/unten)">
+          <input type="number" min={0} max={400} defaultValue={bot.widgetOffsetY} onBlur={(e) => save({ widgetOffsetY: Math.max(0, Math.min(400, Number(e.target.value) || 0)) })} />
+        </Field>
+        <p className="muted">Die Abstände gelten von den beiden Kanten der gewählten Ecke. Standard: 20&nbsp;px. Auf schmalen Handy-Bildschirmen wird automatisch ein fester Rand genutzt.</p>
       </Section>
 
       <Section title="Schreibstil (Tonfall)">

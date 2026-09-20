@@ -70,6 +70,8 @@ export interface Bot {
   escalationTopics: string[];
   multilingual: boolean;
   widgetPosition: "bottom-right" | "bottom-left" | "top-right" | "top-left";
+  widgetOffsetX: number;
+  widgetOffsetY: number;
   newLeads: number;
 }
 
