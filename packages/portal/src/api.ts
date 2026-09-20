@@ -84,11 +84,11 @@ export const api = {
     }),
   overview: () => req<Overview>("/api/portal/overview"),
   plans: () => req<{ plans: Plan[] }>("/api/portal/plans"),
-  // Tarif/Variante ANFRAGEN (ändert nichts automatisch — siehe Zahlungsablauf).
-  requestPlan: (planId: string, variant: VariantId) =>
+  // Tarifwechsel anfragen (Bestandskunde: nur neuer Monatspreis, keine Einrichtung).
+  requestPlan: (planId: string) =>
     req<{ mode: "request" | "checkout"; message?: string; url?: string }>(
       "/api/portal/plan-request",
-      { method: "POST", body: JSON.stringify({ planId, variant }) },
+      { method: "POST", body: JSON.stringify({ planId }) },
     ),
   analytics: () => req<{ topQuestions: QItem[]; unanswered: QItem[] }>("/api/portal/analytics"),
   snippet: () => req<{ snippet: string; widgetActive: boolean }>("/api/portal/snippet"),

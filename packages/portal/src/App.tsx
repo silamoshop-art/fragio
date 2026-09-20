@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { api, getToken, setToken, clearToken, type Overview, type Plan, type QItem, type VariantId, type AddonsResp, type AddonStatus, type PortalChatLog, type ManualFaq, type Lead } from "./api";
+import { api, getToken, setToken, clearToken, type Overview, type Plan, type QItem, type PortalChatLog, type ManualFaq, type Lead } from "./api";
 
 /* Farben exakt aus dem gelieferten Design (oklch). */
 const C = {
@@ -319,7 +319,6 @@ function Leads() {
 function Plans({ isMobile }: { isMobile: boolean }) {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
-  const [variant, setVariant] = useState<Record<string, VariantId>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -330,18 +329,16 @@ function Plans({ isMobile }: { isMobile: boolean }) {
       .catch((e) => setErr((e as Error).message));
   }, []);
 
-  const vOf = (id: string): VariantId => variant[id] || "setup";
-
-  async function request(planId: string, v: VariantId) {
+  async function request(planId: string) {
     setBusy(planId);
     setMsg("");
     setErr("");
     setRequestedId(null);
     try {
-      const r = await api.requestPlan(planId, v);
+      const r = await api.requestPlan(planId);
       if (r.mode === "checkout" && r.url) { window.location.href = r.url; return; }
       setRequestedId(planId);
-      setMsg(r.message || "Anfrage gesendet — du bekommst in Kürze eine Rechnung per E-Mail.");
+      setMsg(r.message || "Wechsel angefragt.");
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -349,41 +346,32 @@ function Plans({ isMobile }: { isMobile: boolean }) {
     }
   }
 
+  const ORDER = ["starter", "business", "pro"];
+  const rank = (id: string | null) => ORDER.indexOf(id || "");
+
   return (
     <div>
-      <h1 style={h1Style()}>Tarife</h1>
-      <p style={{ fontSize: 16, color: C.textSecondary, margin: "0 0 32px" }}>Wähle Tarif und Abrechnungsvariante — wir schicken dir die passende Rechnung.</p>
+      <h1 style={h1Style()}>Tarif</h1>
+      <p style={{ fontSize: 16, color: C.textSecondary, margin: "0 0 6px" }}>Jederzeit hoch- oder runterstufen — der Wechsel gilt ab dem nächsten Abrechnungszeitraum.</p>
+      <p style={{ fontSize: 14, color: C.textSecondary, margin: "0 0 28px" }}>Bei einem Wechsel fällt <strong>keine erneute Einrichtungsgebühr</strong> an — nur der neue Monatspreis. Monatlich kündbar.</p>
       {err && <p style={{ color: C.red }}>{err}</p>}
       {msg && <p style={{ background: "oklch(0.96 0.03 145)", border: "1px solid oklch(0.8 0.1 145)", color: "oklch(0.35 0.09 145)", padding: "12px 16px", borderRadius: 12, fontSize: 14, fontWeight: 500 }}>{msg}</p>}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 20 }}>
         {plans.map((p) => {
           const isCurrent = p.id === currentId;
-          const v = vOf(p.id);
-          const monthly = (v === "commit" ? p.commit.monthlyCents : p.setup.monthlyCents) / 100;
+          const monthly = p.setup.monthlyCents / 100;
+          const requested = requestedId === p.id;
+          let label = "Wählen";
+          if (isCurrent) label = "Aktueller Tarif";
+          else if (requested) label = "Angefragt";
+          else if (currentId) label = rank(p.id) > rank(currentId) ? "Upgraden" : "Downgraden";
+          const inactive = isCurrent || requested;
           return (
             <div key={p.id} style={{ background: "#fff", borderRadius: 20, padding: 28, border: isCurrent ? `2px solid ${C.accent}` : `1px solid ${C.border}`, boxShadow: isCurrent ? "0 8px 24px oklch(0.55 0.16 258 / 0.12)" : "0 1px 3px oklch(0.2 0.01 258 / 0.04)" }}>
               {isCurrent && <span style={{ display: "inline-block", background: C.accentSoftBg, color: C.accentSoftText, fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 999, marginBottom: 16 }}>Aktueller Tarif</span>}
-              <h2 style={{ fontSize: 22, fontWeight: 650, color: C.textPrimary, margin: "0 0 14px" }}>{p.name}</h2>
-
-              {/* Umschalter: Mit Einrichtung / Ohne Einrichtung, 6 Monate Bindung */}
-              <div style={{ display: "flex", background: "oklch(0.96 0.004 258)", borderRadius: 10, padding: 3, marginBottom: 16 }}>
-                {(["setup", "commit"] as VariantId[]).map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => setVariant((s) => ({ ...s, [p.id]: opt }))}
-                    style={{ flex: 1, border: "none", cursor: "pointer", borderRadius: 8, padding: "8px 6px", fontSize: 12, fontWeight: 600, lineHeight: 1.2, background: v === opt ? "#fff" : "transparent", color: v === opt ? C.textPrimary : C.textSecondary, boxShadow: v === opt ? "0 1px 2px oklch(0.2 0.01 258 / 0.12)" : "none" }}
-                  >
-                    {opt === "setup" ? "Mit Einrichtung" : "6 Monate Bindung"}
-                  </button>
-                ))}
-              </div>
-
+              <h2 style={{ fontSize: 22, fontWeight: 650, color: C.textPrimary, margin: "0 0 10px" }}>{p.name}</h2>
               <p style={{ fontSize: 28, fontWeight: 650, color: C.textPrimary, margin: "0 0 2px" }}>{monthly} €<span style={{ fontSize: 15, fontWeight: 500, color: C.textSecondary }}>/Monat</span></p>
-              <p style={{ fontSize: 13, color: C.textSecondary, margin: "0 0 18px" }}>
-                {v === "setup"
-                  ? `+ ${p.setup.setupCents / 100} € Einrichtung · monatlich kündbar`
-                  : `${p.commit.commitmentMonths} Monate Bindung · keine Einrichtung`}
-              </p>
+              <p style={{ fontSize: 13, color: C.textSecondary, margin: "0 0 18px" }}>{fmt(p.limit)} Antworten im Monat</p>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
                 {(PLAN_FEATURES[p.id] || []).map((f, i) => (
@@ -394,38 +382,24 @@ function Plans({ isMobile }: { isMobile: boolean }) {
                 ))}
               </div>
 
-              {(() => {
-                const ORDER = ["starter", "business", "pro"];
-                const rank = (id: string | null) => ORDER.indexOf(id || "");
-                const requested = requestedId === p.id;
-                let label = "Bestellen";
-                if (isCurrent) label = "Aktueller Tarif";
-                else if (requested) label = "Angefragt";
-                else if (currentId) label = rank(p.id) > rank(currentId) ? "Upgraden" : "Downgraden";
-                const inactive = isCurrent || requested;
-                return (
-                  <>
-                    <button
-                      onClick={() => request(p.id, v)}
-                      disabled={busy === p.id || inactive}
-                      style={{ width: "100%", padding: "13px 20px", borderRadius: 12, fontSize: 15, fontWeight: 600, border: "none", cursor: inactive ? "default" : "pointer", background: isCurrent ? "oklch(0.95 0.005 258)" : requested ? C.green : C.accent, color: isCurrent ? C.textSecondary : "#fff" }}
-                    >
-                      {busy === p.id ? "…" : label}
-                    </button>
-                    {requested && (
-                      <p style={{ margin: "10px 0 0", fontSize: 13, color: "oklch(0.4 0.1 145)", lineHeight: 1.4 }}>
-                        Anfrage gesendet — du bekommst in Kürze eine Rechnung per E-Mail.
-                      </p>
-                    )}
-                  </>
-                );
-              })()}
+              <button
+                onClick={() => request(p.id)}
+                disabled={busy === p.id || inactive}
+                style={{ width: "100%", padding: "13px 20px", borderRadius: 12, fontSize: 15, fontWeight: 600, border: "none", cursor: inactive ? "default" : "pointer", background: isCurrent ? "oklch(0.95 0.005 258)" : requested ? C.green : C.accent, color: isCurrent ? C.textSecondary : "#fff" }}
+              >
+                {busy === p.id ? "…" : label}
+              </button>
+              {requested && (
+                <p style={{ margin: "10px 0 0", fontSize: 13, color: "oklch(0.4 0.1 145)", lineHeight: 1.4 }}>
+                  Wechsel angefragt — gilt ab dem nächsten Abrechnungszeitraum, ohne erneute Einrichtungsgebühr.
+                </p>
+              )}
             </div>
           );
         })}
       </div>
 
-      <Addons onMessage={setMsg} />
+      <Branding onMessage={setMsg} />
     </div>
   );
 }
@@ -480,14 +454,13 @@ function Support() {
   );
 }
 
-/* ---------- Zusatzoptionen (Branding-Add-ons) ---------- */
-function Addons({ onMessage }: { onMessage: (m: string) => void }) {
-  const [a, setA] = useState<AddonsResp | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
+/* ---------- Branding (Logo) — abhängig vom Tarif, keine bezahlten Add-ons mehr ---------- */
+function Branding({ onMessage }: { onMessage: (m: string) => void }) {
+  const [included, setIncluded] = useState<boolean | null>(null);
   const [uploading, setUploading] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>("");
   useEffect(() => {
-    api.addons().then(setA).catch(() => {});
+    api.addons().then((a) => setIncluded(a.brandingIncluded)).catch(() => setIncluded(false));
   }, []);
 
   async function onLogoFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -507,91 +480,34 @@ function Addons({ onMessage }: { onMessage: (m: string) => void }) {
     }
   }
 
-  if (!a) return null;
-
-  async function req(addon: "logo" | "name" | "bundle") {
-    setBusy(addon);
-    onMessage("");
-    try {
-      const r = await api.requestAddon(addon);
-      onMessage(r.message || "Anfrage gesendet.");
-      setA(await api.addons());
-    } catch (e) {
-      onMessage("" + (e as Error).message);
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  const items: { key: "logo" | "name" | "bundle"; label: string; hint: string; s: { priceCents: number; status: AddonStatus } }[] = [
-    { key: "logo", label: "Eigenes Logo", hint: "Dein Logo im Chat-Fenster", s: a.logo },
-    { key: "name", label: "Eigener Bot-Name", hint: "Individueller Name statt Standard", s: a.name },
-    { key: "bundle", label: "Bundle: Logo + Name", hint: "Beides zusammen — günstiger", s: a.bundle },
-  ];
-
-  const badge = (status: AddonStatus) =>
-    status === "active"
-      ? { text: "Aktiv", color: C.green }
-      : status === "pending"
-        ? { text: "Angefragt …", color: C.yellow }
-        : null;
+  if (included === null) return null;
 
   return (
     <div style={{ marginTop: 40 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 650, color: C.textPrimary, margin: "0 0 4px" }}>Branding &amp; Zusatzoptionen</h2>
-      {a.brandingIncluded ? (
-        <p style={{ fontSize: 14, color: C.textSecondary, margin: "0 0 16px", lineHeight: 1.5 }}>
-          In deinem Tarif enthalten: <strong>eigenes Logo &amp; Bot-Name</strong>. Lade dein Logo unten hoch — es sind keine kostenpflichtigen Zusatzoptionen nötig.
-        </p>
-      ) : (
-      <>
-      <p style={{ fontSize: 14, color: C.textSecondary, margin: "0 0 16px" }}>Erst nach Freischaltung nutzbar.</p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-        {items.map((it) => {
-          const b = badge(it.s.status);
-          const disabled = it.s.status !== "available" || busy === it.key;
-          return (
-            <div key={it.key} style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, opacity: it.s.status === "available" ? 1 : 0.65 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-                <strong style={{ color: C.textPrimary }}>{it.label}</strong>
-                {b && <span style={{ fontSize: 12, fontWeight: 600, color: b.color }}>{b.text}</span>}
-              </div>
-              <p style={{ fontSize: 13, color: C.textSecondary, margin: "4px 0 12px" }}>{it.hint}</p>
-              <p style={{ fontSize: 20, fontWeight: 650, color: C.textPrimary, margin: "0 0 12px" }}>
-                +{it.s.priceCents / 100} €<span style={{ fontSize: 13, fontWeight: 500, color: C.textSecondary }}>/Monat</span>
-              </p>
-              <button
-                onClick={() => req(it.key)}
-                disabled={disabled}
-                style={{ width: "100%", padding: "10px 14px", borderRadius: 10, fontSize: 14, fontWeight: 600, border: "none", cursor: disabled ? "default" : "pointer", background: disabled ? "oklch(0.95 0.005 258)" : C.accent, color: disabled ? C.textSecondary : "#fff" }}
-              >
-                {it.s.status === "active" ? "Freigeschaltet" : it.s.status === "pending" ? "In Bearbeitung" : busy === it.key ? "…" : "Anfragen"}
-              </button>
-            </div>
-          );
-        })}
-      </div>
-      </>
-      )}
-
-      {(a.logo.status === "active" || a.brandingIncluded) && (
-        <div style={{ marginTop: 20, background: "#fff", border: `1px solid ${C.border}`, borderRadius: 16, padding: 20 }}>
-          <strong style={{ color: C.textPrimary }}>Logo hochladen</strong>
-          <p style={{ fontSize: 13, color: C.textSecondary, margin: "4px 0 12px" }}>
-            PNG, JPG oder SVG, max. 2 MB. Erscheint im Kopf des Chat-Fensters.
+      <h2 style={{ fontSize: 18, fontWeight: 650, color: C.textPrimary, margin: "0 0 4px" }}>Branding</h2>
+      {included ? (
+        <>
+          <p style={{ fontSize: 14, color: C.textSecondary, margin: "0 0 16px", lineHeight: 1.5 }}>
+            In deinem Tarif enthalten: <strong>eigenes Logo &amp; Bot-Name</strong>. Lade dein Logo hoch — der Bot-Name lässt sich über den Support anpassen.
           </p>
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/svg+xml"
-            onChange={onLogoFile}
-            disabled={uploading}
-          />
-          {logoUrl && (
-            <div style={{ marginTop: 12 }}>
-              <img src={logoUrl} alt="Aktuelles Logo" style={{ maxHeight: 64, maxWidth: 200, borderRadius: 8 }} />
-            </div>
-          )}
-        </div>
+          <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 16, padding: 20 }}>
+            <strong style={{ color: C.textPrimary }}>Logo hochladen</strong>
+            <p style={{ fontSize: 13, color: C.textSecondary, margin: "4px 0 12px" }}>
+              PNG, JPG oder SVG, max. 2 MB. Erscheint im Kopf des Chat-Fensters.
+            </p>
+            <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={onLogoFile} disabled={uploading} />
+            {logoUrl && (
+              <div style={{ marginTop: 12 }}>
+                <img src={logoUrl} alt="Aktuelles Logo" style={{ maxHeight: 64, maxWidth: 200, borderRadius: 8 }} />
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <p style={{ fontSize: 14, color: C.textSecondary, margin: 0, lineHeight: 1.5 }}>
+          Eigenes Logo und ein individueller Bot-Name sind <strong>ab dem Standard-Tarif</strong> enthalten.
+          Für Branding einfach oben auf Standard oder Betreut wechseln.
+        </p>
       )}
     </div>
   );

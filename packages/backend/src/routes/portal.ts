@@ -37,7 +37,7 @@ import { crawlAndIndex } from "../crawler/index.js";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "../config.js";
-import { getPlanDefs, planById, planName, planVariant, getAddons, planIncludesBranding } from "../billing/plans.js";
+import { getPlanDefs, planById, planName, getAddons, planIncludesBranding } from "../billing/plans.js";
 import { createPlanChangeRequest, listOpenRequestKinds } from "../db/repo.js";
 import { sendOperatorEmail, sendEmail } from "../notify/email.js";
 import { stripeEnabled, createCheckoutSession } from "../payments/stripe.js";
@@ -143,30 +143,29 @@ export async function portalRoutes(app: FastifyInstance): Promise<void> {
       })),
     }));
 
-    // Tarif/Variante ANFRAGEN — ändert NICHTS am Bot.
-    // Stripe aus: Anfrage speichern + Operator per E-Mail benachrichtigen.
-    // Stripe an: Checkout-Session starten (Freischaltung dann per Webhook).
+    // TARIFWECHSEL eines Bestandskunden ANFRAGEN — ändert NICHTS automatisch.
+    // Wichtig: KEINE Einrichtungsgebühr und KEINE Bindung — die Einrichtung wurde
+    // beim Erstkauf bereits bezahlt. Ein Wechsel kostet nur den neuen Monatspreis.
     secured.post("/api/portal/plan-request", async (request, reply) => {
       const parsed = z
-        .object({
-          planId: z.enum(["starter", "business", "pro"]),
-          variant: z.enum(["setup", "commit"]),
-        })
+        .object({ planId: z.enum(["starter", "business", "pro"]) })
         .safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Ungültige Auswahl." });
       const bot = loadBot(request);
       if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
-      const { planId, variant } = parsed.data;
-      const v = planVariant(planId, variant)!;
+      const { planId } = parsed.data;
+      const plan = planById(planId);
+      if (!plan) return reply.code(400).send({ error: "Unbekannter Tarif." });
+      const monthlyCents = plan.setup.monthlyCents; // Schlagzeilenpreis, ohne Einrichtung
 
       if (stripeEnabled()) {
         try {
           const { url } = await createCheckoutSession({
             botId: bot.id,
             planId,
-            variant,
-            monthlyCents: v.monthlyCents,
-            setupCents: v.setupCents,
+            variant: "setup",
+            monthlyCents,
+            setupCents: 0, // Bestandskunde: keine erneute Einrichtungsgebühr
           });
           return { mode: "checkout" as const, url };
         } catch (err) {
@@ -175,28 +174,26 @@ export async function portalRoutes(app: FastifyInstance): Promise<void> {
         }
       }
 
-      // Manueller Ablauf: Anfrage speichern + Operator benachrichtigen.
+      const current = bot.plan && planById(bot.plan) ? planName(bot.plan) : "—";
       createPlanChangeRequest({
         botId: bot.id,
         planId,
-        variant,
-        monthlyCents: v.monthlyCents,
-        setupCents: v.setupCents,
-        commitmentMonths: v.commitmentMonths,
+        variant: "change",
+        monthlyCents,
+        setupCents: 0,
+        commitmentMonths: 0,
       });
-      const variantText =
-        variant === "setup"
-          ? `${(v.monthlyCents / 100).toFixed(0)} €/Monat + ${(v.setupCents / 100).toFixed(0)} € Einrichtung (monatlich kündbar)`
-          : `${(v.monthlyCents / 100).toFixed(0)} €/Monat, ${v.commitmentMonths} Monate Bindung`;
       await sendOperatorEmail(
-        `Neue Tarif-Anfrage: ${bot.name} → ${planName(planId)}`,
-        `Bot: ${bot.name} (${bot.id})\nTarif: ${planName(planId)}\nVariante: ${variantText}\n\n` +
-          `Nächste Schritte: Rechnung verschicken, nach Zahlungseingang im Dashboard freischalten.`,
+        `Tarifwechsel angefragt: ${bot.name} → ${planName(planId)}`,
+        `Bot: ${bot.name} (${bot.id})\nBisher: ${current}\nNeu: ${planName(planId)} — ` +
+          `${(monthlyCents / 100).toFixed(0)} €/Monat, KEINE Einrichtungsgebühr (Bestandskunde), monatlich kündbar.\n\n` +
+          `Nächste Schritte: neuen Preis im Dashboard setzen; ab nächstem Abrechnungszeitraum.`,
       );
 
       return {
         mode: "request" as const,
-        message: "Anfrage gesendet — du bekommst in Kürze eine Rechnung per E-Mail.",
+        message:
+          "Wechsel angefragt — wir stellen deinen Tarif zum nächsten Abrechnungszeitraum um. Es fällt keine erneute Einrichtungsgebühr an.",
       };
     });
 
