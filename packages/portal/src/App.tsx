@@ -323,6 +323,7 @@ function Plans({ isMobile }: { isMobile: boolean }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [requestedId, setRequestedId] = useState<string | null>(null);
   useEffect(() => {
     Promise.all([api.plans(), api.overview()])
       .then(([p, o]) => { setPlans(p.plans); setCurrentId(o.planId); })
@@ -335,9 +336,11 @@ function Plans({ isMobile }: { isMobile: boolean }) {
     setBusy(planId);
     setMsg("");
     setErr("");
+    setRequestedId(null);
     try {
       const r = await api.requestPlan(planId, v);
       if (r.mode === "checkout" && r.url) { window.location.href = r.url; return; }
+      setRequestedId(planId);
       setMsg(r.message || "Anfrage gesendet — du bekommst in Kürze eine Rechnung per E-Mail.");
     } catch (e) {
       setErr((e as Error).message);
@@ -394,17 +397,27 @@ function Plans({ isMobile }: { isMobile: boolean }) {
               {(() => {
                 const ORDER = ["starter", "business", "pro"];
                 const rank = (id: string | null) => ORDER.indexOf(id || "");
-                let label = "Anfragen";
+                const requested = requestedId === p.id;
+                let label = "Bestellen";
                 if (isCurrent) label = "Aktueller Tarif";
+                else if (requested) label = "Angefragt";
                 else if (currentId) label = rank(p.id) > rank(currentId) ? "Upgraden" : "Downgraden";
+                const inactive = isCurrent || requested;
                 return (
-                  <button
-                    onClick={() => request(p.id, v)}
-                    disabled={busy === p.id || isCurrent}
-                    style={{ width: "100%", padding: "13px 20px", borderRadius: 12, fontSize: 15, fontWeight: 600, border: "none", cursor: isCurrent ? "default" : "pointer", background: isCurrent ? "oklch(0.95 0.005 258)" : C.accent, color: isCurrent ? C.textSecondary : "#fff" }}
-                  >
-                    {busy === p.id ? "…" : label}
-                  </button>
+                  <>
+                    <button
+                      onClick={() => request(p.id, v)}
+                      disabled={busy === p.id || inactive}
+                      style={{ width: "100%", padding: "13px 20px", borderRadius: 12, fontSize: 15, fontWeight: 600, border: "none", cursor: inactive ? "default" : "pointer", background: isCurrent ? "oklch(0.95 0.005 258)" : requested ? C.green : C.accent, color: isCurrent ? C.textSecondary : "#fff" }}
+                    >
+                      {busy === p.id ? "…" : label}
+                    </button>
+                    {requested && (
+                      <p style={{ margin: "10px 0 0", fontSize: 13, color: "oklch(0.4 0.1 145)", lineHeight: 1.4 }}>
+                        Anfrage gesendet — du bekommst in Kürze eine Rechnung per E-Mail.
+                      </p>
+                    )}
+                  </>
                 );
               })()}
             </div>
