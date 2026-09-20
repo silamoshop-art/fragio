@@ -137,6 +137,7 @@ function presentBot(bot: BotRow) {
     bookingUrl: bot.booking_url,
     escalationTopics: safeArray(bot.escalation_topics ?? "[]"),
     multilingual: !!bot.multilingual,
+    widgetPosition: bot.widget_position === "left" ? "left" : "right",
     newLeads: countNewLeads(bot.id),
     previewUrl: previewUrlFor(bot.id),
     portalUrl: `${backendBase()}/portal/`,
@@ -515,6 +516,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         bookingUrl: z.union([z.string().url().max(2048), z.literal(""), z.null()]).optional(),
         escalationTopics: z.array(z.string().max(80)).max(30).nullable().optional(),
         multilingual: z.boolean().optional(),
+        widgetPosition: z.enum(["right", "left"]).optional(),
       });
       const parsed = schema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Ungültige Eingabe." });
@@ -572,6 +574,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
               ? null
               : JSON.stringify(d.escalationTopics.map((t) => t.trim()).filter(Boolean)),
         multilingual: d.multilingual === undefined ? undefined : d.multilingual ? 1 : 0,
+        widget_position: d.widgetPosition,
       });
       // Rabatt-/Preisänderung -> effektiven Preis aus Basispreis neu berechnen.
       if (d.discountType !== undefined || d.discountValue !== undefined) {

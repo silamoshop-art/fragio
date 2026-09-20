@@ -86,6 +86,8 @@ export async function widgetConfigRoutes(app: FastifyInstance): Promise<void> {
         bot.lead_intro ||
         "Ich konnte deine Frage nicht aus der Website beantworten. Sollen wir uns bei dir melden? Hinterlasse einfach deine Kontaktdaten.",
       bookingUrl: bot.booking_url || "",
+      // Position der Sprechblase: 'right' (Standard) oder 'left'.
+      position: bot.widget_position === "left" ? "left" : "right",
       // Consent (DSGVO/AI-Act)
       consentNotice: CONSENT_NOTICE,
       privacyUrl: `${backendBase()}/privacy.html?bot=${bot.id}`,

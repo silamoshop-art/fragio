@@ -40,6 +40,7 @@
     leadIntro:
       "Ich konnte deine Frage nicht aus der Website beantworten. Sollen wir uns bei dir melden? Hinterlasse einfach deine Kontaktdaten.",
     bookingUrl: "",
+    position: "right", // 'right' | 'left' — Ecke der Sprechblase
     consentNotice:
       "Dies ist ein KI-Chatbot. Zur Beantwortung werden deine Nachrichten an einen " +
       "KI-Dienstleister (Anthropic, USA) übermittelt — das ist für die Nutzung des Chats " +
@@ -130,7 +131,7 @@
     var root = host.attachShadow({ mode: "open" });
 
     var style = document.createElement("style");
-    style.textContent = css(cfg.primaryColor);
+    style.textContent = css(cfg.primaryColor, cfg.position);
     root.appendChild(style);
 
     var container = document.createElement("div");
@@ -520,12 +521,14 @@
     );
   }
 
-  function css(brand) {
+  function css(brand, position) {
+    // Ausrichtung: rechts (Standard) oder links unten.
+    var side = position === "left" ? "left" : "right";
     return [
       ".sb-root{--sb-brand:" + brand + ";--sb-radius:16px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}",
-      ".sb-launcher{position:fixed;right:20px;bottom:20px;z-index:2147483000;width:56px;height:56px;border-radius:50%;border:0;background:var(--sb-brand);color:#fff;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;transition:transform .15s;}",
+      ".sb-launcher{position:fixed;" + side + ":20px;bottom:20px;z-index:2147483000;width:56px;height:56px;border-radius:50%;border:0;background:var(--sb-brand);color:#fff;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;transition:transform .15s;}",
       ".sb-launcher:hover{transform:scale(1.06);}",
-      ".sb-panel{position:fixed;right:20px;bottom:88px;z-index:2147483000;width:370px;max-width:calc(100vw - 40px);height:560px;max-height:calc(100vh - 120px);background:#fff;color:#111;border-radius:var(--sb-radius);box-shadow:0 12px 40px rgba(0,0,0,.28);display:flex;flex-direction:column;overflow:hidden;opacity:0;transform:translateY(12px) scale(.98);pointer-events:none;transition:opacity .18s,transform .18s;}",
+      ".sb-panel{position:fixed;" + side + ":20px;bottom:88px;z-index:2147483000;width:370px;max-width:calc(100vw - 40px);height:560px;max-height:calc(100vh - 120px);background:#fff;color:#111;border-radius:var(--sb-radius);box-shadow:0 12px 40px rgba(0,0,0,.28);display:flex;flex-direction:column;overflow:hidden;opacity:0;transform:translateY(12px) scale(.98);pointer-events:none;transition:opacity .18s,transform .18s;}",
       ".sb-panel.sb-open{opacity:1;transform:none;pointer-events:auto;}",
       ".sb-header{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--sb-brand);color:#fff;}",
       ".sb-logo{width:28px;height:28px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px;}",
@@ -577,7 +580,7 @@
       ".sb-mic.sb-listening{background:var(--sb-brand);color:#fff;animation:sb-pulse 1.3s infinite;}",
       "@keyframes sb-pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,0,0,0);}50%{box-shadow:0 0 0 6px rgba(0,0,0,.10);}}",
       // Consent-Popup: gleiche Position wie das Panel, über allem, blockiert bis zur Entscheidung.
-      ".sb-consent{position:fixed;right:20px;bottom:88px;z-index:2147483001;width:370px;max-width:calc(100vw - 40px);background:#fff;color:#111;border-radius:var(--sb-radius);box-shadow:0 12px 40px rgba(0,0,0,.28);opacity:0;transform:translateY(12px) scale(.98);pointer-events:none;transition:opacity .18s,transform .18s;}",
+      ".sb-consent{position:fixed;" + side + ":20px;bottom:88px;z-index:2147483001;width:370px;max-width:calc(100vw - 40px);background:#fff;color:#111;border-radius:var(--sb-radius);box-shadow:0 12px 40px rgba(0,0,0,.28);opacity:0;transform:translateY(12px) scale(.98);pointer-events:none;transition:opacity .18s,transform .18s;}",
       ".sb-consent.sb-open{opacity:1;transform:none;pointer-events:auto;}",
       ".sb-consent-box{padding:20px;}",
       ".sb-consent-title{margin:0 0 10px;font-size:15px;font-weight:700;color:#111;}",
@@ -588,7 +591,7 @@
       ".sb-consent-actions button{width:100%;padding:11px 12px;border-radius:10px;border:0;font-size:14px;font-weight:600;cursor:pointer;line-height:1.3;}",
       ".sb-consent-accept{background:var(--sb-brand);color:#fff;}",
       ".sb-consent-reject{background:#eceef3;color:#333;}",
-      "@media (max-width:480px){.sb-panel{right:0;bottom:0;width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0;}.sb-launcher{right:16px;bottom:16px;}.sb-consent{right:12px;left:12px;width:auto;max-width:none;bottom:88px;}}",
+      "@media (max-width:480px){.sb-panel{right:0;bottom:0;width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0;}.sb-launcher{" + side + ":16px;bottom:16px;}.sb-consent{right:12px;left:12px;width:auto;max-width:none;bottom:88px;}}",
     ].join("");
   }
 
@@ -645,6 +648,7 @@
         cfg.leadCapture = !!data.leadCapture;
         if (data.leadIntro) cfg.leadIntro = data.leadIntro;
         cfg.bookingUrl = data.bookingUrl || "";
+        cfg.position = data.position === "left" ? "left" : "right";
       }
     })
     .catch(function () {})

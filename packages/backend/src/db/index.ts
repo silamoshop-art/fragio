@@ -165,6 +165,8 @@ function runMigrations(db: DatabaseSync): void {
     // 80%-Kontingent-Warnung: Zeitraum, für den zuletzt gewarnt wurde ("YYYY-MM"),
     // damit die Warnmail pro Monat nur einmal rausgeht.
     { table: "bots", column: "quota_warned_period", ddl: "TEXT" },
+    // Position der Chat-Sprechblase: 'right' (Standard) oder 'left'.
+    { table: "bots", column: "widget_position", ddl: "TEXT NOT NULL DEFAULT 'right'" },
     // Zuletzt echte Widget-Einbindung erkannt: Zeitpunkt der letzten Chat-Anfrage,
     // deren Origin zur hinterlegten (nicht-leeren) Kunden-Domain passt. Grundlage
     // für "Bereits eingebunden" im Portal — Test-/Vorschau-Traffic zählt NICHT.

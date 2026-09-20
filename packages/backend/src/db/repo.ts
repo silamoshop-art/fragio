@@ -70,6 +70,7 @@ export interface BotRow {
   escalation_topics: string | null; // JSON-Array von Stichwörtern
   multilingual: number;
   quota_warned_period: string | null;
+  widget_position: string; // 'right' | 'left'
 }
 
 export interface ChunkHit {
@@ -681,6 +682,7 @@ export interface BotUpdate {
   escalation_topics?: string | null;
   multilingual?: number;
   quota_warned_period?: string | null;
+  widget_position?: string;
 }
 
 export function updateBot(id: string, patch: BotUpdate): void {

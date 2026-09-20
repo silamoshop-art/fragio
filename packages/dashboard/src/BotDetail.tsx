@@ -329,6 +329,12 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
         <Field label="Farbe"><input type="color" defaultValue={bot.branding.primaryColor || "#4f46e5"} onBlur={(e) => save({ branding: { ...bot.branding, primaryColor: e.target.value } })} /></Field>
         <Field label="Begrüßung"><input defaultValue={bot.branding.greeting || ""} onBlur={(e) => save({ branding: { ...bot.branding, greeting: e.target.value } })} /></Field>
         <Field label="Logo-URL"><input defaultValue={bot.branding.logoUrl || ""} onBlur={(e) => save({ branding: { ...bot.branding, logoUrl: e.target.value } })} placeholder="https://…/logo.png" /></Field>
+        <Field label="Position der Sprechblase">
+          <select defaultValue={bot.widgetPosition} onChange={(e) => save({ widgetPosition: e.target.value })}>
+            <option value="right">Unten rechts (Standard)</option>
+            <option value="left">Unten links</option>
+          </select>
+        </Field>
       </Section>
 
       <Section title="Schreibstil (Tonfall)">
