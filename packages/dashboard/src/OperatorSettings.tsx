@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, type OperatorInfo } from "./api";
+import { api, type OperatorInfo, type MailInfo } from "./api";
 
 /**
  * Betreiberdaten (Bank, Firma, Support) im Admin editierbar. Wird über die
@@ -76,6 +76,95 @@ export function OperatorSettings() {
         <label className="field"><span>Support-Telefon</span>
           <input value={o.supportPhone} onChange={(e) => set("supportPhone", e.target.value)} /></label>
       </section>
+    </div>
+  );
+}
+
+/**
+ * E-Mail-Versand (SMTP) + Empfänger für Benachrichtigungen — im Admin editierbar.
+ * Ohne gültigen SMTP-Zugang werden E-Mails NICHT verschickt (nur im Serverlog notiert).
+ */
+export function MailSettings() {
+  const [m, setM] = useState<MailInfo | null>(null);
+  const [pass, setPass] = useState("");
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api.getMail().then(setM).catch((e) => setErr((e as Error).message));
+  }, []);
+
+  if (err && !m) return <div className="panel"><p className="err">{err}</p></div>;
+  if (!m) return <div className="panel">Lädt…</div>;
+
+  const set = (k: keyof MailInfo, v: string | number | boolean) => setM({ ...m, [k]: v } as MailInfo);
+
+  async function save() {
+    setMsg(""); setErr("");
+    try {
+      const r = await api.updateMail({
+        host: m!.host, port: Number(m!.port) || 587, secure: m!.secure,
+        user: m!.user, from: m!.from, notifyEmail: m!.notifyEmail,
+        // Passwort nur senden, wenn etwas eingegeben wurde (leer = unverändert).
+        ...(pass ? { pass } : {}),
+      });
+      setPass("");
+      const fresh = await api.getMail();
+      setM(fresh);
+      setMsg(r.mail.enabled ? "Gespeichert — Versand aktiv." : "Gespeichert. Hinweis: ohne Host/Benutzer/Passwort wird nichts verschickt.");
+      setTimeout(() => setMsg(""), 4000);
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  }
+
+  async function test() {
+    setMsg(""); setErr(""); setBusy(true);
+    try {
+      const r = await api.testMail();
+      setMsg(`Test-E-Mail an ${r.sentTo} gesendet. Bitte Posteingang prüfen.`);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="panel">
+      <div className="panel-head"><h2>E-Mail-Versand</h2><button className="btn" onClick={save}>Speichern</button></div>
+      {msg && <p className="note">{msg}</p>}
+      {err && <p className="err">{err}</p>}
+      <p className="muted" style={{ marginTop: 0 }}>
+        Zugangsdaten deines Postfachs (SMTP). Erst damit werden Bestellbestätigungen, Rechnungen,
+        80-%-Warnungen und Kontaktanfragen wirklich verschickt. Status:{" "}
+        <strong style={{ color: m.enabled ? "#16a34a" : "#dc2626" }}>{m.enabled ? "aktiv" : "nicht aktiv"}</strong>.
+      </p>
+
+      <section className="sec">
+        <h3>Empfänger für Benachrichtigungen</h3>
+        <label className="field"><span>Deine E-Mail (Leads, Bestellungen, Warnungen)</span>
+          <input type="email" value={m.notifyEmail} onChange={(e) => set("notifyEmail", e.target.value)} placeholder="du@firma.at" /></label>
+      </section>
+
+      <section className="sec">
+        <h3>SMTP-Zugang (Postausgang)</h3>
+        <label className="field"><span>Host</span>
+          <input value={m.host} onChange={(e) => set("host", e.target.value)} placeholder="smtp.deinanbieter.at" /></label>
+        <label className="field"><span>Port</span>
+          <input type="number" value={m.port} onChange={(e) => set("port", Number(e.target.value))} /></label>
+        <label className="field" style={{ cursor: "pointer" }}><span>SSL (Port 465)</span>
+          <input type="checkbox" checked={m.secure} onChange={(e) => set("secure", e.target.checked)} /></label>
+        <label className="field"><span>Benutzer</span>
+          <input value={m.user} onChange={(e) => set("user", e.target.value)} placeholder="postfach@firma.at" /></label>
+        <label className="field"><span>Passwort {m.hasPassword && <span className="muted">(gesetzt — leer lassen = unverändert)</span>}</span>
+          <input type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder={m.hasPassword ? "••••••••" : "Passwort"} /></label>
+        <label className="field"><span>Absender (optional)</span>
+          <input value={m.from} onChange={(e) => set("from", e.target.value)} placeholder='Fragio <no-reply@firma.at>' /></label>
+      </section>
+
+      <button className="btn ghost" onClick={test} disabled={busy}>{busy ? "Sende…" : "Test-E-Mail senden"}</button>
     </div>
   );
 }

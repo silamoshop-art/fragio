@@ -3,7 +3,7 @@ import { api, clearKey, getKey, type Bot } from "./api";
 import { Login } from "./Login";
 import { BotDetail } from "./BotDetail";
 import { PricingSettings } from "./PricingSettings";
-import { OperatorSettings } from "./OperatorSettings";
+import { OperatorSettings, MailSettings } from "./OperatorSettings";
 import { OpenPayments } from "./OpenPayments";
 
 export function App() {
@@ -113,7 +113,7 @@ function Dashboard({ email, onLogout }: { email: string; onLogout: () => void })
         {view === "payments" ? (
           <OpenPayments />
         ) : view === "pricing" ? (
-          <><OperatorSettings /><PricingSettings /></>
+          <><OperatorSettings /><MailSettings /><PricingSettings /></>
         ) : selected ? (
           <BotDetail
             botId={selected}

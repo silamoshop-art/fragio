@@ -185,9 +185,36 @@ export interface OperatorInfo {
   bank: OperatorBank;
 }
 
+export interface MailInfo {
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  from: string;
+  notifyEmail: string;
+  hasPassword: boolean;
+  enabled: boolean;
+}
+export interface MailPatch {
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  pass: string | null;
+  from: string;
+  notifyEmail: string;
+}
+
 export const api = {
   me: () => req<{ tenantId: string; email: string; stripeEnabled: boolean }>("/api/admin/me"),
   getOperator: () => req<{ operator: OperatorInfo; fromFile: boolean }>("/api/admin/operator"),
+  getMail: () => req<MailInfo>("/api/admin/mail"),
+  updateMail: (patch: Partial<MailPatch>) =>
+    req<{ ok: boolean; mail: { enabled: boolean } }>("/api/admin/mail", {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
+  testMail: () => req<{ ok: boolean; sentTo: string }>("/api/admin/mail/test", { method: "POST", body: "{}" }),
   updateOperator: (patch: Partial<OperatorInfo>) =>
     req<{ ok: boolean; operator: OperatorInfo }>("/api/admin/operator", {
       method: "PATCH",

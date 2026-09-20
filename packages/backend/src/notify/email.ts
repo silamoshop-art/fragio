@@ -7,8 +7,8 @@
  * Versand auf einen Log-Stub zurück (Dev/vor Go-Live). Die Aufrufer bleiben identisch.
  */
 import nodemailer, { type Transporter } from "nodemailer";
-import { config } from "../config.js";
 import { operatorConfig } from "../config/operator.js";
+import { getMailConfig, mailConfigSignature } from "./mail-config.js";
 
 export interface EmailAttachment {
   filename: string;
@@ -16,26 +16,32 @@ export interface EmailAttachment {
 }
 
 let _transport: Transporter | null = null;
+let _sig = "";
+/** Transport aus der EFFEKTIVEN Config bauen; bei Änderung (Admin) neu erzeugen. */
 function transport(): Transporter | null {
-  if (!config.smtpEnabled) return null;
-  if (_transport) return _transport;
+  const mc = getMailConfig();
+  if (!mc.enabled) return null;
+  const sig = mailConfigSignature();
+  if (_transport && sig === _sig) return _transport;
   _transport = nodemailer.createTransport({
-    host: config.SMTP_HOST,
-    port: config.SMTP_PORT,
-    secure: config.smtpSecure, // true => 465 (implizites TLS), false => STARTTLS auf 587
-    auth: { user: config.SMTP_USER!, pass: config.SMTP_PASS! },
+    host: mc.host,
+    port: mc.port,
+    secure: mc.secure, // true => 465 (implizites TLS), false => STARTTLS auf 587
+    auth: { user: mc.user, pass: mc.pass },
   });
+  _sig = sig;
   return _transport;
 }
 
 /**
- * Absenderadresse: explizit gesetztes SMTP_FROM, sonst SMTP_USER, sonst die
- * Support-Adresse aus operator.config.json (als sinnvoller Fallback).
+ * Absenderadresse: explizit gesetztes "From", sonst SMTP-User, sonst die
+ * Support-Adresse aus der Betreiberkonfiguration (als sinnvoller Fallback).
  */
 function fromAddress(): string {
-  if (config.SMTP_FROM) return config.SMTP_FROM;
+  const mc = getMailConfig();
+  if (mc.from) return mc.from;
   const op = operatorConfig();
-  const addr = config.SMTP_USER || op.supportEmail;
+  const addr = mc.user || op.supportEmail;
   return op.name ? `${op.name} <${addr}>` : addr;
 }
 
@@ -55,7 +61,7 @@ export async function sendEmail(
       `✉️  [E-Mail-STUB an ${to}] ${subject}\n` +
         body.split("\n").map((l) => "    " + l).join("\n") +
         att +
-        "\n    (SMTP nicht konfiguriert — setze SMTP_HOST/SMTP_USER/SMTP_PASS in der .env für echten Versand.)",
+        "\n    (SMTP nicht konfiguriert — im Admin unter Einstellungen / E-Mail-Versand eintragen oder SMTP_HOST/SMTP_USER/SMTP_PASS in der .env setzen.)",
     );
     return;
   }
@@ -69,9 +75,9 @@ export async function sendEmail(
   console.log(`✉️  E-Mail an ${to} versendet: „${subject}"${attachments.length ? " (mit Anhang)" : ""}`);
 }
 
-/** Benachrichtigung an DICH (Betreiber, ADMIN_EMAIL). */
+/** Benachrichtigung an DICH (Betreiber) — an die im Admin gesetzte Empfängeradresse. */
 export async function sendOperatorEmail(subject: string, body: string): Promise<void> {
-  return sendEmail(config.ADMIN_EMAIL, subject, body);
+  return sendEmail(getMailConfig().notifyEmail, subject, body);
 }
 
 /** SMTP-Verbindung prüfen (für einen Health-/Test-Endpoint). Wirft bei Fehlern. */

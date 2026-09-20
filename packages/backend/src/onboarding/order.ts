@@ -15,6 +15,7 @@ import { planById, planName, getPricing } from "../billing/plans.js";
 import { generateExtraInvoice, dayPeriod } from "../billing/invoice.js";
 import { operatorConfig } from "../config/operator.js";
 import { epcQrDataUrl } from "../util/epc-qr.js";
+import { sendOperatorEmail } from "../notify/email.js";
 
 export interface OrderInput {
   email: string;
@@ -97,6 +98,24 @@ export async function createOrder(input: OrderInput): Promise<OrderResult> {
     amountCents: total, // Gesamtbetrag inkl. evtl. Einrichtungsgebühr
     reference,
   });
+
+  // Betreiber über die neue Bestellung informieren (fire-and-forget, blockiert den
+  // Checkout nicht). Geht an die im Admin eingestellte Benachrichtigungsadresse.
+  void sendOperatorEmail(
+    `Neue Bestellung: ${planName(plan.id)} — ${input.name}`,
+    [
+      `Es ist eine neue Bestellung eingegangen:`,
+      ``,
+      `Tarif:     ${planName(plan.id)}`,
+      `Kunde:     ${input.name} <${input.email}>`,
+      `Website:   ${input.url}`,
+      `Betrag:    ${(total / 100).toFixed(2)} ${op.currency || "EUR"} (Rechnung ${invoiceNumber})`,
+      `Anschrift: ${input.address}`,
+      ``,
+      `Sobald die Zahlung eingegangen ist, im Dashboard als bezahlt markieren — das schaltet den Bot frei.`,
+    ].join("\n"),
+  ).catch(() => {});
+
   return {
     invoiceNumber,
     amountCents: total,

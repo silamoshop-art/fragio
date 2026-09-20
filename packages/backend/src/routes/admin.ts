@@ -50,6 +50,7 @@ import {
 } from "../db/repo.js";
 import { sendEmail, verifySmtp } from "../notify/email.js";
 import { operatorConfig, operatorConfigPresent, saveOperatorOverride } from "../config/operator.js";
+import { getMailConfig, saveMailConfig } from "../notify/mail-config.js";
 import { applyPlanToBot, stripeEnabled, recomputeBotPrice } from "../payments/stripe.js";
 import { planName, getPricing, savePricing, DEFAULT_PRICING, type Pricing } from "../billing/plans.js";
 import { crawlAndIndex } from "../crawler/index.js";
@@ -246,6 +247,66 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       if (!parsed.success) return reply.code(400).send({ error: "Ungültige Betreiberdaten." });
       saveOperatorOverride(parsed.data);
       return { ok: true, operator: operatorConfig() };
+    });
+
+    // --- E-Mail-Versand (SMTP) + Empfänger für Benachrichtigungen ---
+    secured.get("/api/admin/mail", async () => {
+      const mc = getMailConfig();
+      return {
+        host: mc.host,
+        port: mc.port,
+        secure: mc.secure,
+        user: mc.user,
+        from: mc.from,
+        notifyEmail: mc.notifyEmail,
+        hasPassword: !!mc.pass,
+        enabled: mc.enabled,
+      };
+    });
+
+    secured.patch("/api/admin/mail", async (request, reply) => {
+      const schema = z
+        .object({
+          host: z.string().max(200),
+          port: z.number().int().min(1).max(65535),
+          secure: z.boolean(),
+          user: z.string().max(200),
+          // "" / null => Passwort löschen; weglassen => unverändert (nie zurückgegeben).
+          pass: z.string().max(400).nullable(),
+          from: z.string().max(200),
+          notifyEmail: z.union([z.string().email(), z.literal("")]),
+        })
+        .partial();
+      const parsed = schema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: "Ungültige E-Mail-Einstellungen." });
+      saveMailConfig(parsed.data);
+      return { ok: true, mail: { enabled: getMailConfig().enabled } };
+    });
+
+    // Test-E-Mail an die eingestellte Empfängeradresse senden.
+    secured.post("/api/admin/mail/test", async (_request, reply) => {
+      const mc = getMailConfig();
+      const v = await verifySmtp();
+      if (!v.configured) {
+        return reply
+          .code(400)
+          .send({ error: "Kein SMTP-Zugang hinterlegt — bitte Host, Benutzer und Passwort eintragen und speichern." });
+      }
+      if (!v.ok) {
+        return reply.code(400).send({ error: "SMTP-Verbindung fehlgeschlagen: " + (v.error || "unbekannt") });
+      }
+      try {
+        await sendEmail(
+          mc.notifyEmail,
+          "Fragio — Test-E-Mail",
+          "Das ist eine Test-E-Mail aus dem Fragio-Admin.\n\n" +
+            "Wenn du sie erhältst, funktioniert der E-Mail-Versand (Bestellbestätigungen, " +
+            "Rechnungen, 80-%-Warnungen, Kontaktanfragen).",
+        );
+        return { ok: true, sentTo: mc.notifyEmail };
+      } catch (e) {
+        return reply.code(502).send({ error: "Versand fehlgeschlagen: " + (e as Error).message });
+      }
     });
 
     // --- Preis-Einstellungen (global konfigurierbar) ---
