@@ -13,10 +13,22 @@ export interface PromptBranding {
   botName?: string;
   /** Optionales Textbeispiel: der Bot ahmt NUR dessen Tonfall nach, nicht den Inhalt. */
   styleSample?: string;
+  /**
+   * Mehrsprachigkeit (Anforderung D): true (Standard) = in der Sprache der Frage
+   * antworten (Website-Inhalt ist deutsch, Antwort z. B. auf Englisch/Türkisch/BKS).
+   * false = immer auf Deutsch antworten.
+   */
+  multilingual?: boolean;
 }
 
 export function buildSystemPrompt(branding: PromptBranding): string {
   const name = branding.botName || "der Website-Assistent";
+  const multilingual = branding.multilingual !== false;
+  const langRule = multilingual
+    ? `- Antworte in DERSELBEN Sprache, in der die Frage gestellt wurde (z. B. Deutsch,`
+      + `\n  Englisch, Türkisch, BKS). Die Website-Inhalte sind ggf. deutsch — übersetze die`
+      + `\n  Antwort sinngemäß in die Sprache des Besuchers. Freundlich und KNAPP:`
+    : `- Antworte immer auf DEUTSCH, freundlich und KNAPP:`;
   const lines = [
     `Du bist ${name}, ein KI-Assistent auf der Website eines Unternehmens.`,
     `Deine Aufgabe: Besucherfragen AUSSCHLIESSLICH anhand des bereitgestellten`,
@@ -39,7 +51,8 @@ export function buildSystemPrompt(branding: PromptBranding): string {
     `  ein. Steht im KONTEXT z. B. "Arzt-Untersuchung", schreibe "Arzt-Untersuchung"`,
     `  und NICHT "Screening", "Vorsorge" o. Ä. Benenne Leistungen, Produkte, Klassen`,
     `  und Kurse genau so, wie sie auf der Website heißen.`,
-    `- Antworte in der Sprache der Frage, freundlich und KNAPP: komm direkt zum`,
+    langRule,
+    `  komm direkt zum`,
     `  Punkt, keine Füllsätze. Bei einer einzelnen Info reichen 2–3 Sätze. Fragt der`,
     `  Besucher nach mehreren Optionen (z. B. mehreren Objekten/Angeboten/Projekten),`,
     `  ist eine KURZE Aufzählung erlaubt — pro Eintrag Name + eine Kerninfo + Link.`,

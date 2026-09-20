@@ -104,6 +104,8 @@ export interface AnswerMeta {
   sources: AnswerSource[];
   topScore: number | null;
   provider: string;
+  /** True, wenn die Frage per Eskalationsregel an einen Menschen übergeben wurde. */
+  escalated?: boolean;
 }
 
 const FALLBACK_ANSWER =
@@ -120,6 +122,30 @@ const CLARIFY_ANSWER =
 function isShortQuery(q: string): boolean {
   const words = q.trim().split(/\s+/).filter(Boolean);
   return words.length <= 4;
+}
+
+// Eskalationsregeln (Anforderung D): definierte Themen, bei denen der Bot
+// grundsätzlich an einen Menschen übergibt, statt selbst zu antworten.
+const ESCALATION_ANSWER =
+  "Diese Frage kläre ich am besten persönlich für dich. Hinterlasse gern deine " +
+  "Kontaktdaten oder wende dich direkt an das Team — wir melden uns zeitnah.";
+
+/** Liefert das getroffene Eskalations-Stichwort (lowercase-Substring), sonst null. */
+export function matchEscalation(topicsJson: string | null, question: string): string | null {
+  if (!topicsJson) return null;
+  let topics: string[];
+  try {
+    topics = JSON.parse(topicsJson) as string[];
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(topics) || !topics.length) return null;
+  const q = question.toLowerCase();
+  for (const t of topics) {
+    const key = String(t).trim().toLowerCase();
+    if (key && q.includes(key)) return key;
+  }
+  return null;
 }
 
 /** Letzte Nutzernachricht aus dem Verlauf (für die Retrieval-Anreicherung). */
@@ -221,6 +247,28 @@ export async function* answerQuestion(
   const retrievalText =
     isShortQuery(question) && prevUser ? `${prevUser}\n${question}` : question;
 
+  // 0) Eskalationsregeln (Anforderung D): trifft die Frage ein definiertes Thema
+  // (z. B. Preise, Rechtliches, Beschwerden), übergibt der Bot an einen Menschen —
+  // ohne LLM-Aufruf. Das Widget bietet dann Kontaktformular/Terminlink an (escalated).
+  if (matchEscalation(bot.escalation_topics, question)) {
+    onMeta?.({ answered: true, escalated: true, sources: [], topScore: null, provider: "escalation" });
+    if (storeContent) {
+      insertChatLog({
+        botId: bot.id,
+        question,
+        answer: ESCALATION_ANSWER,
+        answered: true,
+        topScore: null,
+        provider: "escalation",
+        latencyMs: Date.now() - started,
+        ipHash,
+        msgId,
+      });
+    }
+    yield ESCALATION_ANSWER;
+    return;
+  }
+
   // 1) + 2) Query lokal embedden (kein Chat-Key nötig). kind="query" für e5.
   const [qEmb] = await embed([retrievalText], "query");
 
@@ -314,6 +362,7 @@ export async function* answerQuestion(
   const system = buildSystemPrompt({
     botName: branding.botName,
     styleSample: bot.style_sample ?? undefined,
+    multilingual: bot.multilingual !== 0,
   });
   // Nur die letzten 2 Turns mitgeben — genug fürs Verständnis kurzer Folgefragen,
   // ohne den Prompt (und die Tokens) aufzublähen.

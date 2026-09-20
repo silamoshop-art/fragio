@@ -63,6 +63,13 @@ export interface BotRow {
   retention_days: number;
   // Zuletzt Chat-Anfrage mit passendem Origin zur hinterlegten Domain (echte Einbindung).
   last_embedded_at: number | null;
+  // Lead-Erfassung / Termin / Eskalation / Mehrsprachigkeit (Anforderungskatalog A+D)
+  lead_capture: number;
+  lead_intro: string | null;
+  booking_url: string | null;
+  escalation_topics: string | null; // JSON-Array von Stichwörtern
+  multilingual: number;
+  quota_warned_period: string | null;
 }
 
 export interface ChunkHit {
@@ -667,6 +674,13 @@ export interface BotUpdate {
   customer_email?: string | null;
   customer_vat?: string | null;
   retention_days?: number;
+  // Lead / Termin / Eskalation / Mehrsprachigkeit
+  lead_capture?: number;
+  lead_intro?: string | null;
+  booking_url?: string | null;
+  escalation_topics?: string | null;
+  multilingual?: number;
+  quota_warned_period?: string | null;
 }
 
 export function updateBot(id: string, patch: BotUpdate): void {
@@ -689,6 +703,8 @@ export function updateBot(id: string, patch: BotUpdate): void {
     "addon_logo",
     "addon_name",
     "retention_days",
+    "lead_capture",
+    "multilingual",
   ]);
   for (const [key, value] of Object.entries(patch)) {
     if (value === undefined) continue;
@@ -1334,4 +1350,95 @@ export function deleteExpiredChatLogs(now = Date.now()): number {
     )
     .run(BigInt(now));
   return Number(res.changes);
+}
+
+// ── Leads (Anforderung A: Kontakterfassung bei „weiß nicht") ─────────────────
+
+export interface LeadRow {
+  id: number;
+  bot_id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  message: string | null;
+  context_q: string | null;
+  status: string; // 'new' | 'done'
+  created_at: number;
+}
+
+export function createLead(entry: {
+  botId: string;
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  message?: string | null;
+  contextQ?: string | null;
+}): LeadRow {
+  const now = Date.now();
+  const res = getDb()
+    .prepare(
+      `INSERT INTO leads(bot_id, name, email, phone, message, context_q, status, created_at)
+       VALUES (?,?,?,?,?,?, 'new', ?)`,
+    )
+    .run(
+      entry.botId,
+      entry.name ?? null,
+      entry.email ?? null,
+      entry.phone ?? null,
+      entry.message ?? null,
+      entry.contextQ ?? null,
+      BigInt(now),
+    );
+  return getDb()
+    .prepare("SELECT * FROM leads WHERE id = ?")
+    .get(Number(res.lastInsertRowid)) as unknown as LeadRow;
+}
+
+/** Leads eines Bots, neueste zuerst (offene zuerst). */
+export function listLeads(botId: string, limit = 500): LeadRow[] {
+  return getDb()
+    .prepare(
+      `SELECT * FROM leads WHERE bot_id = ?
+       ORDER BY (status='new') DESC, created_at DESC LIMIT ?`,
+    )
+    .all(botId, BigInt(limit)) as unknown as LeadRow[];
+}
+
+export function countNewLeads(botId: string): number {
+  const row = getDb()
+    .prepare("SELECT COUNT(*) AS n FROM leads WHERE bot_id = ? AND status = 'new'")
+    .get(botId) as { n: number };
+  return Number(row.n);
+}
+
+/** Lead-Status setzen — NUR wenn er diesem Bot gehört (Isolation). */
+export function setLeadStatus(botId: string, id: number, status: "new" | "done"): boolean {
+  const res = getDb()
+    .prepare("UPDATE leads SET status = ? WHERE id = ? AND bot_id = ?")
+    .run(status, BigInt(id), botId);
+  return Number(res.changes) > 0;
+}
+
+/** Lead löschen — NUR wenn er diesem Bot gehört. */
+export function deleteLead(botId: string, id: number): boolean {
+  const res = getDb()
+    .prepare("DELETE FROM leads WHERE id = ? AND bot_id = ?")
+    .run(BigInt(id), botId);
+  return Number(res.changes) > 0;
+}
+
+/**
+ * 80%-Kontingent-Warnung (Anforderung C): true, wenn der Bot in DIESEM Monat die
+ * 80%-Schwelle erreicht/überschritten hat und dafür noch nicht gewarnt wurde.
+ * Setzt zugleich die Warn-Periode (idempotent — pro Monat genau einmal true).
+ */
+export function shouldWarnQuota(bot: BotRow): boolean {
+  const { used, quota } = getBotUsage(bot);
+  if (quota <= 0) return false;
+  const pct = (used / quota) * 100;
+  if (pct < 80 || pct >= 100) return false; // 100% wird separat (Limit-Meldung) behandelt
+  const period = currentPeriod();
+  if (bot.quota_warned_period === period) return false;
+  getDb().prepare("UPDATE bots SET quota_warned_period = ? WHERE id = ?").run(period, bot.id);
+  return true;
 }

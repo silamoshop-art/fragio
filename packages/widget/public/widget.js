@@ -31,11 +31,15 @@
   var cfg = {
     botName: "Website-Assistent",
     primaryColor: "#4f46e5",
-    greeting: "Hallo! 👋 Frag mich etwas über diese Website.",
+    greeting: "Hallo! Frag mich etwas über diese Website.",
     logoUrl: "",
     aiNotice: "Dies ist ein KI-Chatbot. Antworten können Fehler enthalten.",
     status: "active",
     lang: "de-DE",
+    leadCapture: false,
+    leadIntro:
+      "Ich konnte deine Frage nicht aus der Website beantworten. Sollen wir uns bei dir melden? Hinterlasse einfach deine Kontaktdaten.",
+    bookingUrl: "",
     consentNotice:
       "Dies ist ein KI-Chatbot. Zur Beantwortung werden deine Nachrichten an einen " +
       "KI-Dienstleister (Anthropic, USA) übermittelt — das ist für die Nutzung des Chats " +
@@ -279,9 +283,14 @@
       var bubble = addMsg("bot", "");
       bubble.classList.add("sb-typing");
       bubble.textContent = "…";
-      var first = true, sources = null, acc = "", msgId = null;
+      var first = true, sources = null, acc = "", msgId = null, answered = true, escalated = false;
       streamChat(q, {
-        meta: function (m) { sources = m.sources; if (m.msgId) msgId = m.msgId; },
+        meta: function (m) {
+          sources = m.sources;
+          if (m.msgId) msgId = m.msgId;
+          if (typeof m.answered === "boolean") answered = m.answered;
+          if (m.escalated) escalated = true;
+        },
         token: function (t) {
           if (first) { bubble.classList.remove("sb-typing"); acc = ""; first = false; }
           acc += t;
@@ -289,7 +298,7 @@
           bubble.innerHTML = renderMarkdown(acc);
           log.scrollTop = log.scrollHeight;
         },
-        error: function (msg) { bubble.classList.remove("sb-typing"); bubble.textContent = "⚠️ " + msg; },
+        error: function (msg) { bubble.classList.remove("sb-typing"); bubble.textContent = "⚠ " + msg; },
         done: function () {
           if (first) { bubble.classList.remove("sb-typing"); bubble.textContent = "(keine Antwort)"; }
           addSources(sources);
@@ -301,6 +310,9 @@
             history.push({ role: "assistant", content: acc });
             if (history.length > HISTORY_MAX) history = history.slice(-HISTORY_MAX);
           }
+          // Konnte der Bot nicht helfen ODER wurde eskaliert: Kontaktformular /
+          // Terminlink anbieten (Anforderung A+D). Nur, wenn für diesen Bot aktiviert.
+          if (!answered || escalated) offerLead(q);
         },
       });
     }
@@ -366,17 +378,101 @@
           }).catch(function () {});
         } catch (e) {}
       }
-      [["up", "👍", "Hilfreich"], ["down", "👎", "Nicht hilfreich"]].forEach(function (v) {
+      var THUMB_UP =
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>';
+      var THUMB_DOWN =
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>';
+      [["up", THUMB_UP, "Hilfreich"], ["down", THUMB_DOWN, "Nicht hilfreich"]].forEach(function (v) {
         var b = document.createElement("button");
         b.type = "button";
         b.className = "sb-fb sb-fb-" + v[0];
         b.setAttribute("aria-label", v[2]);
         b.title = v[2];
-        b.textContent = v[1];
+        b.innerHTML = v[1];
         b.addEventListener("click", function () { vote(v[0], b); });
         row.appendChild(b);
       });
       log.appendChild(row);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    // ---- Lead-Erfassung / Terminlink (Anforderung A+D) ----
+    // Wird angeboten, wenn der Bot eine Frage nicht beantworten konnte. Pro Sitzung
+    // nur einmal aktiv anzeigen, um nicht aufdringlich zu wirken.
+    var leadOffered = false;
+    function offerLead(contextQ) {
+      if (!cfg.leadCapture && !cfg.bookingUrl) return;
+      if (leadOffered) return;
+      leadOffered = true;
+
+      var card = document.createElement("div");
+      card.className = "sb-lead";
+      var intro = document.createElement("p");
+      intro.className = "sb-lead-intro";
+      intro.textContent = cfg.leadIntro;
+      card.appendChild(intro);
+
+      // Terminlink (falls hinterlegt) als deutlicher Button.
+      if (cfg.bookingUrl) {
+        var a = document.createElement("a");
+        a.className = "sb-book";
+        a.href = cfg.bookingUrl;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.textContent = "Termin vereinbaren";
+        card.appendChild(a);
+      }
+
+      if (cfg.leadCapture) {
+        var f = document.createElement("form");
+        f.className = "sb-lead-form";
+        f.innerHTML =
+          '<input class="sb-lead-name" type="text" placeholder="Name (optional)" autocomplete="name" maxlength="120" />' +
+          '<input class="sb-lead-email" type="email" placeholder="E-Mail" autocomplete="email" maxlength="200" />' +
+          '<input class="sb-lead-phone" type="tel" placeholder="Telefon (optional)" autocomplete="tel" maxlength="60" />' +
+          '<textarea class="sb-lead-msg" rows="2" placeholder="Dein Anliegen (optional)" maxlength="2000"></textarea>' +
+          '<button class="sb-lead-submit" type="submit">Absenden</button>' +
+          '<p class="sb-lead-hint" aria-live="polite"></p>';
+        var hint = f.querySelector(".sb-lead-hint");
+        f.addEventListener("submit", function (e) {
+          e.preventDefault();
+          var email = f.querySelector(".sb-lead-email").value.trim();
+          var phone = f.querySelector(".sb-lead-phone").value.trim();
+          if (!email && !phone) {
+            hint.textContent = "Bitte E-Mail oder Telefon angeben.";
+            hint.className = "sb-lead-hint sb-lead-err";
+            return;
+          }
+          var btn = f.querySelector(".sb-lead-submit");
+          btn.disabled = true;
+          btn.textContent = "Wird gesendet…";
+          fetch(apiBase + "/api/chat/" + encodeURIComponent(botId) + "/lead", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: f.querySelector(".sb-lead-name").value.trim(),
+              email: email,
+              phone: phone,
+              message: f.querySelector(".sb-lead-msg").value.trim(),
+              contextQuestion: contextQ || "",
+            }),
+          })
+            .then(function (r) {
+              if (!r.ok) throw new Error("HTTP " + r.status);
+              card.innerHTML =
+                '<p class="sb-lead-done">Danke! Wir haben deine Anfrage erhalten und melden uns bei dir.</p>';
+            })
+            .catch(function () {
+              btn.disabled = false;
+              btn.textContent = "Absenden";
+              hint.textContent = "Senden fehlgeschlagen. Bitte später erneut versuchen.";
+              hint.className = "sb-lead-hint sb-lead-err";
+            });
+        });
+        card.appendChild(f);
+      }
+
+      log.appendChild(card);
       log.scrollTop = log.scrollHeight;
     }
   }
@@ -384,7 +480,7 @@
   function template(c) {
     var logo = c.logoUrl
       ? '<img class="sb-logo" src="' + escapeAttr(c.logoUrl) + '" alt="" />'
-      : '<span class="sb-logo sb-logo-fallback">🤖</span>';
+      : '<span class="sb-logo sb-logo-fallback"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>';
     return (
       '<button class="sb-launcher" aria-label="Chat öffnen" aria-expanded="false">' +
       '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>' +
@@ -456,6 +552,20 @@
       ".sb-fb:hover{opacity:1;border-color:var(--sb-brand);}",
       ".sb-fb-active{opacity:1;border-color:var(--sb-brand);background:#f4f5fb;}",
       ".sb-voted .sb-fb{cursor:default;}",
+      ".sb-lead{background:#fff;border:1px solid #e6e8ef;border-radius:14px;padding:14px;margin:2px 4px 12px;}",
+      ".sb-lead-intro{margin:0 0 10px;font-size:13.5px;line-height:1.45;color:#333;}",
+      ".sb-book{display:block;text-align:center;background:var(--sb-brand);color:#fff;text-decoration:none;border-radius:10px;padding:10px 12px;font-size:13.5px;font-weight:600;margin:0 0 10px;}",
+      ".sb-book:hover{opacity:.92;}",
+      ".sb-lead-form{display:flex;flex-direction:column;gap:7px;}",
+      ".sb-lead-form input,.sb-lead-form textarea{border:1px solid #dfe2ec;border-radius:9px;padding:9px 11px;font-size:13.5px;font-family:inherit;color:#111;outline:none;width:100%;box-sizing:border-box;}",
+      ".sb-lead-form input:focus,.sb-lead-form textarea:focus{border-color:var(--sb-brand);}",
+      ".sb-lead-form textarea{resize:vertical;}",
+      ".sb-lead-submit{background:var(--sb-brand);color:#fff;border:0;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:600;cursor:pointer;}",
+      ".sb-lead-submit:disabled{opacity:.6;cursor:default;}",
+      ".sb-lead-hint{margin:2px 0 0;font-size:12px;color:#8a90a2;min-height:1px;}",
+      ".sb-lead-err{color:#c0392b;}",
+      ".sb-lead-done{margin:0;font-size:13.5px;line-height:1.45;color:#166534;}",
+      ".sb-fb svg{display:block;}",
       ".sb-notice{font-size:11px;color:#8a90a2;padding:6px 16px;background:#f7f8fb;border-top:1px solid #eef0f5;}",
       ".sb-form{display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid #eef0f5;background:#fff;}",
       ".sb-input{flex:1;border:1px solid #dfe2ec;border-radius:20px;padding:10px 14px;font-size:14px;outline:none;color:#111;}",
@@ -532,6 +642,9 @@
         cfg.lang = data.lang || cfg.lang;
         cfg.consentNotice = data.consentNotice || cfg.consentNotice;
         cfg.privacyUrl = data.privacyUrl || cfg.privacyUrl;
+        cfg.leadCapture = !!data.leadCapture;
+        if (data.leadIntro) cfg.leadIntro = data.leadIntro;
+        cfg.bookingUrl = data.bookingUrl || "";
       }
     })
     .catch(function () {})

@@ -27,7 +27,13 @@ import {
   createManualFaq,
   updateManualFaq,
   deleteManualFaq,
+  listLeads,
+  setLeadStatus,
+  deleteLead,
+  countNewLeads,
+  setCrawlResult,
 } from "../db/repo.js";
+import { crawlAndIndex } from "../crawler/index.js";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "../config.js";
@@ -120,6 +126,10 @@ export async function portalRoutes(app: FastifyInstance): Promise<void> {
         priceCents: bot.price_cents,
         usage: usageView(bot),
         widgetActive: isWidgetLive(bot), // echte Domain-Einbindung, nicht nur Crawl
+        lastCrawledAt: bot.last_crawled_at,
+        crawlStatus: bot.last_crawl_status,
+        newLeads: countNewLeads(bot.id),
+        retentionDays: bot.retention_days,
       };
     });
 
@@ -329,6 +339,132 @@ export async function portalRoutes(app: FastifyInstance): Promise<void> {
       const bot = loadBot(request);
       if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
       return { snippet: snippetFor(bot.id), widgetActive: isWidgetLive(bot) };
+    });
+
+    // --- Re-Index auf Knopfdruck (Anforderung A) ---
+    // Der Kunde stößt selbst ein Neu-Einlesen der Website an — z. B. nach einer
+    // Preisänderung, ohne auf den wöchentlichen Lauf zu warten. Läuft im Hintergrund
+    // (kein hängender Request); der Status wird über /overview bzw. hier abgefragt.
+    // Cooldown gegen versehentliches Dauerklicken (Kosten-/Lastschutz).
+    const RECRAWL_COOLDOWN_MS = 5 * 60 * 1000;
+    const recrawling = new Set<string>();
+    secured.post("/api/portal/recrawl", async (request, reply) => {
+      const bot = loadBot(request);
+      if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
+      if (!bot.crawl_start_url) {
+        return reply.code(400).send({ error: "Für diesen Bot ist keine Website hinterlegt." });
+      }
+      if (recrawling.has(bot.id)) {
+        return reply.code(409).send({ error: "Aktualisierung läuft bereits." });
+      }
+      if (bot.last_crawled_at && Date.now() - bot.last_crawled_at < RECRAWL_COOLDOWN_MS) {
+        const waitMin = Math.ceil(
+          (RECRAWL_COOLDOWN_MS - (Date.now() - bot.last_crawled_at)) / 60000,
+        );
+        return reply
+          .code(429)
+          .send({ error: `Gerade erst aktualisiert. Bitte in ${waitMin} Min erneut.` });
+      }
+      recrawling.add(bot.id);
+      const botId = bot.id;
+      // Fire-and-forget: nicht awaiten, damit der Klick sofort antwortet.
+      void (async () => {
+        try {
+          await crawlAndIndex(bot);
+          setCrawlResult(botId, "ok", null);
+        } catch (err) {
+          setCrawlResult(botId, "error", (err as Error).message);
+          request.log.error(err);
+        } finally {
+          recrawling.delete(botId);
+        }
+      })();
+      return { ok: true, started: true };
+    });
+
+    secured.get("/api/portal/recrawl-status", async (request, reply) => {
+      const bot = loadBot(request);
+      if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
+      return {
+        running: recrawling.has(bot.id),
+        lastCrawledAt: bot.last_crawled_at,
+        status: bot.last_crawl_status,
+        error: bot.last_crawl_error,
+      };
+    });
+
+    // --- Leads (Anforderung A: Kontaktanfragen aus dem Chat) ---
+    secured.get("/api/portal/leads", async (request, reply) => {
+      const bot = loadBot(request);
+      if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
+      return listLeads(bot.id).map((l) => ({
+        id: l.id,
+        name: l.name,
+        email: l.email,
+        phone: l.phone,
+        message: l.message,
+        contextQuestion: l.context_q,
+        status: l.status,
+        createdAt: l.created_at,
+      }));
+    });
+
+    secured.patch("/api/portal/leads/:leadId", async (request, reply) => {
+      const bot = loadBot(request);
+      if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
+      const parsed = z.object({ status: z.enum(["new", "done"]) }).safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: "Ungültiger Status." });
+      const leadId = Number((request.params as { leadId: string }).leadId);
+      if (!setLeadStatus(bot.id, leadId, parsed.data.status)) {
+        return reply.code(404).send({ error: "Lead nicht gefunden." });
+      }
+      return { ok: true };
+    });
+
+    secured.delete("/api/portal/leads/:leadId", async (request, reply) => {
+      const bot = loadBot(request);
+      if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
+      const leadId = Number((request.params as { leadId: string }).leadId);
+      if (!deleteLead(bot.id, leadId)) return reply.code(404).send({ error: "Lead nicht gefunden." });
+      return { ok: true };
+    });
+
+    // --- Datenexport (Anforderung A: jederzeit möglich) ---
+    // Vollständiger Export: Chatverläufe, hinterlegtes Wissen (manuelle FAQs) und
+    // Leads als JSON zum Download. Nur der eigene Bot (botId aus Token).
+    secured.get("/api/portal/export", async (request, reply) => {
+      const bot = loadBot(request);
+      if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
+      const bundle = {
+        exportedAt: new Date().toISOString(),
+        bot: { id: bot.id, name: bot.name, plan: bot.plan, website: bot.crawl_start_url },
+        chatLogs: listChatLogs(bot.id, 100000).map((l) => ({
+          question: l.question,
+          answer: l.answer,
+          answered: !!l.answered,
+          createdAt: l.created_at,
+        })),
+        manualFaqs: listManualFaqs(bot.id).map((f) => ({
+          question: f.question,
+          answer: f.answer,
+          createdAt: f.created_at,
+          updatedAt: f.updated_at,
+        })),
+        leads: listLeads(bot.id, 100000).map((l) => ({
+          name: l.name,
+          email: l.email,
+          phone: l.phone,
+          message: l.message,
+          contextQuestion: l.context_q,
+          status: l.status,
+          createdAt: l.created_at,
+        })),
+      };
+      const fname = `fragio-export-${bot.id}-${new Date().toISOString().slice(0, 10)}.json`;
+      reply
+        .header("Content-Type", "application/json; charset=utf-8")
+        .header("Content-Disposition", `attachment; filename="${fname}"`);
+      return JSON.stringify(bundle, null, 2);
     });
 
     // Chat-Verläufe für den Kunden (nur eigener Bot, botId aus Token) — vollständig

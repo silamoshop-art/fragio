@@ -190,6 +190,22 @@ CREATE TABLE IF NOT EXISTS manual_faqs (
 );
 CREATE INDEX IF NOT EXISTS idx_faqs_bot ON manual_faqs(bot_id);
 
+-- Lead-Erfassung (Anforderung A): kommt der Bot nicht weiter, kann der Besucher
+-- Name + Kontakt + Anliegen hinterlassen. Der Betreiber/Kunde bekommt die Leads im
+-- Portal/Dashboard und per E-Mail. context_q = die Frage, an der der Bot scheiterte.
+CREATE TABLE IF NOT EXISTS leads (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  bot_id      TEXT NOT NULL REFERENCES bots(id) ON DELETE CASCADE,
+  name        TEXT,
+  email       TEXT,
+  phone       TEXT,
+  message     TEXT,
+  context_q   TEXT,
+  status      TEXT NOT NULL DEFAULT 'new',   -- new | done
+  created_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_leads_bot ON leads(bot_id, status, created_at);
+
 -- Audit/Benachrichtigung: tatsächlich durchgeführter Tarifwechsel (Freischaltung).
 CREATE TABLE IF NOT EXISTS plan_changes (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,

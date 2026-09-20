@@ -80,6 +80,12 @@ export async function widgetConfigRoutes(app: FastifyInstance): Promise<void> {
       greeting: branding.greeting || DEFAULTS.greeting,
       logoUrl: branding.logoUrl || DEFAULTS.logoUrl,
       aiNotice: "Dies ist ein KI-Chatbot. Antworten können Fehler enthalten.",
+      // Lead-Erfassung + Terminlink (Anforderung A+D)
+      leadCapture: !!bot.lead_capture,
+      leadIntro:
+        bot.lead_intro ||
+        "Ich konnte deine Frage nicht aus der Website beantworten. Sollen wir uns bei dir melden? Hinterlasse einfach deine Kontaktdaten.",
+      bookingUrl: bot.booking_url || "",
       // Consent (DSGVO/AI-Act)
       consentNotice: CONSENT_NOTICE,
       privacyUrl: `${backendBase()}/privacy.html?bot=${bot.id}`,

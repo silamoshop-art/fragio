@@ -150,6 +150,21 @@ function runMigrations(db: DatabaseSync): void {
     { table: "bots", column: "customer_vat", ddl: "TEXT" },
     // Speicherdauer der Chat-Verläufe in Tagen (Auftrag 2.2, Standard 90).
     { table: "bots", column: "retention_days", ddl: "INTEGER NOT NULL DEFAULT 90" },
+    // Lead-Erfassung (Anforderung A): bietet der Bot bei „weiß nicht" ein
+    // Kontaktformular an? lead_intro = optionaler Einleitungstext über dem Formular.
+    { table: "bots", column: "lead_capture", ddl: "INTEGER NOT NULL DEFAULT 0" },
+    { table: "bots", column: "lead_intro", ddl: "TEXT" },
+    // Terminbuchung/Kalenderlink (Anforderung D): wird im Chat als Button angeboten.
+    { table: "bots", column: "booking_url", ddl: "TEXT" },
+    // Eskalationsregeln (Anforderung D): JSON-Array von Stichwörtern/Themen, bei denen
+    // der Bot grundsätzlich an einen Menschen übergibt (Preise, Rechtliches, Beschwerden).
+    { table: "bots", column: "escalation_topics", ddl: "TEXT" },
+    // Mehrsprachigkeit (Anforderung D): der Bot antwortet in der Sprache der Frage.
+    // 1 = aktiv (Standard aus historischen Gründen abschaltbar pro Bot).
+    { table: "bots", column: "multilingual", ddl: "INTEGER NOT NULL DEFAULT 1" },
+    // 80%-Kontingent-Warnung: Zeitraum, für den zuletzt gewarnt wurde ("YYYY-MM"),
+    // damit die Warnmail pro Monat nur einmal rausgeht.
+    { table: "bots", column: "quota_warned_period", ddl: "TEXT" },
     // Zuletzt echte Widget-Einbindung erkannt: Zeitpunkt der letzten Chat-Anfrage,
     // deren Origin zur hinterlegten (nicht-leeren) Kunden-Domain passt. Grundlage
     // für "Bereits eingebunden" im Portal — Test-/Vorschau-Traffic zählt NICHT.

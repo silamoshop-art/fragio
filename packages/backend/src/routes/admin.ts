@@ -39,6 +39,10 @@ import {
   createManualFaq,
   updateManualFaq,
   deleteManualFaq,
+  listLeads,
+  setLeadStatus,
+  deleteLead,
+  countNewLeads,
   INVOICE_DUE_DAYS,
   type BotRow,
   type InvoiceRow,
@@ -127,6 +131,13 @@ function presentBot(bot: BotRow) {
     // Anonymer Consent-Nachweis (Anzahl + letzte Zustimmung).
     consent: consentStats(bot.id),
     retentionDays: bot.retention_days,
+    // Lead-Erfassung / Termin / Eskalation / Mehrsprachigkeit (Anforderungskatalog A+D)
+    leadCapture: !!bot.lead_capture,
+    leadIntro: bot.lead_intro,
+    bookingUrl: bot.booking_url,
+    escalationTopics: safeArray(bot.escalation_topics ?? "[]"),
+    multilingual: !!bot.multilingual,
+    newLeads: countNewLeads(bot.id),
     previewUrl: previewUrlFor(bot.id),
     portalUrl: `${backendBase()}/portal/`,
     portalUser: getBotUserForBot(bot.id)?.email ?? null,
@@ -498,6 +509,12 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         domain: z.string().max(255).optional(),
         // Speicherdauer der Chat-Verläufe (Auftrag 2.2).
         retentionDays: z.union([z.literal(30), z.literal(90), z.literal(180), z.literal(365)]).optional(),
+        // Lead-Erfassung / Termin / Eskalation / Mehrsprachigkeit (Anforderungskatalog A+D)
+        leadCapture: z.boolean().optional(),
+        leadIntro: z.string().max(600).nullable().optional(),
+        bookingUrl: z.union([z.string().url().max(2048), z.literal(""), z.null()]).optional(),
+        escalationTopics: z.array(z.string().max(80)).max(30).nullable().optional(),
+        multilingual: z.boolean().optional(),
       });
       const parsed = schema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Ungültige Eingabe." });
@@ -545,6 +562,16 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         customer_email: d.customerEmail === "" ? null : d.customerEmail,
         customer_vat: d.customerVat,
         retention_days: d.retentionDays,
+        lead_capture: d.leadCapture === undefined ? undefined : d.leadCapture ? 1 : 0,
+        lead_intro: d.leadIntro,
+        booking_url: d.bookingUrl === "" ? null : d.bookingUrl,
+        escalation_topics:
+          d.escalationTopics === undefined
+            ? undefined
+            : d.escalationTopics === null
+              ? null
+              : JSON.stringify(d.escalationTopics.map((t) => t.trim()).filter(Boolean)),
+        multilingual: d.multilingual === undefined ? undefined : d.multilingual ? 1 : 0,
       });
       // Rabatt-/Preisänderung -> effektiven Preis aus Basispreis neu berechnen.
       if (d.discountType !== undefined || d.discountValue !== undefined) {
@@ -854,6 +881,42 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       } finally {
         res.end();
       }
+    });
+
+    // --- Leads (Anforderung A): Betreibersicht auf die Kontaktanfragen eines Bots ---
+    secured.get("/api/admin/bots/:id/leads", async (request, reply) => {
+      const bot = loadOwned(request, reply);
+      if (!bot) return;
+      return listLeads(bot.id).map((l) => ({
+        id: l.id,
+        name: l.name,
+        email: l.email,
+        phone: l.phone,
+        message: l.message,
+        contextQuestion: l.context_q,
+        status: l.status,
+        createdAt: l.created_at,
+      }));
+    });
+
+    secured.patch("/api/admin/bots/:id/leads/:leadId", async (request, reply) => {
+      const bot = loadOwned(request, reply);
+      if (!bot) return;
+      const parsed = z.object({ status: z.enum(["new", "done"]) }).safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: "Ungültiger Status." });
+      const leadId = Number((request.params as { leadId: string }).leadId);
+      if (!setLeadStatus(bot.id, leadId, parsed.data.status)) {
+        return reply.code(404).send({ error: "Lead nicht gefunden." });
+      }
+      return { ok: true };
+    });
+
+    secured.delete("/api/admin/bots/:id/leads/:leadId", async (request, reply) => {
+      const bot = loadOwned(request, reply);
+      if (!bot) return;
+      const leadId = Number((request.params as { leadId: string }).leadId);
+      if (!deleteLead(bot.id, leadId)) return reply.code(404).send({ error: "Lead nicht gefunden." });
+      return { ok: true };
     });
   });
 }
