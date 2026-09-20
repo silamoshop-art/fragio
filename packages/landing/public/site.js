@@ -74,7 +74,8 @@
   "use strict";
   var cards = document.querySelectorAll("[data-plan]");
   var note = document.getElementById("price-note");
-  if (!cards.length && !note) return;
+  var minEl = document.querySelector("[data-min-price]");
+  if (!cards.length && !note && !minEl) return;
 
   function fmt(n, en) {
     // de-DE liefert zuverlässig den Punkt als Tausendertrennzeichen (2.000),
@@ -109,6 +110,20 @@
         setNumber(card.querySelector(".price"), fmt(p.monthlyCents / 100, en));
         setNumber(card.querySelector(".quota"), fmt(p.limit, en));
       });
+      // "Ab X €"-Hero-Zeile = günstigster Tarif. Nur die Zahl im <strong>
+      // ersetzen; zusätzlich die EN-Vorlage (data-i18n-en) mitziehen, damit ein
+      // späterer Sprachwechsel den aktuellen Preis behält.
+      if (minEl) {
+        var minCents = d.plans.reduce(function (m, p) {
+          return typeof p.monthlyCents === "number" && (m === null || p.monthlyCents < m) ? p.monthlyCents : m;
+        }, null);
+        if (minCents !== null) {
+          var strong = minEl.querySelector("strong") || minEl;
+          setNumber(strong, fmt(minCents / 100, en));
+          var tpl = minEl.getAttribute("data-i18n-en");
+          if (tpl) minEl.setAttribute("data-i18n-en", tpl.replace(/[\d.,]*\d/, fmt(minCents / 100, true)));
+        }
+      }
       // Einrichtungsgebühr-Hinweis nur, wenn im Admin aktiviert.
       if (note && d.setupFeeEnabled) {
         var sc = (d.plans[0] && d.plans[0].setupCents) || 0;
