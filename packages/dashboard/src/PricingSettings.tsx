@@ -35,7 +35,7 @@ export function PricingSettings() {
         {(["starter", "business", "pro"] as const).map((id) => (
           <div key={id} style={{ marginBottom: 14 }}>
             <strong style={{ textTransform: "capitalize" }}>{id}</strong>
-            <div className="field"><span>Anfragen/Monat</span>
+            <div className="field"><span>Antworten/Monat</span>
               <input type="number" defaultValue={p.plans[id].limit} onBlur={(e) => setPlan(id, "limit", Math.round(+e.target.value))} /></div>
             <div className="field"><span>Mit Einrichtung (€/Mon)</span>
               <input type="number" step="0.01" defaultValue={euro(p.plans[id].setupMonthlyCents)} onBlur={(e) => setPlan(id, "setupMonthlyCents", toCents(e.target.value))} /></div>

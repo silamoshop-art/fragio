@@ -49,7 +49,7 @@ import {
   type OpenInvoiceRow,
 } from "../db/repo.js";
 import { sendEmail, verifySmtp } from "../notify/email.js";
-import { operatorConfig } from "../config/operator.js";
+import { operatorConfig, operatorConfigPresent, saveOperatorOverride } from "../config/operator.js";
 import { applyPlanToBot, stripeEnabled, recomputeBotPrice } from "../payments/stripe.js";
 import { planName, getPricing, savePricing, DEFAULT_PRICING, type Pricing } from "../billing/plans.js";
 import { crawlAndIndex } from "../crawler/index.js";
@@ -212,6 +212,41 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       email: request.tenant!.email,
       stripeEnabled: stripeEnabled(),
     }));
+
+    // --- Betreiberdaten (Bank etc.) im Admin editierbar ---
+    // Lesen: effektive Werte (Datei + gespeicherte Overrides). Schreiben: Overrides in DB.
+    secured.get("/api/admin/operator", async () => ({
+      operator: operatorConfig(),
+      fromFile: operatorConfigPresent(),
+    }));
+
+    secured.patch("/api/admin/operator", async (request, reply) => {
+      const bankSchema = z
+        .object({
+          accountHolder: z.string().max(160),
+          iban: z.string().max(60),
+          bic: z.string().max(40),
+          bankName: z.string().max(160),
+        })
+        .partial();
+      const schema = z
+        .object({
+          name: z.string().max(200),
+          address: z.string().max(600),
+          uid: z.string().max(120),
+          taxNote: z.string().max(400),
+          paypal: z.string().max(300),
+          supportEmail: z.string().max(200),
+          supportPhone: z.string().max(80),
+          currency: z.string().max(10),
+          bank: bankSchema,
+        })
+        .partial();
+      const parsed = schema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: "Ungültige Betreiberdaten." });
+      saveOperatorOverride(parsed.data);
+      return { ok: true, operator: operatorConfig() };
+    });
 
     // --- Preis-Einstellungen (global konfigurierbar) ---
     secured.get("/api/admin/pricing", async () => getPricing());

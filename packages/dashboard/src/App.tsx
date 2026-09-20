@@ -3,6 +3,7 @@ import { api, clearKey, getKey, type Bot } from "./api";
 import { Login } from "./Login";
 import { BotDetail } from "./BotDetail";
 import { PricingSettings } from "./PricingSettings";
+import { OperatorSettings } from "./OperatorSettings";
 import { OpenPayments } from "./OpenPayments";
 
 export function App() {
@@ -104,15 +105,15 @@ function Dashboard({ email, onLogout }: { email: string; onLogout: () => void })
           {!bots.length && <p className="muted">Noch keine Bots.</p>}
         </nav>
         <div className="navlabel">Verwaltung</div>
-        <button className={"botitem" + (view === "payments" ? " on" : "")} onClick={() => setView("payments")}>💶 Zahlungen</button>
-        <button className={"botitem" + (view === "pricing" ? " on" : "")} onClick={() => setView("pricing")}>⚙ Einstellungen</button>
+        <button className={"botitem" + (view === "payments" ? " on" : "")} onClick={() => setView("payments")}>Zahlungen</button>
+        <button className={"botitem" + (view === "pricing" ? " on" : "")} onClick={() => setView("pricing")}>Einstellungen</button>
         <button className="btn ghost sm block" onClick={onLogout}>Abmelden</button>
       </aside>
       <main className="content">
         {view === "payments" ? (
           <OpenPayments />
         ) : view === "pricing" ? (
-          <PricingSettings />
+          <><OperatorSettings /><PricingSettings /></>
         ) : selected ? (
           <BotDetail
             botId={selected}

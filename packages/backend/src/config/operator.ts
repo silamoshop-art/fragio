@@ -12,6 +12,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "../config.js";
+import { getSetting, setSetting } from "../db/repo.js";
+
+// Im Admin editierbare Betreiberdaten werden in app_settings ("operator_override")
+// als JSON abgelegt und ÜBER die Datei gelegt. So lassen sich Bank-/Betreiberdaten
+// ändern, ohne operator.config.json auf dem Server anzufassen.
+const OVERRIDE_KEY = "operator_override";
 
 export interface OperatorBank {
   accountHolder: string;
@@ -69,14 +75,53 @@ export function operatorConfig(): OperatorConfig {
   } catch (err) {
     console.error("❌ operator.config.json ist kein gültiges JSON:", (err as Error).message);
   }
+  // Im Admin gespeicherte Overrides (DB) über die Datei legen.
+  let override: Partial<OperatorConfig> = {};
+  try {
+    const raw = getSetting(OVERRIDE_KEY);
+    if (raw) override = JSON.parse(raw) as Partial<OperatorConfig>;
+  } catch {
+    /* ignorieren — dann greift Datei/Platzhalter */
+  }
   return {
     ...PLACEHOLDER,
     ...loaded,
-    bank: { ...PLACEHOLDER.bank, ...(loaded.bank ?? {}) },
+    ...override,
+    bank: { ...PLACEHOLDER.bank, ...(loaded.bank ?? {}), ...(override.bank ?? {}) },
   };
 }
 
-/** Ist eine echte Config hinterlegt (kein reiner Platzhalter)? */
+/** Ist eine echte Config hinterlegt (Datei ODER im Admin gespeicherte Overrides)? */
 export function operatorConfigPresent(): boolean {
-  return fs.existsSync(FILE);
+  if (fs.existsSync(FILE)) return true;
+  try {
+    return !!getSetting(OVERRIDE_KEY);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Betreiberdaten-Override im Admin speichern (partiell, Bank wird tief gemergt).
+ * Wird über die Datei gelegt und von allen Lesern (Rechnung/QR/Support) genutzt.
+ */
+/** Override-Form: alle Felder optional, Bank ebenfalls teilweise setzbar. */
+export type OperatorOverride = Partial<Omit<OperatorConfig, "bank">> & {
+  bank?: Partial<OperatorBank>;
+};
+
+export function saveOperatorOverride(patch: OperatorOverride): void {
+  let current: OperatorOverride = {};
+  try {
+    const raw = getSetting(OVERRIDE_KEY);
+    if (raw) current = JSON.parse(raw) as OperatorOverride;
+  } catch {
+    /* ignorieren */
+  }
+  const merged: OperatorOverride = {
+    ...current,
+    ...patch,
+    bank: { ...(current.bank ?? {}), ...(patch.bank ?? {}) },
+  };
+  setSetting(OVERRIDE_KEY, JSON.stringify(merged));
 }

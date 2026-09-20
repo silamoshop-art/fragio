@@ -167,8 +167,32 @@ export interface PlanRequest {
   createdAt: number;
 }
 
+export interface OperatorBank {
+  accountHolder: string;
+  iban: string;
+  bic: string;
+  bankName: string;
+}
+export interface OperatorInfo {
+  name: string;
+  address: string;
+  uid: string;
+  taxNote: string;
+  paypal: string;
+  supportEmail: string;
+  supportPhone: string;
+  currency: string;
+  bank: OperatorBank;
+}
+
 export const api = {
   me: () => req<{ tenantId: string; email: string; stripeEnabled: boolean }>("/api/admin/me"),
+  getOperator: () => req<{ operator: OperatorInfo; fromFile: boolean }>("/api/admin/operator"),
+  updateOperator: (patch: Partial<OperatorInfo>) =>
+    req<{ ok: boolean; operator: OperatorInfo }>("/api/admin/operator", {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
   planRequests: () => req<PlanRequest[]>("/api/admin/plan-change-requests"),
   resolvePlanRequest: (id: number) =>
     req<{ ok: boolean; invoice: Invoice | null; invoiceError?: string }>(
