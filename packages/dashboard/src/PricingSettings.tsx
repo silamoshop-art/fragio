@@ -20,7 +20,7 @@ export function PricingSettings() {
 
   async function saveAll() {
     setMsg(""); setErr("");
-    try { await api.updatePricing(p!); setMsg("Gespeichert ✓"); setTimeout(() => setMsg(""), 2000); }
+    try { await api.updatePricing(p!); setMsg("Gespeichert"); setTimeout(() => setMsg(""), 2000); }
     catch (e) { setErr((e as Error).message); }
   }
 

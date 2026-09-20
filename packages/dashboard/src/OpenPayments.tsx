@@ -27,7 +27,7 @@ export function OpenPayments() {
     setBusy(id); setErr(""); setMsg("");
     try {
       await api.markInvoicePaid(id);
-      setMsg("Als bezahlt markiert ✓");
+      setMsg("Als bezahlt markiert");
       await load();
     } catch (e) {
       setErr((e as Error).message);
@@ -41,7 +41,7 @@ export function OpenPayments() {
     setBusy(id); setErr(""); setMsg("");
     try {
       const r = await api.sendReminder(id);
-      setMsg(`Mahnung an ${r.sentTo} gesendet${r.attached ? " (mit Rechnung)" : ""} ✓`);
+      setMsg(`Mahnung an ${r.sentTo} gesendet${r.attached ? " (mit Rechnung)" : ""}`);
       await load();
     } catch (e) {
       setErr((e as Error).message);

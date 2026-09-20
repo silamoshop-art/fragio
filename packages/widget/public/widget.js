@@ -298,7 +298,7 @@
           bubble.innerHTML = renderMarkdown(acc);
           log.scrollTop = log.scrollHeight;
         },
-        error: function (msg) { bubble.classList.remove("sb-typing"); bubble.textContent = "⚠ " + msg; },
+        error: function (msg) { bubble.classList.remove("sb-typing"); bubble.textContent = msg; },
         done: function () {
           if (first) { bubble.classList.remove("sb-typing"); bubble.textContent = "(keine Antwort)"; }
           addSources(sources);

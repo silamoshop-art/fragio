@@ -36,7 +36,7 @@ interface Branding {
 const DEFAULTS: Required<Branding> = {
   botName: "Website-Assistent",
   primaryColor: "#4f46e5",
-  greeting: "Hallo! 👋 Frag mich etwas über diese Website.",
+  greeting: "Hallo! Frag mich etwas über diese Website.",
   logoUrl: "",
 };
 

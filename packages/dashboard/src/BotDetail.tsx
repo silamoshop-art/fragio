@@ -61,15 +61,15 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
     try {
       const r = await api.resolvePlanRequest(id);
       if (r.invoice) {
-        setReqMsg(`✓ Freigeschaltet & Rechnung ${r.invoice.invoiceNumber} erstellt — siehe „Zahlungen“ › Offene Zahlungen.`);
+        setReqMsg(`Freigeschaltet & Rechnung ${r.invoice.invoiceNumber} erstellt — siehe „Zahlungen“ › Offene Zahlungen.`);
       } else if (r.invoiceError) {
-        setReqMsg(`✓ Freigeschaltet, aber KEINE Rechnung erstellt: ${r.invoiceError}`);
+        setReqMsg(`Freigeschaltet, aber KEINE Rechnung erstellt: ${r.invoiceError}`);
       } else {
-        setReqMsg("✓ Tarif freigeschaltet & Anfrage erledigt.");
+        setReqMsg("Tarif freigeschaltet & Anfrage erledigt.");
       }
       await load();
     } catch (e) {
-      setReqMsg("⚠️ " + (e as Error).message);
+      setReqMsg("" + (e as Error).message);
     }
   }
 
@@ -80,7 +80,7 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
     try {
       const updated = await api.updateBot(botId, patch);
       setBot(updated);
-      setMsg("Gespeichert ✓");
+      setMsg("Gespeichert");
       setTimeout(() => setMsg(""), 2000);
     } catch (e) {
       setMsg((e as Error).message);
@@ -93,16 +93,16 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
       progress: (p) =>
         setCrawlMsg(
           p.phase === "crawling"
-            ? `🕷 ${p.fetched} Seiten…`
+            ? `${p.fetched} Seiten…`
             : p.phase === "indexing"
-              ? `📚 ${p.chunks} Textblöcke…`
+              ? `${p.chunks} Textblöcke…`
               : "…",
         ),
       ready: (r) => {
-        setCrawlMsg(`✓ ${r.pages} Seiten, ${r.chunks} Textblöcke`);
+        setCrawlMsg(`${r.pages} Seiten, ${r.chunks} Textblöcke`);
         load();
       },
-      error: (m) => setCrawlMsg("⚠️ " + m),
+      error: (m) => setCrawlMsg("" + m),
     });
   }
 
@@ -119,7 +119,7 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
       await api.deleteBot(botId);
       onDeleted();
     } catch (e) {
-      setMsg("⚠️ Löschen fehlgeschlagen: " + (e as Error).message);
+      setMsg("Löschen fehlgeschlagen: " + (e as Error).message);
     }
   }
 
@@ -128,10 +128,10 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
     setInvoiceMsg("Erstelle Rechnung…");
     try {
       const r = await api.createInvoice(botId);
-      setInvoiceMsg(r.created ? `✓ Rechnung ${r.invoice?.invoiceNumber} erstellt` : "Für diesen Zeitraum existiert bereits eine Rechnung.");
+      setInvoiceMsg(r.created ? `Rechnung ${r.invoice?.invoiceNumber} erstellt` : "Für diesen Zeitraum existiert bereits eine Rechnung.");
       setInvoices(await api.listInvoices(botId));
     } catch (e) {
-      setInvoiceMsg("⚠️ " + (e as Error).message);
+      setInvoiceMsg("" + (e as Error).message);
     }
   }
 
@@ -142,7 +142,7 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
       setExDesc(`Anteilige Nutzung (${p.remainingDays} von ${p.daysInMonth} Tagen)`);
       setExPeriod("laufender Monat (anteilig)");
     } catch (e) {
-      setInvoiceMsg("⚠️ " + (e as Error).message);
+      setInvoiceMsg("" + (e as Error).message);
     }
   }
 
@@ -152,11 +152,11 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
     setInvoiceMsg("Erstelle Zusatzrechnung…");
     try {
       const r = await api.createExtraInvoice(botId, { amountCents: cents, description: exDesc, periodLabel: exPeriod || undefined });
-      setInvoiceMsg(`✓ Zusatzrechnung ${r.invoice?.invoiceNumber} erstellt`);
+      setInvoiceMsg(`Zusatzrechnung ${r.invoice?.invoiceNumber} erstellt`);
       setExAmount(""); setExDesc(""); setExPeriod("");
       setInvoices(await api.listInvoices(botId));
     } catch (e) {
-      setInvoiceMsg("⚠️ " + (e as Error).message);
+      setInvoiceMsg("" + (e as Error).message);
     }
   }
 
@@ -164,17 +164,17 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
     try {
       setChatLogs(await api.chatLogs(botId, search ?? logSearch));
     } catch (e) {
-      setMsg("⚠️ " + (e as Error).message);
+      setMsg("" + (e as Error).message);
     }
   }
   async function deleteSender(ipHash: string) {
     if (!confirm("Alle Chat-Anfragen dieses Absenders (gleicher IP-Hash) unwiderruflich löschen?")) return;
     try {
       const r = await api.deleteBySender(botId, ipHash);
-      setMsg(`✓ ${r.deleted} Eintrag/Einträge gelöscht.`);
+      setMsg(`${r.deleted} Eintrag/Einträge gelöscht.`);
       await loadChatLogs();
     } catch (e) {
-      setMsg("⚠️ " + (e as Error).message);
+      setMsg("" + (e as Error).message);
     }
   }
   function startCorrect(l: ChatLogEntry) {
@@ -187,10 +187,10 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
     if (!correctText.trim()) { setCorrectMsg("Bitte die richtige Antwort eingeben."); return; }
     try {
       await api.createFaq(botId, { question, answer: correctText.trim() });
-      setCorrectMsg("✓ Als richtige Antwort gespeichert — wird künftig bei ähnlichen Fragen bevorzugt (übersteht Recrawl).");
+      setCorrectMsg("Als richtige Antwort gespeichert — wird künftig bei ähnlichen Fragen bevorzugt (übersteht Recrawl).");
       setCorrectId(null);
     } catch (e) {
-      setCorrectMsg("⚠️ " + (e as Error).message);
+      setCorrectMsg("" + (e as Error).message);
     }
   }
 
@@ -203,11 +203,11 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
         password: portalPw.trim() || undefined,
       });
       const pwNote = r.password ? ` · generiertes Passwort: ${r.password}` : " · Passwort gesetzt";
-      setPortalMsg(`✓ Login für ${r.email} aktiv${pwNote}`);
+      setPortalMsg(`Login für ${r.email} aktiv${pwNote}`);
       setPortalPw("");
       await load();
     } catch (e) {
-      setPortalMsg("⚠️ " + (e as Error).message);
+      setPortalMsg("" + (e as Error).message);
     }
   }
 
@@ -265,7 +265,7 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
 
       {bot.trialMode && bot.trialExpiresAt && (
         <div className="trial-banner">
-          ⏳ Trial – läuft ab am {new Date(bot.trialExpiresAt).toLocaleDateString()} ·
+          Trial – läuft ab am {new Date(bot.trialExpiresAt).toLocaleDateString()} ·
           {" "}{bot.trialRequestCount}/{bot.trialRequestCap} Anfragen genutzt
           <button className="btn sm" onClick={() => save({ trialMode: false })}>Jetzt upgraden</button>
         </div>
@@ -275,9 +275,9 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
         <p className="muted">
           {bot.chunkCount} Textblöcke ·{" "}
           {bot.lastCrawledAt ? "zuletzt " + new Date(bot.lastCrawledAt).toLocaleString() : "noch nie gecrawlt"}
-          {bot.lastCrawlStatus === "ok" && " · ✅ erfolgreich"}
+          {bot.lastCrawlStatus === "ok" && " · erfolgreich"}
           {bot.lastCrawlStatus === "error" && (
-            <span className="crawl-err"> · ❌ fehlgeschlagen: {bot.lastCrawlError}</span>
+            <span className="crawl-err"> · fehlgeschlagen: {bot.lastCrawlError}</span>
           )}
         </p>
         <Field label="Start-URL">
@@ -301,14 +301,14 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
         </Field>
         {bot.llmProvider === "ollama" && (
           <p className="warn-box">
-            🔒 Läuft komplett auf dem Server — <strong>keine Chat-Anfragen an Anthropic / keine
+            Läuft komplett auf dem Server — <strong>keine Chat-Anfragen an Anthropic / keine
             US-Übermittlung</strong>. Höhere Antwortzeit, dafür volle Datenverarbeitung in
             Eigenregie. (Als Aufpreis-Tarif vermarktbar.)
           </p>
         )}
         {(bot.llmProvider === "anthropic" || bot.llmProvider === "openai") && (
           <>
-            <Field label={`API-Key ${bot.hasApiKey ? "(hinterlegt ✓)" : "(fehlt)"}`}>
+            <Field label={`API-Key ${bot.hasApiKey ? "(hinterlegt)" : "(fehlt)"}`}>
               <input type="password" placeholder="Key eingeben zum Setzen/Ändern" onBlur={(e) => e.target.value && save({ apiKey: e.target.value })} />
             </Field>
             <Field label="Modell (optional)">
@@ -350,7 +350,7 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
       <Section title="Erlaubte Domain (CORS)">
         {bot.allowedOrigins.length === 0 && (
           <p className="warn-box">
-            ⚠️ Keine Domain gesetzt — der Bot kann derzeit von <strong>jeder</strong> Website
+            Keine Domain gesetzt — der Bot kann derzeit von <strong>jeder</strong> Website
             eingebunden werden. Für Produktion die echte Domain eintragen.
           </p>
         )}
@@ -538,7 +538,7 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
 
         <h4>Rechnungsdaten des Kunden <span className="muted">(nur für DIESEN Bot)</span></h4>
         {(!bot.customerName || !bot.customerAddress) && (
-          <p className="warn-box">⚠️ Name/Adresse fehlen — für diesen zahlenden Bot kann sonst keine Rechnung erstellt werden.</p>
+          <p className="warn-box">Name/Adresse fehlen — für diesen zahlenden Bot kann sonst keine Rechnung erstellt werden.</p>
         )}
         <Field label="Firma / Name"><input defaultValue={bot.customerName || ""} onBlur={(e) => save({ customerName: e.target.value.trim() || null })} /></Field>
         <Field label="Adresse"><input defaultValue={bot.customerAddress || ""} placeholder="Straße, PLZ Ort" onBlur={(e) => save({ customerAddress: e.target.value.trim() || null })} /></Field>
@@ -557,7 +557,7 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
                   {inv.invoiceNumber}
                 </button>{" "}
                 · {inv.periodLabel} · {(inv.amountCents / 100).toFixed(2)} {inv.currency}
-                {inv.sent && " · ✉️ versendet"}
+                {inv.sent && " · versendet"}
               </li>
             ))}
           </ul>
@@ -681,7 +681,7 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
                     </div>
                   </div>
                 ) : (
-                  <button className="btn ghost sm" style={{ marginTop: 8 }} onClick={() => startCorrect(l)}>✎ Korrigieren</button>
+                  <button className="btn ghost sm" style={{ marginTop: 8 }} onClick={() => startCorrect(l)}>Korrigieren</button>
                 )}
               </div>
             ))}
@@ -733,7 +733,7 @@ function FaqSection({ botId }: { botId: string }) {
     try {
       setFaqs(await api.listFaqs(botId));
     } catch (e) {
-      setMsg("⚠️ " + (e as Error).message);
+      setMsg("" + (e as Error).message);
     }
   }
   useEffect(() => {
@@ -756,15 +756,15 @@ function FaqSection({ botId }: { botId: string }) {
     try {
       if (editId === null) {
         await api.createFaq(botId, { question: q.trim(), answer: a.trim() });
-        setMsg("✓ FAQ hinzugefügt");
+        setMsg("FAQ hinzugefügt");
       } else {
         await api.updateFaq(botId, editId, { question: q.trim(), answer: a.trim() });
-        setMsg("✓ FAQ aktualisiert");
+        setMsg("FAQ aktualisiert");
       }
       reset();
       await load();
     } catch (e) {
-      setMsg("⚠️ " + (e as Error).message);
+      setMsg("" + (e as Error).message);
     }
   }
 
@@ -775,7 +775,7 @@ function FaqSection({ botId }: { botId: string }) {
       if (editId === id) reset();
       await load();
     } catch (e) {
-      setMsg("⚠️ " + (e as Error).message);
+      setMsg("" + (e as Error).message);
     }
   }
 
@@ -840,7 +840,7 @@ function LeadList({ botId }: { botId: string }) {
     try {
       setLeads(await api.listLeads(botId));
     } catch (e) {
-      setMsg("⚠ " + (e as Error).message);
+      setMsg("" + (e as Error).message);
     }
   }
   useEffect(() => {
@@ -849,11 +849,11 @@ function LeadList({ botId }: { botId: string }) {
   }, [botId]);
 
   async function setStatus(id: number, status: "new" | "done") {
-    try { await api.setLeadStatus(botId, id, status); await load(); } catch (e) { setMsg("⚠ " + (e as Error).message); }
+    try { await api.setLeadStatus(botId, id, status); await load(); } catch (e) { setMsg("" + (e as Error).message); }
   }
   async function remove(id: number) {
     if (!confirm("Diese Kontaktanfrage löschen?")) return;
-    try { await api.deleteLead(botId, id); await load(); } catch (e) { setMsg("⚠ " + (e as Error).message); }
+    try { await api.deleteLead(botId, id); await load(); } catch (e) { setMsg("" + (e as Error).message); }
   }
 
   return (
@@ -926,7 +926,7 @@ function UsageBar({ used, quota }: { used: number; quota: number }) {
     <div className="usage">
       <div className="usage-head">
         <span>{used} / {quota} Anfragen diesen Monat</span>
-        {warn && <span className="usage-warn">⚠️ {pct}% ausgelastet</span>}
+        {warn && <span className="usage-warn">{pct}% ausgelastet</span>}
       </div>
       <div className="ubar">
         <i style={{ width: pct + "%", background: warn ? "#e11d48" : undefined }} />

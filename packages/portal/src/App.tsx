@@ -172,7 +172,7 @@ function Overview({ onGoToPlans, onGoToLeads }: { onGoToPlans: () => void; onGoT
       await api.recrawl();
       setCrawlMsg("Aktualisierung gestartet — der Bot liest eure Website neu ein. Das dauert je nach Umfang ein paar Minuten.");
     } catch (e) {
-      setCrawlMsg("⚠ " + (e as Error).message);
+      setCrawlMsg("" + (e as Error).message);
     } finally {
       setCrawlBusy(false);
     }
@@ -182,7 +182,7 @@ function Overview({ onGoToPlans, onGoToLeads }: { onGoToPlans: () => void; onGoT
     try {
       await api.exportData();
     } catch (e) {
-      setCrawlMsg("⚠ Export fehlgeschlagen: " + (e as Error).message);
+      setCrawlMsg("Export fehlgeschlagen: " + (e as Error).message);
     } finally {
       setExportBusy(false);
     }
@@ -351,7 +351,7 @@ function Plans({ isMobile }: { isMobile: boolean }) {
       <h1 style={h1Style()}>Tarife</h1>
       <p style={{ fontSize: 16, color: C.textSecondary, margin: "0 0 32px" }}>Wähle Tarif und Abrechnungsvariante — wir schicken dir die passende Rechnung.</p>
       {err && <p style={{ color: C.red }}>{err}</p>}
-      {msg && <p style={{ background: "oklch(0.96 0.03 145)", border: "1px solid oklch(0.8 0.1 145)", color: "oklch(0.35 0.09 145)", padding: "12px 16px", borderRadius: 12, fontSize: 14, fontWeight: 500 }}>✓ {msg}</p>}
+      {msg && <p style={{ background: "oklch(0.96 0.03 145)", border: "1px solid oklch(0.8 0.1 145)", color: "oklch(0.35 0.09 145)", padding: "12px 16px", borderRadius: 12, fontSize: 14, fontWeight: 500 }}>{msg}</p>}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 20 }}>
         {plans.map((p) => {
           const isCurrent = p.id === currentId;
@@ -439,7 +439,7 @@ function Support() {
       </p>
       {sent ? (
         <div style={{ background: "oklch(0.96 0.03 145)", border: "1px solid oklch(0.8 0.1 145)", color: "oklch(0.35 0.09 145)", padding: "16px 18px", borderRadius: 14, fontSize: 15 }}>
-          ✓ {sent}
+          {sent}
           <div style={{ marginTop: 10 }}>
             <button onClick={() => setSent("")} style={{ border: "none", background: "transparent", color: C.accent, fontWeight: 600, cursor: "pointer", padding: 0 }}>Weitere Nachricht senden</button>
           </div>
@@ -476,9 +476,9 @@ function Addons({ onMessage }: { onMessage: (m: string) => void }) {
     try {
       const r = await api.uploadLogo(f);
       setLogoUrl(r.logoUrl);
-      onMessage("Logo hochgeladen ✓ — beim nächsten Laden des Chats sichtbar.");
+      onMessage("Logo hochgeladen — beim nächsten Laden des Chats sichtbar.");
     } catch (err) {
-      onMessage("⚠️ " + (err as Error).message);
+      onMessage("" + (err as Error).message);
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -495,7 +495,7 @@ function Addons({ onMessage }: { onMessage: (m: string) => void }) {
       onMessage(r.message || "Anfrage gesendet.");
       setA(await api.addons());
     } catch (e) {
-      onMessage("⚠️ " + (e as Error).message);
+      onMessage("" + (e as Error).message);
     } finally {
       setBusy(null);
     }
@@ -509,7 +509,7 @@ function Addons({ onMessage }: { onMessage: (m: string) => void }) {
 
   const badge = (status: AddonStatus) =>
     status === "active"
-      ? { text: "Aktiv ✓", color: C.green }
+      ? { text: "Aktiv", color: C.green }
       : status === "pending"
         ? { text: "Angefragt …", color: C.yellow }
         : null;
@@ -583,24 +583,24 @@ function Questions() {
   }, []);
 
   async function loadLogs(search?: string) {
-    try { setLogs(await api.chatLogs(search ?? logSearch)); } catch (e) { setLogMsg("⚠️ " + (e as Error).message); }
+    try { setLogs(await api.chatLogs(search ?? logSearch)); } catch (e) { setLogMsg("" + (e as Error).message); }
   }
   async function delSender(ipHash: string) {
     if (!confirm("Alle Chat-Anfragen dieses Absenders (gleicher IP-Hash) unwiderruflich löschen?")) return;
     try {
       const r = await api.deleteBySender(ipHash);
-      setLogMsg(`✓ ${r.deleted} Eintrag/Einträge gelöscht.`);
+      setLogMsg(`${r.deleted} Eintrag/Einträge gelöscht.`);
       await loadLogs();
-    } catch (e) { setLogMsg("⚠️ " + (e as Error).message); }
+    } catch (e) { setLogMsg("" + (e as Error).message); }
   }
   // Korrektur = eigene (recrawl-feste) Antwort, künftig bei ähnlichen Fragen bevorzugt.
   async function saveCorrection(question: string) {
     if (!correctText.trim()) { setLogMsg("Bitte die richtige Antwort eingeben."); return; }
     try {
       await api.createFaq({ question, answer: correctText.trim() });
-      setLogMsg("✓ Als richtige Antwort gespeichert — wird künftig bei ähnlichen Fragen bevorzugt (übersteht Aktualisierungen).");
+      setLogMsg("Als richtige Antwort gespeichert — wird künftig bei ähnlichen Fragen bevorzugt (übersteht Aktualisierungen).");
       setCorrectId(null);
-    } catch (e) { setLogMsg("⚠️ " + (e as Error).message); }
+    } catch (e) { setLogMsg("" + (e as Error).message); }
   }
 
   const row = (last: boolean, tint: string): CSSProperties => ({
@@ -681,7 +681,7 @@ function Questions() {
                     </div>
                   </div>
                 ) : (
-                  <button onClick={() => { setCorrectId(l.id); setCorrectText(l.answer || ""); setLogMsg(""); }} style={{ marginTop: 8, padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.textPrimary, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>✎ Korrigieren</button>
+                  <button onClick={() => { setCorrectId(l.id); setCorrectText(l.answer || ""); setLogMsg(""); }} style={{ marginTop: 8, padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.textPrimary, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Korrigieren</button>
                 )}
               </div>
             ))}
@@ -720,9 +720,9 @@ function Faqs() {
     setStyleMsg("");
     try {
       await api.setStyle(style.trim() ? style.trim() : null);
-      setStyleMsg("✓ Schreibstil gespeichert.");
+      setStyleMsg("Schreibstil gespeichert.");
     } catch (e) {
-      setStyleMsg("⚠️ " + (e as Error).message);
+      setStyleMsg("" + (e as Error).message);
     }
   }
 
@@ -743,10 +743,10 @@ function Faqs() {
     try {
       if (editId === null) {
         await api.createFaq({ question: q.trim(), answer: a.trim() });
-        setMsg("FAQ hinzugefügt ✓");
+        setMsg("FAQ hinzugefügt");
       } else {
         await api.updateFaq(editId, { question: q.trim(), answer: a.trim() });
-        setMsg("FAQ aktualisiert ✓");
+        setMsg("FAQ aktualisiert");
       }
       reset();
       await load();
@@ -800,7 +800,7 @@ function Faqs() {
         <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: C.textPrimary, margin: "14px 0 6px" }}>Gewünschte Antwort</label>
         <textarea style={{ ...input, resize: "vertical" }} rows={4} value={a} placeholder="Die Antwort, die der Bot geben soll…" onChange={(e) => setA(e.target.value)} />
         {err && <p style={{ color: C.red, fontSize: 14, margin: "12px 0 0" }}>{err}</p>}
-        {msg && <p style={{ color: "oklch(0.45 0.12 145)", fontSize: 14, margin: "12px 0 0", fontWeight: 500 }}>✓ {msg}</p>}
+        {msg && <p style={{ color: "oklch(0.45 0.12 145)", fontSize: 14, margin: "12px 0 0", fontWeight: 500 }}>{msg}</p>}
         <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
           <button type="submit" style={{ background: C.accent, color: "#fff", border: "none", padding: "12px 22px", borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
             {editId === null ? "Hinzufügen" : "Speichern"}
@@ -866,7 +866,7 @@ function Embed() {
         </div>
       )}
       <div style={{ position: "relative", background: "oklch(0.2 0.012 258)", borderRadius: 16, padding: 24, boxShadow: "0 8px 24px oklch(0.2 0.01 258 / 0.12)" }}>
-        <button onClick={copy} style={{ position: "absolute", top: 18, right: 18, background: copied ? C.green : "oklch(0.32 0.01 258)", color: "#fff", border: "none", borderRadius: 9, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{copied ? "Kopiert ✓" : "Kopieren"}</button>
+        <button onClick={copy} style={{ position: "absolute", top: 18, right: 18, background: copied ? C.green : "oklch(0.32 0.01 258)", color: "#fff", border: "none", borderRadius: 9, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{copied ? "Kopiert" : "Kopieren"}</button>
         <pre style={{ margin: 0, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 13, lineHeight: 1.7, color: "oklch(0.9 0.01 258)", whiteSpace: "pre-wrap", wordBreak: "break-word", paddingRight: 90 }}>{snippet}</pre>
       </div>
       <p style={{ margin: "20px 4px 0", fontSize: 13, color: "oklch(0.55 0.01 258)" }}>Fragen zur Einbindung? Schreib uns über den Support-Chat.</p>
