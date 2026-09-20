@@ -171,7 +171,7 @@ input, textarea { caret-color: var(--accent); }
 
 /* ---- Footer ---- */
 .site-footer { background: var(--surface); border-top: 1px solid var(--line); padding: clamp(40px, 5vw, 64px) 0 28px; }
-.footer-grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 32px; }
+.footer-grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr; gap: 32px; }
 .footer-brand .brand-name { font-size: 20px; font-weight: 700; color: var(--ink); }
 .footer-brand p { margin: 10px 0 0; color: var(--muted); font-size: 14.5px; max-width: 36ch; }
 .footer-h { margin: 0 0 12px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-2); }
