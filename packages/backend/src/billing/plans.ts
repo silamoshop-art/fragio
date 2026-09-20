@@ -30,6 +30,15 @@ export const DEFAULT_PRICING: Pricing = {
 
 const PLAN_NAMES: Record<PlanId, string> = { starter: "Starter", business: "Business", pro: "Pro" };
 
+/** Jahresvorauszahlung (Anforderung B): 2 Monate geschenkt → 10 statt 12 zahlen. */
+export const ANNUAL_FREE_MONTHS = 2;
+/** Preisgarantie ab Vertragsbeginn in Monaten (Anforderung B). */
+export const PRICE_GUARANTEE_MONTHS = 12;
+/** Betrag für ein Jahr im Voraus (mit Freimonaten). */
+export function annualCents(monthlyCents: number): number {
+  return monthlyCents * (12 - ANNUAL_FREE_MONTHS);
+}
+
 /** Effektive Preise: gespeicherte Settings über die Defaults gelegt. */
 export function getPricing(): Pricing {
   const raw = getSetting("pricing");

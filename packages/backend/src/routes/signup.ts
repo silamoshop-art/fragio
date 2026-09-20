@@ -12,7 +12,14 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { checkPublicHttpUrl } from "../util/url-guard.js";
-import { getPlanDefs, planById, getPricing } from "../billing/plans.js";
+import {
+  getPlanDefs,
+  planById,
+  getPricing,
+  annualCents,
+  ANNUAL_FREE_MONTHS,
+  PRICE_GUARANTEE_MONTHS,
+} from "../billing/plans.js";
 import { stripeEnabled, createCheckoutSession } from "../payments/stripe.js";
 import { lsEnabled, createLsCheckout } from "../payments/lemonsqueezy.js";
 import { createOrder } from "../onboarding/order.js";
@@ -51,11 +58,15 @@ export async function signupRoutes(app: FastifyInstance): Promise<void> {
       // "online" = Karten-Checkout (LS/Stripe); "invoice" = Rechnung/Überweisung.
       mode: onlinePaymentReady() ? "online" : "invoice",
       setupFeeEnabled: pricing.setupFeeEnabled,
+      // Jahresvorauszahlung + Preisgarantie (Anforderung B).
+      annualFreeMonths: ANNUAL_FREE_MONTHS,
+      priceGuaranteeMonths: PRICE_GUARANTEE_MONTHS,
       plans: getPlanDefs().map((p) => ({
         id: p.id,
         name: p.name,
         limit: p.limit,
         monthlyCents: p.setup.monthlyCents,
+        annualCents: annualCents(p.setup.monthlyCents),
         setupCents,
       })),
     };
