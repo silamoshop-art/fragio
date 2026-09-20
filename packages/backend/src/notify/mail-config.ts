@@ -18,6 +18,7 @@ interface StoredMail {
   passEnc?: string; // verschlüsseltes SMTP-Passwort
   from?: string;
   notifyEmail?: string; // Empfänger für Betreiber-Benachrichtigungen
+  apiKeyEnc?: string; // verschlüsselter Brevo-API-Key (HTTPS-Versand)
 }
 
 export interface MailConfig {
@@ -29,7 +30,11 @@ export interface MailConfig {
   from: string;
   /** Adresse, an die Betreiber-Benachrichtigungen (Bestellung, 80 %, Leads …) gehen. */
   notifyEmail: string;
-  /** Versand aktiv? (Host + User + Passwort vorhanden) */
+  /** Brevo-API-Key für Versand über HTTPS (umgeht SMTP-Port-Sperren). */
+  apiKey: string;
+  /** Versand über HTTPS-API aktiv? (API-Key vorhanden) */
+  httpEnabled: boolean;
+  /** SMTP-Versand aktiv? (Host + User + Passwort vorhanden) */
   enabled: boolean;
 }
 
@@ -61,7 +66,26 @@ export function getMailConfig(): MailConfig {
   const secure = s.secure ?? config.smtpSecure;
   const from = (s.from ?? config.SMTP_FROM ?? "").trim();
   const notifyEmail = (s.notifyEmail ?? config.ADMIN_EMAIL).trim();
-  return { host, port, secure, user, pass, from, notifyEmail, enabled: !!(host && user && pass) };
+  let apiKey = "";
+  if (s.apiKeyEnc) {
+    try {
+      apiKey = decryptSecret(s.apiKeyEnc);
+    } catch {
+      apiKey = "";
+    }
+  }
+  return {
+    host,
+    port,
+    secure,
+    user,
+    pass,
+    from,
+    notifyEmail,
+    apiKey,
+    httpEnabled: !!apiKey,
+    enabled: !!(host && user && pass),
+  };
 }
 
 /** Signatur der aktiven Verbindungsdaten — für Transport-Cache-Invalidierung. */
@@ -78,6 +102,7 @@ export interface MailPatch {
   pass?: string | null; // null/"" => Passwort löschen; undefined => unverändert
   from?: string;
   notifyEmail?: string;
+  apiKey?: string | null; // null/"" => API-Key löschen; undefined => unverändert
 }
 
 export function saveMailConfig(patch: MailPatch): void {
@@ -89,5 +114,6 @@ export function saveMailConfig(patch: MailPatch): void {
   if (patch.from !== undefined) s.from = patch.from.trim();
   if (patch.notifyEmail !== undefined) s.notifyEmail = patch.notifyEmail.trim();
   if (patch.pass !== undefined) s.passEnc = patch.pass ? encryptSecret(patch.pass) : undefined;
+  if (patch.apiKey !== undefined) s.apiKeyEnc = patch.apiKey ? encryptSecret(patch.apiKey) : undefined;
   setSetting(KEY, JSON.stringify(s));
 }

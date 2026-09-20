@@ -87,6 +87,7 @@ export function OperatorSettings() {
 export function MailSettings() {
   const [m, setM] = useState<MailInfo | null>(null);
   const [pass, setPass] = useState("");
+  const [apiKey, setApiKey] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -106,10 +107,11 @@ export function MailSettings() {
       const r = await api.updateMail({
         host: m!.host, port: Number(m!.port) || 587, secure: m!.secure,
         user: m!.user, from: m!.from, notifyEmail: m!.notifyEmail,
-        // Passwort nur senden, wenn etwas eingegeben wurde (leer = unverändert).
+        // Passwort/API-Key nur senden, wenn etwas eingegeben wurde (leer = unverändert).
         ...(pass ? { pass } : {}),
+        ...(apiKey ? { apiKey } : {}),
       });
-      setPass("");
+      setPass(""); setApiKey("");
       const fresh = await api.getMail();
       setM(fresh);
       setMsg(r.mail.enabled ? "Gespeichert — Versand aktiv." : "Gespeichert. Hinweis: ohne Host/Benutzer/Passwort wird nichts verschickt.");
@@ -137,9 +139,11 @@ export function MailSettings() {
       {msg && <p className="note">{msg}</p>}
       {err && <p className="err">{err}</p>}
       <p className="muted" style={{ marginTop: 0 }}>
-        Zugangsdaten deines Postfachs (SMTP). Erst damit werden Bestellbestätigungen, Rechnungen,
-        80-%-Warnungen und Kontaktanfragen wirklich verschickt. Status:{" "}
-        <strong style={{ color: m.enabled ? "#16a34a" : "#dc2626" }}>{m.enabled ? "aktiv" : "nicht aktiv"}</strong>.
+        Damit werden Bestellbestätigungen, Rechnungen, 80-%-Warnungen und Kontaktanfragen
+        wirklich verschickt. Status:{" "}
+        <strong style={{ color: m.enabled ? "#16a34a" : "#dc2626" }}>
+          {m.mode === "http" ? "aktiv (über API)" : m.mode === "smtp" ? "aktiv (SMTP)" : "nicht aktiv"}
+        </strong>.
       </p>
 
       <section className="sec">
@@ -149,7 +153,19 @@ export function MailSettings() {
       </section>
 
       <section className="sec">
-        <h3>SMTP-Zugang (Postausgang)</h3>
+        <h3>Empfohlen: Versand über API (Brevo)</h3>
+        <p className="muted" style={{ margin: "0 0 8px", lineHeight: 1.5 }}>
+          Funktioniert auch, wenn dein Server ausgehende SMTP-Ports sperrt (z. B. netcup) — der
+          Versand läuft dann über HTTPS. Kostenloses Konto bei <strong>brevo.com</strong> anlegen,
+          Absender-Adresse dort verifizieren, dann API-Key (v3) hier einfügen.
+        </p>
+        <label className="field"><span>Brevo API-Key {m.hasApiKey && <span className="muted">(gesetzt — leer lassen = unverändert)</span>}</span>
+          <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder={m.hasApiKey ? "••••••••" : "xkeysib-…"} /></label>
+        <p className="muted" style={{ margin: "6px 0 0" }}>Ist ein API-Key gesetzt, wird er bevorzugt (statt SMTP).</p>
+      </section>
+
+      <section className="sec">
+        <h3>Alternativ: SMTP-Zugang (Postausgang)</h3>
         <label className="field"><span>Host</span>
           <input value={m.host} onChange={(e) => set("host", e.target.value)} placeholder="smtp.deinanbieter.at" /></label>
         <label className="field"><span>Port</span>

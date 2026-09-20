@@ -7,12 +7,58 @@
  * Versand auf einen Log-Stub zurück (Dev/vor Go-Live). Die Aufrufer bleiben identisch.
  */
 import nodemailer, { type Transporter } from "nodemailer";
+import fs from "node:fs";
 import { operatorConfig } from "../config/operator.js";
-import { getMailConfig, mailConfigSignature } from "./mail-config.js";
+import { getMailConfig, mailConfigSignature, type MailConfig } from "./mail-config.js";
 
 export interface EmailAttachment {
   filename: string;
   path: string; // lokaler Pfad (z. B. Rechnungs-PDF)
+}
+
+/** "Name <mail@x>" -> { name, email }; sonst nur email. */
+function parseSender(from: string, fallbackName: string): { name?: string; email: string } {
+  const m = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(from);
+  if (m) return { name: m[1] || fallbackName || undefined, email: m[2].trim() };
+  return { name: fallbackName || undefined, email: from.trim() };
+}
+
+/**
+ * Versand über die Brevo-HTTPS-API (Port 443) — nötig, wenn der Server ausgehende
+ * SMTP-Ports blockiert (z. B. netcup). Wird genutzt, sobald ein API-Key hinterlegt ist.
+ */
+async function sendViaBrevo(
+  mc: MailConfig,
+  to: string,
+  subject: string,
+  body: string,
+  attachments: EmailAttachment[],
+): Promise<void> {
+  const op = operatorConfig();
+  const senderRaw = mc.from || mc.user || op.supportEmail;
+  const sender = parseSender(senderRaw, op.name);
+  const payload: Record<string, unknown> = {
+    sender: sender.name ? { email: sender.email, name: sender.name } : { email: sender.email },
+    to: [{ email: to }],
+    subject,
+    textContent: body,
+  };
+  if (attachments.length) {
+    payload.attachment = attachments.map((a) => ({
+      name: a.filename,
+      content: fs.readFileSync(a.path).toString("base64"),
+    }));
+  }
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: { "api-key": mc.apiKey, "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`Brevo-API ${res.status}: ${txt.slice(0, 300)}`);
+  }
+  console.log(`✉️  E-Mail an ${to} über Brevo versendet: „${subject}"${attachments.length ? " (mit Anhang)" : ""}`);
 }
 
 let _transport: Transporter | null = null;
@@ -61,6 +107,12 @@ export async function sendEmail(
   body: string,
   attachments: EmailAttachment[] = [],
 ): Promise<void> {
+  const mc = getMailConfig();
+  // Bevorzugt HTTPS-API (Brevo), falls ein Key hinterlegt ist — umgeht SMTP-Sperren.
+  if (mc.apiKey) {
+    await sendViaBrevo(mc, to, subject, body, attachments);
+    return;
+  }
   const t = transport();
   if (!t) {
     // Stub-Fallback: nur loggen (kein SMTP konfiguriert).

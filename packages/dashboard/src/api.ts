@@ -193,6 +193,8 @@ export interface MailInfo {
   from: string;
   notifyEmail: string;
   hasPassword: boolean;
+  hasApiKey: boolean;
+  mode: "http" | "smtp" | "none";
   enabled: boolean;
 }
 export interface MailPatch {
@@ -203,6 +205,7 @@ export interface MailPatch {
   pass: string | null;
   from: string;
   notifyEmail: string;
+  apiKey: string | null;
 }
 
 export const api = {

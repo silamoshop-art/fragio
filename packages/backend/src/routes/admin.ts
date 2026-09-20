@@ -260,7 +260,10 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         from: mc.from,
         notifyEmail: mc.notifyEmail,
         hasPassword: !!mc.pass,
-        enabled: mc.enabled,
+        hasApiKey: mc.httpEnabled,
+        // "http" = Versand über Brevo-API; "smtp" = SMTP; "none" = nichts konfiguriert.
+        mode: mc.httpEnabled ? "http" : mc.enabled ? "smtp" : "none",
+        enabled: mc.httpEnabled || mc.enabled,
       };
     });
 
@@ -275,22 +278,39 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
           pass: z.string().max(400).nullable(),
           from: z.string().max(200),
           notifyEmail: z.union([z.string().email(), z.literal("")]),
+          apiKey: z.string().max(400).nullable(),
         })
         .partial();
       const parsed = schema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Ungültige E-Mail-Einstellungen." });
       saveMailConfig(parsed.data);
-      return { ok: true, mail: { enabled: getMailConfig().enabled } };
+      const mc = getMailConfig();
+      return { ok: true, mail: { enabled: mc.httpEnabled || mc.enabled, mode: mc.httpEnabled ? "http" : mc.enabled ? "smtp" : "none" } };
     });
 
     // Test-E-Mail an die eingestellte Empfängeradresse senden.
     secured.post("/api/admin/mail/test", async (_request, reply) => {
       const mc = getMailConfig();
+      // Über API (Brevo): direkt senden, kein SMTP-Verbindungstest nötig.
+      if (mc.httpEnabled) {
+        try {
+          await sendEmail(
+            mc.notifyEmail,
+            "Fragio — Test-E-Mail",
+            "Test-E-Mail über die E-Mail-API (Brevo). Wenn du sie erhältst, funktioniert der Versand.",
+          );
+          return { ok: true, sentTo: mc.notifyEmail, mode: "http" };
+        } catch (e) {
+          return reply
+            .code(502)
+            .send({ error: "Versand über die API fehlgeschlagen: " + (e as Error).message });
+        }
+      }
       const v = await verifySmtp();
       if (!v.configured) {
         return reply
           .code(400)
-          .send({ error: "Kein SMTP-Zugang hinterlegt — bitte Host, Benutzer und Passwort eintragen und speichern." });
+          .send({ error: "Kein Versand hinterlegt — trage entweder einen API-Key (empfohlen) oder SMTP-Zugang ein und speichere." });
       }
       if (!v.ok) {
         const raw = (v.error || "unbekannt").toLowerCase();
