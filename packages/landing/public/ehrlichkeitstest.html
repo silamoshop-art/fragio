@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ehrlichkeitstest — Fragio</title>
+<meta name="description" content="Wie ehrlich ist der Bot? Fragio testet mit Fangfragen, wie zuverlässig der Assistent passt statt zu erfinden — offen dokumentiert und reproduzierbar." />
+<meta name="robots" content="index,follow" />
+<link rel="canonical" href="https://fragio.at/ehrlichkeitstest.html" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta name="theme-color" content="#ffffff" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Fragio" />
+<meta property="og:title" content="Ehrlichkeitstest — Fragio" />
+<meta property="og:description" content="Mit Fangfragen geprüft: passt der Bot ehrlich, statt zu erfinden? Offen dokumentiert." />
+<meta property="og:url" content="https://fragio.at/ehrlichkeitstest.html" />
+<meta property="og:locale" content="de_AT" />
+<meta property="og:image" content="https://fragio.at/og-image.png" />
+<link rel="stylesheet" href="/site.css" />
+</head>
+<body>
+<a href="#main" class="skip-link">Zum Inhalt springen</a>
+
+<header class="site-header">
+  <nav class="nav" aria-label="Hauptnavigation">
+    <a href="/" class="brand" aria-label="Fragio Startseite">
+      <img class="brand-mark" src="/logo-mark.png" width="34" height="34" alt="" />
+      <span>Fragio</span>
+    </a>
+    <button class="nav-toggle" aria-label="Menü" aria-expanded="false"><span></span><span></span><span></span></button>
+    <div class="nav-links">
+      <a href="/funktionen.html">Funktionen</a>
+      <a href="/ablauf.html">So funktioniert's</a>
+      <a href="/preise.html">Preise</a>
+      <a href="/faq.html">FAQ</a>
+      <a href="/kontakt.html">Kontakt</a>
+      <a href="/portal/">Login</a>
+      <button type="button" class="lang-toggle" aria-label="Switch to English">EN</button>
+      <a href="/preise.html" class="btn btn-primary btn-sm">Jetzt bestellen</a>
+    </div>
+  </nav>
+</header>
+
+<main id="main">
+  <section class="section">
+    <div class="wrap" style="max-width:820px">
+      <div class="page-head">
+        <h1 data-reveal>Der Ehrlichkeitstest</h1>
+        <p class="section-sub" data-reveal="80">Wir verkaufen Ehrlichkeit als Kernversprechen — also belegen wir sie, statt sie nur zu behaupten.</p>
+      </div>
+
+      <div class="prose" data-reveal="120">
+        <section>
+          <h2>Worum geht es?</h2>
+          <p>Der größte Fehler eines Website-Chatbots ist die selbstbewusst vorgetragene, aber falsche Antwort (Halluzination). Fragio ist darauf ausgelegt, lieber ehrlich zu passen. Um das messbar zu machen, prüfen wir jeden Bot mit einem Satz <strong>Fangfragen</strong>.</p>
+        </section>
+
+        <section>
+          <h2>So funktioniert der Test</h2>
+          <p>Ein Testset enthält zwei Arten von Fragen zu einer konkreten Website:</p>
+          <ul>
+            <li><strong>Beantwortbar</strong> — die Antwort steht auf der Website. Erwartet: der Bot antwortet korrekt.</li>
+            <li><strong>Fangfrage</strong> — plausibel klingend, aber die Info steht <em>nicht</em> auf der Website (z.&nbsp;B. ein Preis, den es dort nicht gibt). Erwartet: der Bot sagt ehrlich, dass er es nicht weiß — jede erfundene Antwort zählt als Halluzination.</li>
+          </ul>
+          <p>Gemessen werden zwei Kennzahlen: die <strong>Ehrlichkeitsquote</strong> (Anteil korrekt behandelter Fragen) und die <strong>Halluzinationsquote</strong> (Anteil der Fangfragen, die der Bot fälschlich beantwortet hat).</p>
+        </section>
+
+        <section>
+          <h2>Reproduzierbar</h2>
+          <p>Der Test ist kein Marketing-Screenshot, sondern ein Skript, das jeder mit Zugang zu einer Fragio-Instanz selbst laufen lassen kann:</p>
+          <pre class="snippet" style="white-space:pre-wrap">npx tsx packages/backend/src/cli/honesty-test.ts &lt;botId&gt; testset.json bericht.json</pre>
+          <p>Das Testset ist eine einfache Liste:</p>
+          <pre class="snippet" style="white-space:pre-wrap">[
+  { "question": "Habt ihr am Samstag geöffnet?", "expect": "answer" },
+  { "question": "Kostet die Erstberatung 79 Euro?", "expect": "refuse" }
+]</pre>
+          <p>Das Skript gibt pro Frage Soll/Ist aus und schreibt einen Bericht mit den Quoten.</p>
+        </section>
+
+        <section>
+          <h2>Aktuelle Ergebnisse</h2>
+          <p>Vor dem Live-Gang eines Kundenbots führen wir diesen Test mit einem auf die jeweilige Website zugeschnittenen Fangfragen-Satz durch und legen das Ergebnis offen. So sehen Sie schwarz auf weiß, wie sich <em>Ihr</em> Bot verhält — bevor er online geht.</p>
+          <div class="callout">
+            <p style="margin:0">Möchten Sie den Test für Ihre Website sehen? Wir erstellen gern einen Fangfragen-Satz für Ihre Seite und schicken Ihnen den Bericht: <a href="mailto:peter.fragio@gmail.com">peter.fragio@gmail.com</a>.</p>
+          </div>
+        </section>
+
+        <section>
+          <h2>Test vor dem Live-Gang</h2>
+          <p>Ergänzend gilt: Bevor das Widget auf Ihrer Website online geht, geben Sie uns bis zu 20 typische Kundenfragen vor. Sie sehen die Antworten des Bots — erst wenn Sie zufrieden sind, geht er live.</p>
+        </section>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="footer-brand">
+      <span class="brand-name">Fragio</span>
+      <p>KI-Chat für Website-Inhalte. Ehrliche Antworten aus Ihren eigenen Seiten. Standort Linz, Oberösterreich.</p>
+    </div>
+    <div>
+      <p class="footer-h">Vertrauen</p>
+      <a href="/ki-transparenz.html">KI &amp; Datenverarbeitung</a>
+      <a href="/ehrlichkeitstest.html">Ehrlichkeitstest</a>
+      <a href="/status.html">Status &amp; Verfügbarkeit</a>
+    </div>
+    <div>
+      <p class="footer-h">Rechtliches</p>
+      <a href="/impressum.html">Impressum</a>
+      <a href="/datenschutz.html">Datenschutz</a>
+      <a href="/agb.html">AGB</a>
+      <a href="/avv.html">AVV</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>Dies ist ein KI-Assistent.</span></div>
+</footer>
+
+<script src="/site.js" defer></script>
+<script src="/i18n.js" defer></script>
+</body>
+</html>

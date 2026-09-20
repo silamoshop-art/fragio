@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Status &amp; Verfügbarkeit — Fragio</title>
+<meta name="description" content="Live-Status des Fragio-Dienstes und unsere Verfügbarkeitszusage." />
+<meta name="robots" content="index,follow" />
+<link rel="canonical" href="https://fragio.at/status.html" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta name="theme-color" content="#ffffff" />
+<link rel="stylesheet" href="/site.css" />
+</head>
+<body>
+<a href="#main" class="skip-link">Zum Inhalt springen</a>
+
+<header class="site-header">
+  <nav class="nav" aria-label="Hauptnavigation">
+    <a href="/" class="brand" aria-label="Fragio Startseite">
+      <img class="brand-mark" src="/logo-mark.png" width="34" height="34" alt="" />
+      <span>Fragio</span>
+    </a>
+    <button class="nav-toggle" aria-label="Menü" aria-expanded="false"><span></span><span></span><span></span></button>
+    <div class="nav-links">
+      <a href="/funktionen.html">Funktionen</a>
+      <a href="/ablauf.html">So funktioniert's</a>
+      <a href="/preise.html">Preise</a>
+      <a href="/faq.html">FAQ</a>
+      <a href="/kontakt.html">Kontakt</a>
+      <a href="/portal/">Login</a>
+      <button type="button" class="lang-toggle" aria-label="Switch to English">EN</button>
+      <a href="/preise.html" class="btn btn-primary btn-sm">Jetzt bestellen</a>
+    </div>
+  </nav>
+</header>
+
+<main id="main">
+  <section class="section">
+    <div class="wrap" style="max-width:760px">
+      <div class="page-head">
+        <h1 data-reveal>Status &amp; Verfügbarkeit</h1>
+        <p class="section-sub" data-reveal="80">Live-Zustand des Dienstes und unsere Zusage.</p>
+      </div>
+
+      <div data-reveal="120" style="background:#fff;border:1px solid var(--line,#e6e8ef);border-radius:16px;padding:28px;display:flex;align-items:center;gap:16px">
+        <span id="status-dot" style="width:16px;height:16px;border-radius:50%;background:#c9ced8;flex:0 0 auto;display:inline-block"></span>
+        <div>
+          <div id="status-text" style="font-size:20px;font-weight:650">Status wird geprüft…</div>
+          <div id="status-sub" style="font-size:14px;color:var(--muted,#6b7280);margin-top:2px">Verbindung zum Dienst wird getestet.</div>
+        </div>
+      </div>
+
+      <div class="prose" data-reveal="160" style="margin-top:32px">
+        <section>
+          <h2>Unsere Verfügbarkeitszusage</h2>
+          <p>Wir betreiben Fragio mit dem Ziel einer hohen Verfügbarkeit und überwachen den Dienst laufend. Wartungsfenster kündigen wir – soweit planbar – vorab an. Da das Widget <strong>asynchron</strong> geladen wird, bremst selbst eine Störung bei uns Ihre Website nicht und zeigt dort keinen Fehler: Im unwahrscheinlichen Fall einer Unterbrechung erscheint einfach die Chat-Sprechblase nicht — Ihre Seite funktioniert normal weiter.</p>
+        </section>
+        <section>
+          <h2>Bei Störungen</h2>
+          <p>Bemerken Sie ein Problem, erreichen Sie uns direkt unter <a href="mailto:peter.fragio@gmail.com">peter.fragio@gmail.com</a>. Details zu Datenverarbeitung und Modell finden Sie unter <a href="/ki-transparenz.html">KI &amp; Datenverarbeitung</a>.</p>
+        </section>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="footer-brand">
+      <span class="brand-name">Fragio</span>
+      <p>KI-Chat für Website-Inhalte. Ehrliche Antworten aus Ihren eigenen Seiten. Standort Linz, Oberösterreich.</p>
+    </div>
+    <div>
+      <p class="footer-h">Vertrauen</p>
+      <a href="/ki-transparenz.html">KI &amp; Datenverarbeitung</a>
+      <a href="/ehrlichkeitstest.html">Ehrlichkeitstest</a>
+      <a href="/status.html">Status &amp; Verfügbarkeit</a>
+    </div>
+    <div>
+      <p class="footer-h">Rechtliches</p>
+      <a href="/impressum.html">Impressum</a>
+      <a href="/datenschutz.html">Datenschutz</a>
+      <a href="/agb.html">AGB</a>
+      <a href="/avv.html">AVV</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>Dies ist ein KI-Assistent.</span></div>
+</footer>
+
+<script>
+// Live-Check gegen /health. Rein clientseitig; keine externen Dienste.
+(function () {
+  var dot = document.getElementById("status-dot");
+  var txt = document.getElementById("status-text");
+  var sub = document.getElementById("status-sub");
+  var started = Date.now();
+  fetch("/health", { cache: "no-store" })
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+    .then(function () {
+      var ms = Date.now() - started;
+      dot.style.background = "#16a34a";
+      txt.textContent = "Alle Systeme betriebsbereit";
+      sub.textContent = "Antwortzeit " + ms + " ms · zuletzt geprüft " + new Date().toLocaleTimeString("de-AT");
+    })
+    .catch(function () {
+      dot.style.background = "#dc2626";
+      txt.textContent = "Dienst derzeit nicht erreichbar";
+      sub.textContent = "Wir kümmern uns darum. Ihre Website ist davon nicht beeinträchtigt (das Widget lädt asynchron).";
+    });
+})();
+</script>
+<script src="/site.js" defer></script>
+<script src="/i18n.js" defer></script>
+</body>
+</html>

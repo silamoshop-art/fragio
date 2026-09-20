@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KI & Datenverarbeitung — Fragio</title>
+<meta name="description" content="Transparente Offenlegung: welches KI-Modell Fragio nutzt, wo Daten verarbeitet werden (EU/USA), welche Löschfristen gelten und wie die EU-only-Option funktioniert." />
+<meta name="robots" content="index,follow" />
+<link rel="canonical" href="https://fragio.at/ki-transparenz.html" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta name="theme-color" content="#ffffff" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Fragio" />
+<meta property="og:title" content="KI & Datenverarbeitung — Fragio" />
+<meta property="og:description" content="Welches KI-Modell, wo verarbeitet, welche Löschfristen — offen dokumentiert." />
+<meta property="og:url" content="https://fragio.at/ki-transparenz.html" />
+<meta property="og:locale" content="de_AT" />
+<meta property="og:image" content="https://fragio.at/og-image.png" />
+<link rel="stylesheet" href="/site.css" />
+</head>
+<body>
+<a href="#main" class="skip-link">Zum Inhalt springen</a>
+
+<header class="site-header">
+  <nav class="nav" aria-label="Hauptnavigation">
+    <a href="/" class="brand" aria-label="Fragio Startseite">
+      <img class="brand-mark" src="/logo-mark.png" width="34" height="34" alt="" />
+      <span>Fragio</span>
+    </a>
+    <button class="nav-toggle" aria-label="Menü" aria-expanded="false"><span></span><span></span><span></span></button>
+    <div class="nav-links">
+      <a href="/funktionen.html">Funktionen</a>
+      <a href="/ablauf.html">So funktioniert's</a>
+      <a href="/preise.html">Preise</a>
+      <a href="/faq.html">FAQ</a>
+      <a href="/kontakt.html">Kontakt</a>
+      <a href="/portal/">Login</a>
+      <button type="button" class="lang-toggle" aria-label="Switch to English">EN</button>
+      <a href="/preise.html" class="btn btn-primary btn-sm">Jetzt bestellen</a>
+    </div>
+  </nav>
+</header>
+
+<main id="main">
+  <section class="section">
+    <div class="wrap">
+      <div class="page-head">
+        <h1 data-reveal>KI &amp; Datenverarbeitung — offen erklärt</h1>
+        <p class="section-sub" data-reveal="80">Welches Modell wir nutzen, wo verarbeitet wird und wie lange Daten gespeichert bleiben. Ohne Kleingedrucktes.</p>
+      </div>
+
+      <div class="prose" data-reveal="120">
+        <section>
+          <h2>Welches KI-Modell steckt dahinter?</h2>
+          <p>Für die Antworttexte nutzen wir standardmäßig <strong>Claude&nbsp;Haiku&nbsp;4.5</strong> von Anthropic. Das Modell formuliert die Antwort ausschließlich aus den Inhalten, die zuvor aus Ihrer Website eingelesen wurden — es „weiß" nichts darüber hinaus und ist angewiesen, bei fehlender Information ehrlich zu passen, statt zu raten.</p>
+        </section>
+
+        <section>
+          <h2>Wo werden die Daten verarbeitet?</h2>
+          <ul>
+            <li><strong>Einlesen &amp; Suche (Embeddings):</strong> läuft <strong>lokal auf unserem Server in der EU</strong>. Ihre Website-Inhalte und die Vektorsuche verlassen die EU nicht.</li>
+            <li><strong>Antwortformulierung (Standard):</strong> die eigentliche Chat-Nachricht wird zur Formulierung an <strong>Anthropic (USA)</strong> übermittelt — abgesichert über die EU-Standardvertragsklauseln. Übertragen wird nur, was zur Beantwortung nötig ist; nach Angaben von Anthropic wird auf API-Daten nicht trainiert.</li>
+            <li><strong>EU-/Lokal-Option (Premium):</strong> Auf Wunsch läuft auch die Antwortformulierung über ein <strong>lokal betriebenes Modell</strong> — dann findet <strong>keine Übermittlung in die USA</strong> statt. Etwas langsamer, dafür bleibt alles in Eigenregie. Ideal, wenn keine Drittland-Übermittlung gewünscht ist.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Welche Daten und welche Löschfristen?</h2>
+          <ul>
+            <li><strong>Chat-Verläufe</strong> werden nur gespeichert, wenn der Besucher im Consent-Popup zustimmt. Standard-Speicherdauer: <strong>90&nbsp;Tage</strong>, pro Bot auf 30/90/180/365&nbsp;Tage einstellbar. Danach löscht ein täglicher Job automatisch.</li>
+            <li><strong>IP-Adressen</strong> werden nie im Klartext gespeichert, sondern nur als <strong>SHA-256-Hash mit geheimem Salt</strong>.</li>
+            <li><strong>Kontaktanfragen (Leads)</strong> speichern wir, bis der Kunde sie löscht oder exportiert.</li>
+            <li><strong>Test-/Demo-Daten</strong> werden nicht dauerhaft gespeichert (Demo-Wissensbasis wird spätestens nach 24&nbsp;Stunden gelöscht).</li>
+            <li><strong>Löschung auf Zuruf:</strong> Der Kunde kann alle Anfragen eines Absenders gezielt löschen (Art.&nbsp;17 DSGVO) und alle Daten jederzeit exportieren.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Wie stellen wir Ehrlichkeit sicher?</h2>
+          <p>Der Bot arbeitet ausschließlich mit Ihren Website-Inhalten und nennt die Quelle. Findet er die Antwort dort nicht, sagt er das offen — statt eine plausibel klingende, aber falsche Antwort zu erfinden. Wie belastbar das ist, dokumentieren wir im <a href="/ehrlichkeitstest.html">öffentlichen Ehrlichkeitstest</a>.</p>
+        </section>
+
+        <section>
+          <h2>Für Kunden: Auftragsverarbeitung</h2>
+          <p>Setzen Sie den Bot auf Ihrer Website ein, sind Sie datenschutzrechtlich Verantwortlicher und wir Auftragsverarbeiter. Dafür gibt es einen fertigen <a href="/avv.html">Auftragsverarbeitungsvertrag (AVV)</a>. Details zur Verarbeitung stehen in der <a href="/datenschutz.html">Datenschutzerklärung</a>.</p>
+        </section>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="footer-brand">
+      <span class="brand-name">Fragio</span>
+      <p>KI-Chat für Website-Inhalte. Ehrliche Antworten aus Ihren eigenen Seiten. Standort Linz, Oberösterreich.</p>
+    </div>
+    <div>
+      <p class="footer-h">Produkt</p>
+      <a href="/funktionen.html">Funktionen</a>
+      <a href="/ablauf.html">So funktioniert's</a>
+      <a href="/testen.html">Live testen</a>
+      <a href="/preise.html">Preise</a>
+    </div>
+    <div>
+      <p class="footer-h">Vertrauen</p>
+      <a href="/ki-transparenz.html">KI &amp; Datenverarbeitung</a>
+      <a href="/ehrlichkeitstest.html">Ehrlichkeitstest</a>
+      <a href="/status.html">Status &amp; Verfügbarkeit</a>
+    </div>
+    <div>
+      <p class="footer-h">Rechtliches</p>
+      <a href="/impressum.html">Impressum</a>
+      <a href="/datenschutz.html">Datenschutz</a>
+      <a href="/agb.html">AGB</a>
+      <a href="/avv.html">AVV</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>Dies ist ein KI-Assistent.</span></div>
+</footer>
+
+<script src="/site.js" defer></script>
+<script src="/i18n.js" defer></script>
+</body>
+</html>
