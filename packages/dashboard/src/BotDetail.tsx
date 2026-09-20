@@ -705,6 +705,7 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
             <Stat label="Beantwortet" value={analytics.answered} />
             <Stat label="Unbeantwortet" value={analytics.unanswered} />
             <Stat label="Beantwortet-Quote %" value={analytics.total ? Math.round((analytics.answered / analytics.total) * 100) : 0} />
+            <Stat label="Quellenquote %" value={analytics.sourceRate} />
             <Stat label="Kontaktanfragen" value={bot.newLeads} />
           </div>
           <h4>Häufigste Fragen</h4>

@@ -773,6 +773,8 @@ export interface BotAnalytics {
   total: number;
   answered: number;
   unanswered: number;
+  /** Anteil der beantworteten Antworten mit mind. einer Quellenangabe (0–100). */
+  sourceRate: number;
   topQuestions: { question: string; count: number }[];
   recentUnanswered: { question: string; created_at: number }[];
 }
@@ -782,12 +784,15 @@ export function getBotAnalytics(botId: string): BotAnalytics {
   const totals = db
     .prepare(
       `SELECT COUNT(*) AS total,
-              SUM(CASE WHEN answered=1 THEN 1 ELSE 0 END) AS answered
+              SUM(CASE WHEN answered=1 THEN 1 ELSE 0 END) AS answered,
+              SUM(CASE WHEN answered=1 AND had_sources=1 THEN 1 ELSE 0 END) AS with_sources
        FROM chat_logs WHERE bot_id = ?`,
     )
-    .get(botId) as { total: number; answered: number | null };
+    .get(botId) as { total: number; answered: number | null; with_sources: number | null };
   const total = Number(totals.total || 0);
   const answered = Number(totals.answered || 0);
+  const withSources = Number(totals.with_sources || 0);
+  const sourceRate = answered > 0 ? Math.round((withSources / answered) * 100) : 0;
 
   const topQuestions = db
     .prepare(
@@ -807,6 +812,7 @@ export function getBotAnalytics(botId: string): BotAnalytics {
     total,
     answered,
     unanswered: total - answered,
+    sourceRate,
     topQuestions: topQuestions.map((r) => ({ question: r.question, count: Number(r.count) })),
     recentUnanswered: recentUnanswered.map((r) => ({
       question: r.question,
@@ -1251,11 +1257,12 @@ export function insertChatLog(entry: {
   latencyMs: number | null;
   ipHash?: string | null;
   msgId?: string | null;
+  hadSources?: boolean;
 }): void {
   getDb()
     .prepare(
-      `INSERT INTO chat_logs(bot_id, question, answer, answered, top_score, provider, latency_ms, ip_hash, msg_id, created_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      `INSERT INTO chat_logs(bot_id, question, answer, answered, top_score, provider, latency_ms, ip_hash, msg_id, had_sources, created_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
     )
     .run(
       entry.botId,
@@ -1267,6 +1274,7 @@ export function insertChatLog(entry: {
       entry.latencyMs === null ? null : BigInt(entry.latencyMs),
       entry.ipHash ?? null,
       entry.msgId ?? null,
+      entry.hadSources ? 1 : 0,
       BigInt(Date.now()),
     );
 }

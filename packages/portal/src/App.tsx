@@ -20,9 +20,9 @@ const fmt = (n: number) => n.toLocaleString("de-DE");
 // Ehrliche, tatsächlich zutreffende Punkte (Einzelunternehmen, eine Website pro Bot).
 // Keine erfundenen „Prio-Stufen" oder „Ansprechpartner-Teams", keine Multi-Website-Angaben.
 const PLAN_FEATURES: Record<string, string[]> = {
-  starter: ["500 Anfragen pro Monat", "Eine Website", "Individuelle Einrichtung", "Support per E-Mail"],
-  business: ["2.000 Anfragen pro Monat", "Eine Website", "Individuelle Einrichtung", "Support per E-Mail"],
-  pro: ["5.000 Anfragen pro Monat", "Eine Website", "Individuelle Einrichtung", "Support per E-Mail"],
+  starter: ["500 Antworten pro Monat", "Bot mit Quellenangabe", "Content-Lücken-Liste", "Re-Index auf Abruf"],
+  business: ["2.500 Antworten pro Monat", "Lead-Erfassung", "Mehrsprachigkeit", "Eigenes Branding (Logo & Name)"],
+  pro: ["10.000 Antworten pro Monat", "Alles aus Standard", "Monatliches Schließen der Content-Lücken", "Monatlicher Report"],
 };
 
 function useIsMobile() {

@@ -418,6 +418,7 @@ export async function* answerQuestion(
         latencyMs: Date.now() - started,
         ipHash,
         msgId,
+        hadSources: sources.length > 0,
       });
     }
   }

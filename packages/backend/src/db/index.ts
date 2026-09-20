@@ -175,6 +175,8 @@ function runMigrations(db: DatabaseSync): void {
     { table: "chat_logs", column: "ip_hash", ddl: "TEXT" },
     // Pro Antwort erzeugte ID — verknüpft eine Daumen-hoch/runter-Bewertung mit dem Log.
     { table: "chat_logs", column: "msg_id", ddl: "TEXT" },
+    // Wurde die Antwort mit mindestens einer Quelle belegt? (Grundlage Quellenquote)
+    { table: "chat_logs", column: "had_sources", ddl: "INTEGER NOT NULL DEFAULT 0" },
     { table: "tenants", column: "billing_name", ddl: "TEXT" },
     { table: "tenants", column: "billing_address", ddl: "TEXT" },
     { table: "tenants", column: "billing_email", ddl: "TEXT" },

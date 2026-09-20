@@ -17,18 +17,23 @@ export interface Pricing {
 }
 
 export const DEFAULT_PRICING: Pricing = {
-  setupFeeEnabled: false, // standardmäßig KEINE Einrichtungsgebühr
-  setupFeeCents: 30000, // 300 €
+  // Neue Staffel (Interessenten-Feedback): niedriger laufender Preis + separat
+  // ausgewiesene Einrichtungsgebühr; höhere, realistischere Kontingente.
+  setupFeeEnabled: true, // Einrichtungsgebühr wird ausgewiesen
+  setupFeeCents: 25000, // 250 € Standard-Einrichtung
   commitMonths: 6,
   plans: {
-    starter: { limit: 500, setupMonthlyCents: 4900, commitMonthlyCents: 9900 },
-    business: { limit: 2000, setupMonthlyCents: 12900, commitMonthlyCents: 17900 },
-    pro: { limit: 5000, setupMonthlyCents: 24900, commitMonthlyCents: 29900 },
+    // setup-Variante = monatlich + einmalige Einrichtung; commit = gleiche Monatsrate,
+    // dafür 6 Monate Bindung statt Einrichtungsgebühr.
+    starter: { limit: 500, setupMonthlyCents: 2900, commitMonthlyCents: 2900 },
+    business: { limit: 2500, setupMonthlyCents: 7900, commitMonthlyCents: 7900 },
+    pro: { limit: 10000, setupMonthlyCents: 19900, commitMonthlyCents: 19900 },
   },
   addons: { logoCents: 900, nameCents: 500, bundleCents: 1200 },
 };
 
-const PLAN_NAMES: Record<PlanId, string> = { starter: "Starter", business: "Business", pro: "Pro" };
+// Basis / Standard / Betreut (interne IDs bleiben starter/business/pro stabil).
+const PLAN_NAMES: Record<PlanId, string> = { starter: "Basis", business: "Standard", pro: "Betreut" };
 
 /** Jahresvorauszahlung (Anforderung B): 2 Monate geschenkt → 10 statt 12 zahlen. */
 export const ANNUAL_FREE_MONTHS = 2;
@@ -120,7 +125,8 @@ export function planRank(id: string | null | undefined): number {
  * separate (kostenpflichtige) Upsells angeboten, und der Logo-Upload ist frei.
  */
 export function planIncludesBranding(plan: string | null | undefined): boolean {
-  return plan === "pro";
+  // Ab „Standard" (business) ist eigenes Branding (Logo + Bot-Name) inklusive.
+  return plan === "business" || plan === "pro";
 }
 
 // ── Pro-Kunde-Rabatt ──────────────────────────────────────────────────────────

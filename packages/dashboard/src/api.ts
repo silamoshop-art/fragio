@@ -124,6 +124,7 @@ export interface Analytics {
   total: number;
   answered: number;
   unanswered: number;
+  sourceRate: number;
   topQuestions: { question: string; count: number }[];
   recentUnanswered: { question: string; created_at: number }[];
 }
