@@ -63,6 +63,24 @@ export interface Bot {
   previewUrl: string;
   portalUrl: string;
   portalUser: string | null;
+  // Lead / Termin / Eskalation / Mehrsprachigkeit (Anforderungskatalog A+D)
+  leadCapture: boolean;
+  leadIntro: string | null;
+  bookingUrl: string | null;
+  escalationTopics: string[];
+  multilingual: boolean;
+  newLeads: number;
+}
+
+export interface Lead {
+  id: number;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  message: string | null;
+  contextQuestion: string | null;
+  status: "new" | "done";
+  createdAt: number;
 }
 
 export interface ManualFaq {
@@ -177,6 +195,15 @@ export const api = {
   deleteFaq: (botId: string, faqId: number) =>
     req<{ ok: boolean }>(`/api/admin/bots/${botId}/faqs/${faqId}`, { method: "DELETE" }),
   snippet: (id: string) => req<{ snippet: string }>(`/api/admin/bots/${id}/snippet`),
+  // Leads (Kontaktanfragen)
+  listLeads: (botId: string) => req<Lead[]>(`/api/admin/bots/${botId}/leads`),
+  setLeadStatus: (botId: string, leadId: number, status: "new" | "done") =>
+    req<{ ok: boolean }>(`/api/admin/bots/${botId}/leads/${leadId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+  deleteLead: (botId: string, leadId: number) =>
+    req<{ ok: boolean }>(`/api/admin/bots/${botId}/leads/${leadId}`, { method: "DELETE" }),
   // Billing
   getBilling: () => req<Billing>("/api/admin/billing"),
   updateBilling: (patch: Partial<Billing>) =>

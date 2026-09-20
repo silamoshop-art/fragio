@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { api, getToken, setToken, clearToken, type Overview, type Plan, type QItem, type VariantId, type AddonsResp, type AddonStatus, type PortalChatLog, type ManualFaq } from "./api";
+import { api, getToken, setToken, clearToken, type Overview, type Plan, type QItem, type VariantId, type AddonsResp, type AddonStatus, type PortalChatLog, type ManualFaq, type Lead } from "./api";
 
 /* Farben exakt aus dem gelieferten Design (oklch). */
 const C = {
@@ -89,7 +89,7 @@ const primaryBtn: CSSProperties = { background: C.accent, color: "#fff", border:
 function Portal({ onLogout }: { onLogout: () => void }) {
   const isMobile = useIsMobile();
   const [screen, setScreen] = useState(0);
-  const screens = ["Übersicht", "Tarife", "Fragen", "FAQ-Antworten", "Einbindung", "Support"];
+  const screens = ["Übersicht", "Kontaktanfragen", "Tarife", "Fragen", "FAQ-Antworten", "Einbindung", "Support"];
 
   const rootStyle: CSSProperties = {
     display: "flex",
@@ -138,12 +138,13 @@ function Portal({ onLogout }: { onLogout: () => void }) {
       </nav>
 
       <main style={{ flex: 1, padding: isMobile ? "28px 20px 20px" : "48px 56px", overflow: "auto" }}>
-        {screen === 0 && <Overview onGoToPlans={() => setScreen(1)} />}
-        {screen === 1 && <Plans isMobile={isMobile} />}
-        {screen === 2 && <Questions />}
-        {screen === 3 && <Faqs />}
-        {screen === 4 && <Embed />}
-        {screen === 5 && <Support />}
+        {screen === 0 && <Overview onGoToPlans={() => setScreen(2)} onGoToLeads={() => setScreen(1)} />}
+        {screen === 1 && <Leads />}
+        {screen === 2 && <Plans isMobile={isMobile} />}
+        {screen === 3 && <Questions />}
+        {screen === 4 && <Faqs />}
+        {screen === 5 && <Embed />}
+        {screen === 6 && <Support />}
       </main>
     </div>
   );
@@ -154,12 +155,39 @@ function h1Style(): CSSProperties {
 }
 
 /* ---------- Screen 0: Übersicht / Verbrauch ---------- */
-function Overview({ onGoToPlans }: { onGoToPlans: () => void }) {
+function Overview({ onGoToPlans, onGoToLeads }: { onGoToPlans: () => void; onGoToLeads: () => void }) {
   const [ov, setOv] = useState<Overview | null>(null);
   const [err, setErr] = useState("");
+  const [crawlMsg, setCrawlMsg] = useState("");
+  const [crawlBusy, setCrawlBusy] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
   useEffect(() => {
     api.overview().then(setOv).catch((e) => setErr((e as Error).message));
   }, []);
+
+  async function recrawl() {
+    setCrawlBusy(true);
+    setCrawlMsg("");
+    try {
+      await api.recrawl();
+      setCrawlMsg("Aktualisierung gestartet — der Bot liest eure Website neu ein. Das dauert je nach Umfang ein paar Minuten.");
+    } catch (e) {
+      setCrawlMsg("⚠ " + (e as Error).message);
+    } finally {
+      setCrawlBusy(false);
+    }
+  }
+  async function doExport() {
+    setExportBusy(true);
+    try {
+      await api.exportData();
+    } catch (e) {
+      setCrawlMsg("⚠ Export fehlgeschlagen: " + (e as Error).message);
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
   if (err) return <p style={{ color: C.red }}>{err}</p>;
   if (!ov) return <p style={{ color: C.textSecondary }}>Lädt…</p>;
 
@@ -192,6 +220,97 @@ function Overview({ onGoToPlans }: { onGoToPlans: () => void }) {
         )}
       </div>
       <p style={{ margin: "20px 4px 0", fontSize: 13, color: "oklch(0.55 0.01 258)" }}>Dein Kontingent setzt sich monatlich am Abrechnungsdatum zurück.</p>
+
+      {ov.newLeads > 0 && (
+        <button onClick={onGoToLeads} style={{ marginTop: 24, width: "100%", textAlign: "left", background: C.accentSoftBg, color: C.accentSoftText, border: "none", padding: "16px 20px", borderRadius: 14, fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
+          {ov.newLeads} neue Kontaktanfrage{ov.newLeads === 1 ? "" : "n"} ansehen →
+        </button>
+      )}
+
+      {/* Website aktuell halten: Re-Index auf Knopfdruck (Anforderung A) */}
+      <div style={{ marginTop: 24, background: "#fff", border: `1px solid ${C.border}`, borderRadius: 20, padding: 28 }}>
+        <div style={{ fontSize: 17, fontWeight: 600, color: C.textPrimary, marginBottom: 4 }}>Website neu einlesen</div>
+        <p style={{ fontSize: 14, color: C.textSecondary, margin: "0 0 16px", lineHeight: 1.5 }}>
+          Habt ihr etwas geändert (z. B. Preise)? Starte hier ein sofortiges Neu-Einlesen —
+          ohne auf den wöchentlichen Lauf zu warten.
+          {ov.lastCrawledAt ? ` Zuletzt aktualisiert: ${new Date(ov.lastCrawledAt).toLocaleString("de-AT")}.` : ""}
+        </p>
+        <button onClick={recrawl} disabled={crawlBusy} style={{ background: C.accent, color: "#fff", border: "none", padding: "12px 22px", borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: crawlBusy ? "default" : "pointer", opacity: crawlBusy ? 0.6 : 1 }}>
+          {crawlBusy ? "Wird gestartet…" : "Jetzt aktualisieren"}
+        </button>
+        {crawlMsg && <p style={{ margin: "14px 0 0", fontSize: 14, color: C.textSecondary, lineHeight: 1.5 }}>{crawlMsg}</p>}
+      </div>
+
+      {/* Datenexport (Anforderung A) */}
+      <div style={{ marginTop: 20, background: "#fff", border: `1px solid ${C.border}`, borderRadius: 20, padding: 28 }}>
+        <div style={{ fontSize: 17, fontWeight: 600, color: C.textPrimary, marginBottom: 4 }}>Deine Daten exportieren</div>
+        <p style={{ fontSize: 14, color: C.textSecondary, margin: "0 0 16px", lineHeight: 1.5 }}>
+          Lade jederzeit alle Chatverläufe, hinterlegten Antworten und Kontaktanfragen als
+          JSON-Datei herunter. Chatverläufe werden nach {ov.retentionDays} Tagen automatisch gelöscht.
+        </p>
+        <button onClick={doExport} disabled={exportBusy} style={{ background: "transparent", color: C.accent, border: `1px solid ${C.accent}`, padding: "12px 22px", borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: exportBusy ? "default" : "pointer", opacity: exportBusy ? 0.6 : 1 }}>
+          {exportBusy ? "Export läuft…" : "Daten herunterladen (JSON)"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Screen 1: Kontaktanfragen (Leads) ---------- */
+function Leads() {
+  const [leads, setLeads] = useState<Lead[] | null>(null);
+  const [err, setErr] = useState("");
+  async function load() {
+    try { setLeads(await api.listLeads()); } catch (e) { setErr((e as Error).message); }
+  }
+  useEffect(() => { load(); }, []);
+
+  async function setStatus(id: number, status: "new" | "done") {
+    try { await api.setLeadStatus(id, status); await load(); } catch (e) { setErr((e as Error).message); }
+  }
+  async function remove(id: number) {
+    if (!confirm("Diese Kontaktanfrage löschen?")) return;
+    try { await api.deleteLead(id); await load(); } catch (e) { setErr((e as Error).message); }
+  }
+
+  return (
+    <div style={{ maxWidth: 760 }}>
+      <h1 style={h1Style()}>Kontaktanfragen</h1>
+      <p style={{ fontSize: 16, color: C.textSecondary, margin: "0 0 24px", lineHeight: 1.5 }}>
+        Wenn der Bot nicht weiterweiß, kann der Besucher seine Kontaktdaten hinterlassen.
+        Diese Anfragen findest du hier — neue zuerst.
+      </p>
+      {err && <p style={{ color: C.red }}>{err}</p>}
+      {leads === null ? (
+        <p style={{ color: C.textSecondary }}>Lädt…</p>
+      ) : leads.length === 0 ? (
+        <p style={{ color: C.textSecondary }}>Noch keine Kontaktanfragen.</p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {leads.map((l) => (
+            <div key={l.id} style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, padding: 18, opacity: l.status === "done" ? 0.6 : 1 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}>
+                <strong style={{ color: C.textPrimary, fontSize: 15 }}>{l.name || "Ohne Namen"}</strong>
+                <span style={{ fontSize: 12, color: C.textSecondary }}>{new Date(l.createdAt).toLocaleString("de-AT")}</span>
+              </div>
+              <div style={{ marginTop: 6, fontSize: 14, color: C.textPrimary, display: "flex", gap: 16, flexWrap: "wrap" }}>
+                {l.email && <a href={`mailto:${l.email}`} style={{ color: C.accent, fontWeight: 600 }}>{l.email}</a>}
+                {l.phone && <a href={`tel:${l.phone}`} style={{ color: C.accent, fontWeight: 600 }}>{l.phone}</a>}
+              </div>
+              {l.message && <div style={{ marginTop: 8, fontSize: 14, color: C.textSecondary, whiteSpace: "pre-wrap" }}>{l.message}</div>}
+              {l.contextQuestion && <div style={{ marginTop: 8, fontSize: 13, color: C.textSecondary, fontStyle: "italic" }}>Ausgelöst durch: „{l.contextQuestion}"</div>}
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                {l.status === "new" ? (
+                  <button onClick={() => setStatus(l.id, "done")} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: C.green, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Als erledigt markieren</button>
+                ) : (
+                  <button onClick={() => setStatus(l.id, "new")} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.textSecondary, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Wieder öffnen</button>
+                )}
+                <button onClick={() => remove(l.id)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "oklch(0.55 0.18 25)", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Löschen</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { api, recrawl, openInvoicePdf, type Analytics, type Bot, type ChatLogEntry, type Invoice, type ManualFaq, type PlanRequest } from "./api";
+import { api, recrawl, openInvoicePdf, type Analytics, type Bot, type ChatLogEntry, type Invoice, type Lead, type ManualFaq, type PlanRequest } from "./api";
 
 // Unter-Tabs pro Bot, damit nicht alles auf einer langen Seite steht.
 const BOT_TABS: [string, string][] = [
   ["config", "Einstellungen"],
   ["widget", "Widget & Einbindung"],
+  ["leads", "Kontakt & Leads"],
   ["faqs", "FAQ-Antworten"],
   ["billing", "Abrechnung"],
   ["privacy", "Datenschutz"],
@@ -395,6 +396,57 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
       </Section>
       </>)}
 
+      {tab === "leads" && (<>
+      <Section title="Lead-Erfassung & Termin">
+        <p className="muted">
+          Kann der Bot eine Frage nicht aus der Website beantworten (oder greift eine
+          Eskalationsregel), bietet er dem Besucher ein Kontaktformular an. Neue Anfragen
+          erscheinen unten und werden dem Kunden per E-Mail gemeldet.
+        </p>
+        <label className="check">
+          <input type="checkbox" defaultChecked={bot.leadCapture} onChange={(e) => save({ leadCapture: e.target.checked })} />
+          Kontaktformular anbieten, wenn der Bot nicht weiterweiß
+        </label>
+        <Field label="Einleitungstext über dem Formular">
+          <input defaultValue={bot.leadIntro || ""} placeholder="Standardtext, wenn leer" onBlur={(e) => save({ leadIntro: e.target.value.trim() || null })} />
+        </Field>
+        <Field label="Terminlink (optional)">
+          <input defaultValue={bot.bookingUrl || ""} placeholder="https://cal.com/… oder Kalender-Link" onBlur={(e) => save({ bookingUrl: e.target.value.trim() })} />
+        </Field>
+        <p className="muted">Ist ein Terminlink hinterlegt, zeigt der Bot zusätzlich einen „Termin vereinbaren"-Button.</p>
+      </Section>
+
+      <Section title="Eskalationsregeln">
+        <p className="muted">
+          Stichwörter, bei denen der Bot <strong>grundsätzlich</strong> an einen Menschen
+          übergibt, statt selbst zu antworten (z. B. Preise, Rechtliches, Beschwerden).
+          Kommagetrennt. Trifft eines davon in der Frage vor, bietet der Bot direkt
+          Kontakt/Termin an.
+        </p>
+        <Field label="Themen / Stichwörter (kommagetrennt)">
+          <input
+            defaultValue={bot.escalationTopics.join(", ")}
+            placeholder="z. B. beschwerde, reklamation, rechtlich, preis"
+            onBlur={(e) =>
+              save({
+                escalationTopics: e.target.value.split(",").map((t) => t.trim()).filter(Boolean),
+              })
+            }
+          />
+        </Field>
+      </Section>
+
+      <Section title="Mehrsprachigkeit">
+        <label className="check">
+          <input type="checkbox" defaultChecked={bot.multilingual} onChange={(e) => save({ multilingual: e.target.checked })} />
+          In der Sprache der Frage antworten (Deutsch, Englisch, Türkisch, BKS …)
+        </label>
+        <p className="muted">Aus = der Bot antwortet immer auf Deutsch, unabhängig von der Sprache der Frage.</p>
+      </Section>
+
+      <LeadList botId={botId} />
+      </>)}
+
       {tab === "faqs" && <FaqSection botId={botId} />}
 
       {tab === "billing" && (<>
@@ -770,6 +822,69 @@ function FaqSection({ botId }: { botId: string }) {
               </div>
               <button className="btn ghost sm" style={{ marginLeft: 8 }} onClick={() => startEdit(f)}>Bearbeiten</button>
               <button className="btn danger sm" style={{ marginLeft: 6 }} onClick={() => remove(f.id)}>Löschen</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
+  );
+}
+
+/** Liste der Kontaktanfragen (Leads) eines Bots — Betreibersicht. */
+function LeadList({ botId }: { botId: string }) {
+  const [leads, setLeads] = useState<Lead[] | null>(null);
+  const [msg, setMsg] = useState("");
+  async function load() {
+    try {
+      setLeads(await api.listLeads(botId));
+    } catch (e) {
+      setMsg("⚠ " + (e as Error).message);
+    }
+  }
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [botId]);
+
+  async function setStatus(id: number, status: "new" | "done") {
+    try { await api.setLeadStatus(botId, id, status); await load(); } catch (e) { setMsg("⚠ " + (e as Error).message); }
+  }
+  async function remove(id: number) {
+    if (!confirm("Diese Kontaktanfrage löschen?")) return;
+    try { await api.deleteLead(botId, id); await load(); } catch (e) { setMsg("⚠ " + (e as Error).message); }
+  }
+
+  return (
+    <Section title="Kontaktanfragen (Leads)">
+      {msg && <p className="note">{msg}</p>}
+      {leads === null ? (
+        <p className="muted">Lädt…</p>
+      ) : leads.length === 0 ? (
+        <p className="muted">Noch keine Kontaktanfragen.</p>
+      ) : (
+        <ul className="qlist">
+          {leads.map((l) => (
+            <li key={l.id} style={{ opacity: l.status === "done" ? 0.6 : 1, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div>
+                  <span className="badge">{l.status === "new" ? "neu" : "erledigt"}</span>{" "}
+                  <strong>{l.name || "Ohne Namen"}</strong>{" "}
+                  <span className="muted">· {new Date(l.createdAt).toLocaleString("de-AT")}</span>
+                </div>
+                <div className="muted" style={{ marginTop: 2 }}>
+                  {l.email && <a href={`mailto:${l.email}`}>{l.email}</a>}
+                  {l.email && l.phone && " · "}
+                  {l.phone && <a href={`tel:${l.phone}`}>{l.phone}</a>}
+                </div>
+                {l.message && <div style={{ marginTop: 4, whiteSpace: "pre-wrap" }}>{l.message}</div>}
+                {l.contextQuestion && <div className="muted" style={{ marginTop: 4, fontStyle: "italic" }}>Ausgelöst durch: „{l.contextQuestion}"</div>}
+              </div>
+              {l.status === "new" ? (
+                <button className="btn sm" style={{ marginLeft: 8 }} onClick={() => setStatus(l.id, "done")}>Erledigt</button>
+              ) : (
+                <button className="btn ghost sm" style={{ marginLeft: 8 }} onClick={() => setStatus(l.id, "new")}>Öffnen</button>
+              )}
+              <button className="btn danger sm" style={{ marginLeft: 6 }} onClick={() => remove(l.id)}>Löschen</button>
             </li>
           ))}
         </ul>

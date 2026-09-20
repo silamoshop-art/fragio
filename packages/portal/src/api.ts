@@ -24,6 +24,20 @@ export interface Overview {
   priceCents: number;
   usage: Usage;
   widgetActive: boolean;
+  lastCrawledAt: number | null;
+  crawlStatus: string | null;
+  newLeads: number;
+  retentionDays: number;
+}
+export interface Lead {
+  id: number;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  message: string | null;
+  contextQuestion: string | null;
+  status: "new" | "done";
+  createdAt: number;
 }
 export type VariantId = "setup" | "commit";
 export interface Plan {
@@ -104,6 +118,41 @@ export const api = {
     req<{ ok: boolean }>(`/api/portal/faqs/${faqId}`, { method: "PATCH", body: JSON.stringify(body) }),
   deleteFaq: (faqId: number) =>
     req<{ ok: boolean }>(`/api/portal/faqs/${faqId}`, { method: "DELETE" }),
+  // Re-Index auf Knopfdruck
+  recrawl: () => req<{ ok: boolean; started: boolean }>("/api/portal/recrawl", { method: "POST" }),
+  recrawlStatus: () =>
+    req<{ running: boolean; lastCrawledAt: number | null; status: string | null; error: string | null }>(
+      "/api/portal/recrawl-status",
+    ),
+  // Leads (Kontaktanfragen aus dem Chat)
+  listLeads: () => req<Lead[]>("/api/portal/leads"),
+  setLeadStatus: (leadId: number, status: "new" | "done") =>
+    req<{ ok: boolean }>(`/api/portal/leads/${leadId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+  deleteLead: (leadId: number) =>
+    req<{ ok: boolean }>(`/api/portal/leads/${leadId}`, { method: "DELETE" }),
+  // Datenexport: öffnet den Download in neuem Tab (Token per Query nicht nötig,
+  // da fetch+Blob genutzt wird).
+  exportData: async () => {
+    const token = getToken();
+    const res = await fetch("/api/portal/export", {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const cd = res.headers.get("Content-Disposition") || "";
+    const m = /filename="([^"]+)"/.exec(cd);
+    a.download = m ? m[1] : "fragio-export.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
   uploadLogo: async (file: File) => {
     const token = getToken();
     const fd = new FormData();
