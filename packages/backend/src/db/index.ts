@@ -168,6 +168,10 @@ function runMigrations(db: DatabaseSync): void {
     // Position der Chat-Sprechblase: eine der vier Ecken (Standard bottom-right).
     // Legacy-Werte 'right'/'left' werden beim Ausliefern normalisiert.
     { table: "bots", column: "widget_position", ddl: "TEXT NOT NULL DEFAULT 'bottom-right'" },
+    // Individualisierung: freie Zusatz-Anweisungen (Persönlichkeit/Regeln), die in den
+    // System-Prompt einfließen; eigener „weiß ich nicht"-Antworttext.
+    { table: "bots", column: "custom_instructions", ddl: "TEXT" },
+    { table: "bots", column: "fallback_message", ddl: "TEXT" },
     // Genauer Abstand der Sprechblase von den gewählten Kanten (in Pixeln).
     { table: "bots", column: "widget_offset_x", ddl: "INTEGER NOT NULL DEFAULT 20" },
     { table: "bots", column: "widget_offset_y", ddl: "INTEGER NOT NULL DEFAULT 20" },
@@ -195,8 +199,15 @@ function runMigrations(db: DatabaseSync): void {
   ];
   for (const m of migrations) {
     const cols = db.prepare(`PRAGMA table_info(${m.table})`).all() as { name: string }[];
-    if (!cols.some((c) => c.name === m.column)) {
+    if (cols.some((c) => c.name === m.column)) continue;
+    try {
       db.exec(`ALTER TABLE ${m.table} ADD COLUMN ${m.column} ${m.ddl}`);
+    } catch (err) {
+      // Idempotenz: Wenn die Spalte bereits existiert (z. B. durch einen zuvor
+      // abgebrochenen Start oder einen parallelen Prozess), darf das den Start
+      // NICHT abbrechen. Nur "duplicate column" wird geschluckt, alles andere fliegt.
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!/duplicate column name/i.test(msg)) throw err;
     }
   }
 }

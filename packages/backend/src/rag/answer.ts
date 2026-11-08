@@ -124,6 +124,21 @@ function isShortQuery(q: string): boolean {
   return words.length <= 4;
 }
 
+/**
+ * Sieht die Nachricht wie eine Folgefrage aus, die sich auf das vorige Thema bezieht?
+ * (Bezugswörter/Verknüpfungen wie "und", "dazu", "dafür", "genauer", "warum" …, oder
+ * Satzbeginn mit und/auch/oder.) Solche Fragen brauchen den Gesprächskontext fürs
+ * Retrieval, auch wenn sie länger als vier Wörter sind.
+ */
+function looksLikeFollowUp(q: string): boolean {
+  const t = q.trim().toLowerCase();
+  if (!t) return false;
+  if (/^(und|auch|oder|aber|ok|okay|ja|nein|genau|also)\b/.test(t)) return true;
+  return /\b(dazu|dafür|davon|damit|daran|darüber|dabei|dadurch|deshalb|deswegen|dann|das|diese[rsn]?|genauer|näher|mehr|noch|weiter|warum|weshalb|wieso|und zwar|erkläre?|erklären|beispiel|konkret)\b/.test(
+    t,
+  );
+}
+
 // Eskalationsregeln (Anforderung D): definierte Themen, bei denen der Bot
 // grundsätzlich an einen Menschen übergibt, statt selbst zu antworten.
 const ESCALATION_ANSWER =
@@ -244,8 +259,9 @@ export async function* answerQuestion(
   // Nutzernachricht voranstellen, damit Vektor- UND Zahlensuche das gemeinte Thema
   // treffen. Bei ausreichend langen Fragen unverändert (retrievalText == question).
   const prevUser = lastUserTurn(history);
-  const retrievalText =
-    isShortQuery(question) && prevUser ? `${prevUser}\n${question}` : question;
+  // Folgefrage erkannt (kurz ODER mit Bezugswörtern) -> voriges Thema anreichern.
+  const isFollowUp = !!prevUser && (isShortQuery(question) || looksLikeFollowUp(question));
+  const retrievalText = isFollowUp ? `${prevUser}\n${question}` : question;
 
   // 0) Eskalationsregeln (Anforderung D): trifft die Frage ein definiertes Thema
   // (z. B. Preise, Rechtliches, Beschwerden), übergibt der Bot an einen Menschen —
@@ -326,15 +342,25 @@ export async function* answerQuestion(
   const numHits = numericSearch(bot.id, retrievalText);
   if (numHits.length) hits = mergeHits(hits, numHits, TOP_K);
 
+  // Sicherheitsnetz für Folgefragen: Fand die Suche mit der Frage allein nichts
+  // Relevantes und wurde der Kontext noch NICHT angereichert, ein zweiter Lauf mit
+  // vorangestelltem vorigem Thema. So werden Nachhak-Fragen ("und wie lange dauert
+  // das genau?") beantwortet, statt fälschlich mit "weiß ich nicht" abzusagen.
+  if ((!hits.length || hits[0].distance > RELEVANCE_DISTANCE) && prevUser && !isFollowUp) {
+    const [ctxEmb] = await embed([`${prevUser}\n${question}`], "query");
+    const ctxHits = searchChunks(bot.id, ctxEmb, TOP_K);
+    if (ctxHits.length) hits = mergeHits(hits, ctxHits, TOP_K);
+  }
+
   const topScore = hits.length ? hits[0].distance : null;
 
   // 3) Nichts Relevantes gefunden -> ehrliche Absage OHNE LLM (kein Chat-Provider nötig).
   if (!hits.length || hits[0].distance > RELEVANCE_DISTANCE) {
-    // Bei einer kurzen/mehrdeutigen Folgefrage (Verlauf vorhanden, aber trotz
-    // Anreicherung nichts gefunden) aktiv nachfragen statt pauschal abzusagen
-    // (Prompt 15 #3b). Sonst die normale ehrliche Absage.
-    const ambiguous = history.length > 0 && isShortQuery(question);
-    const reply = ambiguous ? CLARIFY_ANSWER : FALLBACK_ANSWER;
+    // Bei einer Folgefrage (Verlauf vorhanden, aber trotz Anreicherung nichts
+    // gefunden) aktiv nachfragen statt pauschal abzusagen. Sonst ehrliche Absage.
+    const ambiguous = history.length > 0 && (isShortQuery(question) || looksLikeFollowUp(question));
+    const fallback = bot.fallback_message?.trim() || FALLBACK_ANSWER;
+    const reply = ambiguous ? CLARIFY_ANSWER : fallback;
     onMeta?.({ answered: false, sources: [], topScore, provider: "none" });
     if (storeContent) {
       insertChatLog({
@@ -363,13 +389,14 @@ export async function* answerQuestion(
     botName: branding.botName,
     styleSample: bot.style_sample ?? undefined,
     multilingual: bot.multilingual !== 0,
+    customInstructions: bot.custom_instructions ?? undefined,
   });
-  // Nur die letzten 2 Turns mitgeben — genug fürs Verständnis kurzer Folgefragen,
-  // ohne den Prompt (und die Tokens) aufzublähen.
+  // Die letzten Turns mitgeben, damit der Bot auch über mehrere Nachhak-Fragen
+  // hinweg weiß, worum es geht (Folgefragen-Kontext).
   const userMessage = buildUserMessage(
     formatContext(contextHits),
     question,
-    history.slice(-2),
+    history.slice(-6),
   );
 
   let full = "";

@@ -73,6 +73,8 @@ export interface BotRow {
   widget_position: string; // bottom-right | bottom-left | top-right | top-left
   widget_offset_x: number; // px von der horizontalen Kante
   widget_offset_y: number; // px von der vertikalen Kante
+  custom_instructions: string | null; // freie Zusatz-Anweisungen für den System-Prompt
+  fallback_message: string | null; // eigener „weiß ich nicht"-Antworttext
 }
 
 export interface ChunkHit {
@@ -687,6 +689,8 @@ export interface BotUpdate {
   widget_position?: string;
   widget_offset_x?: number;
   widget_offset_y?: number;
+  custom_instructions?: string | null;
+  fallback_message?: string | null;
 }
 
 export function updateBot(id: string, patch: BotUpdate): void {

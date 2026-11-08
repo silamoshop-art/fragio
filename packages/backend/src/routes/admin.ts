@@ -142,6 +142,8 @@ function presentBot(bot: BotRow) {
     widgetPosition: normalizeWidgetPosition(bot.widget_position),
     widgetOffsetX: bot.widget_offset_x,
     widgetOffsetY: bot.widget_offset_y,
+    customInstructions: bot.custom_instructions,
+    fallbackMessage: bot.fallback_message,
     newLeads: countNewLeads(bot.id),
     previewUrl: previewUrlFor(bot.id),
     portalUrl: `${backendBase()}/portal/`,
@@ -646,6 +648,9 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         widgetPosition: z.enum(["bottom-right", "bottom-left", "top-right", "top-left"]).optional(),
         widgetOffsetX: z.number().int().min(0).max(400).optional(),
         widgetOffsetY: z.number().int().min(0).max(400).optional(),
+        // Individualisierung
+        customInstructions: z.string().max(3000).nullable().optional(),
+        fallbackMessage: z.string().max(1000).nullable().optional(),
       });
       const parsed = schema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Ungültige Eingabe." });
@@ -706,6 +711,8 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         widget_position: d.widgetPosition,
         widget_offset_x: d.widgetOffsetX,
         widget_offset_y: d.widgetOffsetY,
+        custom_instructions: d.customInstructions === undefined ? undefined : (d.customInstructions?.trim() || null),
+        fallback_message: d.fallbackMessage === undefined ? undefined : (d.fallbackMessage?.trim() || null),
       });
       // Rabatt-/Preisänderung -> effektiven Preis aus Basispreis neu berechnen.
       if (d.discountType !== undefined || d.discountValue !== undefined) {

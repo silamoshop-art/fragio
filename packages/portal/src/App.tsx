@@ -647,6 +647,8 @@ function Faqs() {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [style, setStyle] = useState("");
+  const [customInstr, setCustomInstr] = useState("");
+  const [fallback, setFallback] = useState("");
   const [styleMsg, setStyleMsg] = useState("");
 
   async function load() {
@@ -654,6 +656,8 @@ function Faqs() {
       setFaqs(await api.listFaqs());
       const s = await api.getStyle();
       setStyle(s.styleSample || "");
+      setCustomInstr(s.customInstructions || "");
+      setFallback(s.fallbackMessage || "");
     } catch (e) {
       setErr((e as Error).message);
     }
@@ -665,8 +669,12 @@ function Faqs() {
   async function saveStyle() {
     setStyleMsg("");
     try {
-      await api.setStyle(style.trim() ? style.trim() : null);
-      setStyleMsg("Schreibstil gespeichert.");
+      await api.setStyle({
+        styleSample: style.trim() ? style.trim() : null,
+        customInstructions: customInstr.trim() ? customInstr.trim() : null,
+        fallbackMessage: fallback.trim() ? fallback.trim() : null,
+      });
+      setStyleMsg("Einstellungen gespeichert.");
     } catch (e) {
       setStyleMsg("" + (e as Error).message);
     }
@@ -732,8 +740,24 @@ function Faqs() {
           Leer = neutraler Standardton. Bleibt bei jeder Website-Aktualisierung erhalten.
         </p>
         <textarea style={{ ...input, resize: "vertical" }} rows={4} value={style} placeholder="z. B.: „Hey! Schön, dass du da bist. Wir kümmern uns locker und schnell um dein Anliegen – frag einfach drauflos!“" onChange={(e) => setStyle(e.target.value)} />
-        <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10 }}>
-          <button type="button" onClick={saveStyle} style={{ background: C.accent, color: "#fff", border: "none", padding: "10px 18px", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Schreibstil speichern</button>
+
+        <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: C.textPrimary, margin: "22px 0 6px" }}>Zusätzliche Anweisungen</label>
+        <p style={{ fontSize: 13, color: C.textSecondary, margin: "0 0 8px", lineHeight: 1.5 }}>
+          Zusatzregeln für den Bot — z. B. worauf er bei bestimmten Fragen hinweisen soll.
+          Die Kern­regeln (nur aus euren Website-Inhalten antworten, ehrliches „weiß ich
+          nicht“) bleiben <strong>immer</strong> aktiv und lassen sich hier nicht aushebeln.
+        </p>
+        <textarea style={{ ...input, resize: "vertical" }} rows={4} value={customInstr} placeholder="z. B.: „Verweise bei Terminwünschen immer auf unser Kontaktformular. Bei Preisfragen erwähne, dass alle Preise inkl. USt. sind.“" onChange={(e) => setCustomInstr(e.target.value)} />
+
+        <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: C.textPrimary, margin: "22px 0 6px" }}>Antwort, wenn nichts gefunden wurde</label>
+        <p style={{ fontSize: 13, color: C.textSecondary, margin: "0 0 8px", lineHeight: 1.5 }}>
+          Dieser Text erscheint, wenn eure Website zu einer Frage keine Antwort hergibt.
+          Leer = Standardtext.
+        </p>
+        <textarea style={{ ...input, resize: "vertical" }} rows={3} value={fallback} placeholder="Standard: „Das weiß ich leider nicht. Bitte wende dich direkt an unser Team.“" onChange={(e) => setFallback(e.target.value)} />
+
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 14 }}>
+          <button type="button" onClick={saveStyle} style={{ background: C.accent, color: "#fff", border: "none", padding: "10px 18px", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Einstellungen speichern</button>
           {styleMsg && <span style={{ fontSize: 13, color: C.textSecondary }}>{styleMsg}</span>}
         </div>
       </div>

@@ -362,6 +362,38 @@ export function BotDetail({ botId, onDeleted }: { botId: string; onDeleted: () =
         </Field>
       </Section>
 
+      <Section title="Individualisierung">
+        <p className="muted">
+          Fein­steuerung des Bot-Verhaltens. Beides ist optional und bleibt bei jedem
+          Recrawl erhalten.
+        </p>
+        <Field label="Zusätzliche Anweisungen">
+          <textarea
+            rows={5}
+            defaultValue={bot.customInstructions || ""}
+            placeholder="z. B.: „Verweise bei Terminwünschen immer auf das Kontaktformular. Nenne bei Preisfragen, dass die Endpreise inkl. USt. sind. Antworte besonders knapp.“"
+            onBlur={(e) => save({ customInstructions: e.target.value.trim() ? e.target.value : null })}
+          />
+          <p className="muted" style={{ marginTop: 6 }}>
+            Ergänzen den System-Prompt. Sie steuern Tonfall, Betonung und Zusatzregeln –
+            können die Kern­regeln (nur aus der Wissensbasis antworten, ehrliches „weiß ich
+            nicht“) aber <strong>nicht</strong> außer Kraft setzen.
+          </p>
+        </Field>
+        <Field label="Antwort, wenn nichts gefunden wurde">
+          <textarea
+            rows={3}
+            defaultValue={bot.fallbackMessage || ""}
+            placeholder="Standard: „Das weiß ich leider nicht. Bitte wende dich direkt an das Team.“"
+            onBlur={(e) => save({ fallbackMessage: e.target.value.trim() ? e.target.value : null })}
+          />
+          <p className="muted" style={{ marginTop: 6 }}>
+            Wird gezeigt, wenn die Wissensbasis keine passende Antwort enthält. Leer lassen =
+            Standardtext.
+          </p>
+        </Field>
+      </Section>
+
       <Section title="Erlaubte Domain (CORS)">
         {bot.allowedOrigins.length === 0 && (
           <p className="warn-box">

@@ -54,6 +54,8 @@ export interface Bot {
   addonName: boolean;
   privacyText: string | null;
   styleSample: string | null;
+  customInstructions: string | null;
+  fallbackMessage: string | null;
   consent: { count: number; lastAt: number | null };
   customerName: string | null;
   customerAddress: string | null;

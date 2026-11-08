@@ -323,15 +323,31 @@ export async function portalRoutes(app: FastifyInstance): Promise<void> {
     secured.get("/api/portal/style", async (request, reply) => {
       const bot = loadBot(request);
       if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
-      return { styleSample: bot.style_sample };
+      return {
+        styleSample: bot.style_sample,
+        customInstructions: bot.custom_instructions,
+        fallbackMessage: bot.fallback_message,
+      };
     });
     secured.post("/api/portal/style", async (request, reply) => {
       const bot = loadBot(request);
       if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
-      const parsed = z.object({ styleSample: z.string().max(3000).nullable() }).safeParse(request.body);
-      if (!parsed.success) return reply.code(400).send({ error: "Ungültiges Stil-Beispiel." });
-      const v = parsed.data.styleSample?.trim();
-      updateBot(bot.id, { style_sample: v ? v : null });
+      const parsed = z
+        .object({
+          styleSample: z.string().max(3000).nullable().optional(),
+          customInstructions: z.string().max(3000).nullable().optional(),
+          fallbackMessage: z.string().max(1000).nullable().optional(),
+        })
+        .safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: "Ungültige Eingabe." });
+      const d = parsed.data;
+      const norm = (v: string | null | undefined) =>
+        v === undefined ? undefined : v === null ? null : v.trim() || null;
+      updateBot(bot.id, {
+        style_sample: norm(d.styleSample),
+        custom_instructions: norm(d.customInstructions),
+        fallback_message: norm(d.fallbackMessage),
+      });
       return { ok: true };
     });
 

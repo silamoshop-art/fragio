@@ -112,9 +112,15 @@ export const api = {
     }),
   // Manuelle FAQs (recrawl-fest)
   listFaqs: () => req<ManualFaq[]>("/api/portal/faqs"),
-  getStyle: () => req<{ styleSample: string | null }>("/api/portal/style"),
-  setStyle: (styleSample: string | null) =>
-    req<{ ok: boolean }>("/api/portal/style", { method: "POST", body: JSON.stringify({ styleSample }) }),
+  getStyle: () =>
+    req<{ styleSample: string | null; customInstructions: string | null; fallbackMessage: string | null }>(
+      "/api/portal/style",
+    ),
+  setStyle: (patch: {
+    styleSample?: string | null;
+    customInstructions?: string | null;
+    fallbackMessage?: string | null;
+  }) => req<{ ok: boolean }>("/api/portal/style", { method: "POST", body: JSON.stringify(patch) }),
   createFaq: (body: { question: string; answer: string }) =>
     req<ManualFaq>("/api/portal/faqs", { method: "POST", body: JSON.stringify(body) }),
   updateFaq: (faqId: number, body: { question: string; answer: string }) =>

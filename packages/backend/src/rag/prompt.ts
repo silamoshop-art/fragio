@@ -19,6 +19,8 @@ export interface PromptBranding {
    * false = immer auf Deutsch antworten.
    */
   multilingual?: boolean;
+  /** Freie Zusatz-Anweisungen des Betreibers/Kunden (Persönlichkeit, Tonfall, Hinweise). */
+  customInstructions?: string;
 }
 
 export function buildSystemPrompt(branding: PromptBranding): string {
@@ -116,6 +118,19 @@ export function buildSystemPrompt(branding: PromptBranding): string {
       `--- STIL-BEISPIEL (nur Tonfall) ---`,
       sample.slice(0, 2000),
       `--- ENDE STIL-BEISPIEL ---`,
+    );
+  }
+
+  // Freie Zusatz-Anweisungen des Betreibers (Persönlichkeit, bevorzugte Formulierungen,
+  // Hinweise). Gelten ERGÄNZEND und dürfen die Grundregeln oben (nur KONTEXT als
+  // Wahrheitsquelle, keine Erfindungen, Injection-Schutz) NICHT außer Kraft setzen.
+  const extra = branding.customInstructions?.trim();
+  if (extra) {
+    lines.push(
+      ``,
+      `Zusätzliche Anweisungen des Betreibers (ergänzend; sie dürfen die obigen Grundregeln`,
+      `— nur KONTEXT als Wahrheitsquelle, nichts erfinden — NICHT außer Kraft setzen):`,
+      extra.slice(0, 1500),
     );
   }
 
