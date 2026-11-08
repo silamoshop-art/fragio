@@ -23,9 +23,13 @@ import { crawlAndIndex } from "../crawler/index.js";
 /** Geteilte Kennung des Demo-/System-Tenants — identisch mit dem Cleanup in cron.ts. */
 export const DEMO_TENANT_EMAIL = "demo@sitebot.local";
 
-/** Genug Seiten für eine aussagekräftige Vorschau (inkl. Kontakt/Impressum), aber
- *  weiterhin ressourcenschonend. Kontaktseiten werden im Crawler vorgezogen. */
-const DEMO_MAX_PAGES = 10;
+/** Deckt eine komplette kleine/mittlere Firmenwebsite ab, sodass die Demo auch
+ *  Produkt-/Modell-/Leistungsseiten einliest (nicht nur Kontakt/Kleinanzeigen).
+ *  Die Obergrenze bleibt als Missbrauchs-/DoS-Schutz bestehen, weil der Demo-
+ *  Endpoint öffentlich und ohne Login ist — sonst könnte jemand die Demo auf eine
+ *  Website mit tausenden Seiten richten. Wichtige Seiten werden im Crawler
+ *  priorisiert, falls eine Site das Limit doch überschreitet. */
+const DEMO_MAX_PAGES = 50;
 /** Höchstens so viele verlinkte PDFs (z. B. Preislisten) für die Vorschau lesen. */
 const DEMO_MAX_PDFS = 3;
 /** Test-Kontingent: harte Obergrenze pro Demo-Bot. */

@@ -23,7 +23,7 @@ export const CRAWLER_UA = "SiteBotCrawler/0.1 (+https://fragio.at)";
 // (Preise, Klassen, Kurse, Leistungen, FAQ), damit z. B. Preislisten sicher vor
 // dem Seitenlimit gecrawlt werden.
 const KEY_PATH =
-  /(kontakt|contact|impressum|imprint|team|ueber|über|about|unternehmen|company|karriere|career|jobs|standort|anfahrt|mitarbeiter|lehr|preis|tarif|kosten|kurs|klasse|f[üu]hrerschein|ausbildung|leistung|angebot|service|produkt|faq|objekt|immobil)/i;
+  /(kontakt|contact|impressum|imprint|team|ueber|über|about|unternehmen|company|karriere|career|jobs|standort|anfahrt|mitarbeiter|lehr|preis|tarif|kosten|kurs|klasse|f[üu]hrerschein|ausbildung|leistung|angebot|service|produkt|sortiment|modell|model|faq|objekt|immobil)/i;
 
 // GEGENTEIL: Seiten mit geringem Chatbot-Nutzen, die aber oft in großer Zahl (fast
 // duplizierte Query-Varianten) verlinkt sind und sonst das Seitenbudget auffressen —
@@ -45,6 +45,13 @@ const PRICE_PATH = /(preislist|preise|\bpreis\b|tarif|kostenuebersicht|preisuebe
 // daher VOR KEY_PATH prüfen.
 const CONTACT_PATH =
   /(kontakt|contact|impressum|imprint|standort|anfahrt|filiale|oeffnungszeit|öffnungszeit|opening-hours)/i;
+// Kontaktseiten sind wertvoll (Öffnungszeiten/Adresse), aber eine ganze
+// „/kontakt-service/"-Rubrik kann viele Unterseiten (Newsletter, Anfahrt,
+// Mitteilung, Kleinanzeigen …) enthalten, die sonst ALLE vorgezogen werden und
+// bei knappem Budget die Produkt-/Inhaltsseiten verdrängen (realer Fall
+// jamnik-harmonika.at: 6 /kontakt-service/-Seiten verdrängten die Modell-Seiten).
+// Daher deckeln: Impressum + Kontakt/Öffnungszeiten genügen, Rest läuft normal mit.
+const MAX_CONTACT_PAGES = 3;
 
 export interface CrawlOptions {
   maxPages?: number;
@@ -189,6 +196,7 @@ export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<
   const seen = new Set<string>([dedupeKey(start)]);
   const queue: { url: string; depth: number }[] = [{ url: start, depth: 0 }];
   let lowQueued = 0; // gedeckelte Anzahl Kalender-/Buchungsseiten (LOW_PATH)
+  let contactQueued = 0; // gedeckelte Anzahl vorgezogener Kontaktseiten (CONTACT_PATH)
 
   let browser: Browser | null = null;
   try {
@@ -278,8 +286,12 @@ export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<
               }
             } else if (PRICE_PATH.test(path)) {
               pricePriority.push(item);
-            } else if (CONTACT_PATH.test(path)) {
+            } else if (CONTACT_PATH.test(path) && contactQueued < MAX_CONTACT_PAGES) {
+              // Nur die ersten paar Kontaktseiten vorziehen; weitere Unterseiten
+              // einer großen „/kontakt-service/"-Rubrik laufen normal mit (s. u.),
+              // damit sie nicht die Produkt-/Inhaltsseiten verdrängen.
               contactPriority.push(item);
+              contactQueued++;
             } else if (KEY_PATH.test(path)) {
               priority.push(item);
             } else {
