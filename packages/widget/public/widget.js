@@ -12,6 +12,12 @@
 (function () {
   "use strict";
 
+  // Umbau zur reinen Info-Website: Das Widget wird NUR noch auf fragio.at
+  // ausgeliefert. Auf fremden Domains tut das Skript nichts (keine Einbettung
+  // mehr für fremde Websites). Lokale Entwicklung bleibt erlaubt.
+  var host = (window.location.hostname || "").replace(/^www\./, "").toLowerCase();
+  if (host !== "fragio.at" && host !== "localhost" && host !== "127.0.0.1") return;
+
   var self =
     document.currentScript ||
     document.querySelector("script[data-bot-id][src*='widget.js']");

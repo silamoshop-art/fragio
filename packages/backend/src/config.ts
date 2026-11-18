@@ -53,6 +53,11 @@ const EnvSchema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
 
+  // --- Live-Demo-Chat (Info-Website): Default AUS ---
+  // "true" => der frei eingebbare Demo-Chat gegen die fiktive Beispiel-Seite bzw.
+  // fragio.at ist aktiv. Solange "false", ist nur die aufgezeichnete Demo sichtbar.
+  LIVE_DEMO_ENABLED: z.string().default("false"),
+
   // --- Zahlungen: Lemon Squeezy (Merchant of Record) — Default AUS ---
   // "true" => Self-Service-Kauf läuft über Lemon-Squeezy-Checkout; USt. übernimmt LS.
   // Variant-IDs = die in Lemon Squeezy angelegten Abo-Produkte je Tarif.
@@ -179,6 +184,7 @@ export const config = {
   secretKey: deriveSecretKey(env.APP_SECRET),
   adminApiKey: deriveAdminKey(env.ADMIN_API_KEY),
   stripeEnabled: env.STRIPE_ENABLED === "true",
+  liveDemoEnabled: env.LIVE_DEMO_ENABLED === "true",
   lemonSqueezyEnabled:
     env.LEMONSQUEEZY_ENABLED === "true" &&
     !!env.LEMONSQUEEZY_API_KEY &&

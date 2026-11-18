@@ -15,6 +15,7 @@ import {
   getSetting,
 } from "../db/repo.js";
 import { backendBase } from "../util/embed.js";
+import { isFragioOrigin } from "../util/origin.js";
 import { CONSENT_NOTICE, defaultPrivacyText } from "../legal/privacy.js";
 
 /** Erlaubte Widget-Positionen (vier Ecken); Legacy 'right'/'left' -> unten. */
@@ -55,6 +56,13 @@ const DEFAULTS: Required<Branding> = {
 };
 
 export async function widgetConfigRoutes(app: FastifyInstance): Promise<void> {
+  // Harte Sperre (Info-Website): alle Widget-Endpunkte nur von fragio.at.
+  app.addHook("preHandler", async (request, reply) => {
+    if (!isFragioOrigin(request.headers.origin)) {
+      return reply.code(403).send({ error: "Fragio wird nur auf fragio.at bereitgestellt." });
+    }
+  });
+
   // Eigener Website-Bot: liefert die Bot-ID für DIESE Domain (Betreiber-Tenant),
   // damit das Widget auf der Fragio-Seite selbst erscheint — ohne fest verdrahtete
   // ID (funktioniert lokal wie live). Reihenfolge: explizite Einstellung

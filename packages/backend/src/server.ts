@@ -19,16 +19,14 @@ import { config } from "./config.js";
 import { getDb } from "./db/index.js";
 import { getBot, ensureOperatorTenant } from "./db/repo.js";
 import { sha256 } from "./util/id.js";
-import { botIdFromUrl, parseAllowedOrigins, isOriginAllowed } from "./util/origin.js";
+import { botIdFromUrl, parseAllowedOrigins, isOriginAllowed, isFragioOrigin } from "./util/origin.js";
 import { chatRoutes } from "./routes/chat.js";
-import { demoRoutes } from "./routes/demo.js";
-import { signupRoutes } from "./routes/signup.js";
 import { widgetConfigRoutes } from "./routes/widget-config.js";
 import { adminRoutes } from "./routes/admin.js";
-import { portalRoutes } from "./routes/portal.js";
-import { stripeRoutes } from "./routes/stripe.js";
-import { lemonSqueezyRoutes } from "./routes/lemonsqueezy.js";
 import { startCron } from "./cron.js";
+// Umbau zur reinen Info-Website: Signup, Kunden-Portal, Stripe-/Lemon-Squeezy-
+// Webhooks und der Demo-Endpunkt (Einlesen beliebiger fremder URLs) sind
+// entfernt und werden nicht mehr registriert.
 
 export async function buildServer() {
   const app = Fastify({
@@ -52,6 +50,8 @@ export async function buildServer() {
       const reqOrigin = req.headers.origin;
       const botId = botIdFromUrl(req.url || "");
       if (botId) {
+        // Harte Sperre: Widget/Chat nur von fragio.at. Fremde Einbettungen abgelehnt.
+        if (!isFragioOrigin(reqOrigin)) return cb(null, { origin: false });
         const bot = getBot(botId);
         if (!bot) return cb(null, { origin: false });
         const allowed = parseAllowedOrigins(bot.allowed_origins);
@@ -165,25 +165,11 @@ export async function buildServer() {
     app.log.info("Admin-Dashboard unter /admin/ verfügbar.");
   }
 
-  // Optional: gebautes Kunden-Portal unter /portal/ (nur wenn dist vorhanden).
-  const portalDist = path.join(config.repoRoot, "packages", "portal", "dist");
-  if (fs.existsSync(path.join(portalDist, "index.html"))) {
-    await app.register(fastifyStatic, {
-      root: portalDist,
-      prefix: "/portal/",
-      decorateReply: false,
-    });
-    app.log.info("Kunden-Portal unter /portal/ verfügbar.");
-  }
+  // Kunden-Portal (/portal/) entfernt: kein Kunden-Login mehr.
 
-  await app.register(chatRoutes);
-  await app.register(demoRoutes);
-  await app.register(signupRoutes);
-  await app.register(widgetConfigRoutes);
-  await app.register(portalRoutes);
-  await app.register(stripeRoutes);
-  await app.register(lemonSqueezyRoutes);
-  await app.register(adminRoutes);
+  await app.register(chatRoutes); // auf fragio.at gesperrt
+  await app.register(widgetConfigRoutes); // auf fragio.at gesperrt
+  await app.register(adminRoutes); // Betreiber-Tool, nur mit ADMIN_API_KEY, nicht verlinkt
 
   // Custom 404: echte Seitenaufrufe bekommen die gestaltete 404-Seite, API-/App-
   // Pfade weiterhin ein sauberes JSON-404 (keine HTML-Seite an einen fetch-Client).

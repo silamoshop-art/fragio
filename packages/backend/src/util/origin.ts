@@ -33,6 +33,20 @@ export function isOriginAllowed(origin: string | undefined, allowed: string[]): 
   });
 }
 
+/**
+ * Harte Sperre (Umbau zur reinen Info-Website): Widget und Chat-API dürfen
+ * AUSSCHLIESSLICH von fragio.at aus genutzt werden. Fragio wird nicht mehr für
+ * fremde Websites bereitgestellt, daher werden fremde `data-bot-id`/Origins
+ * abgelehnt. Lokale Entwicklungs-Origins bleiben erlaubt; fehlt der Origin-Header
+ * (Server-zu-Server, keine Browser-Einbettung), wird nicht blockiert.
+ */
+export function isFragioOrigin(origin: string | undefined): boolean {
+  if (!origin) return true;
+  const host = toHost(origin); // entfernt bereits ein führendes "www."
+  if (!host) return false;
+  return host === "fragio.at" || host === "localhost" || host === "127.0.0.1";
+}
+
 export function parseAllowedOrigins(json: string): string[] {
   try {
     const v = JSON.parse(json);

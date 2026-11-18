@@ -25,7 +25,7 @@ import {
   type BotRow,
 } from "../db/repo.js";
 import { answerQuestion } from "../rag/answer.js";
-import { isOriginAllowed, parseAllowedOrigins } from "../util/origin.js";
+import { isOriginAllowed, parseAllowedOrigins, isFragioOrigin } from "../util/origin.js";
 import { sha256 } from "../util/id.js";
 import { config } from "../config.js";
 import { checkVisitor, looksLikeBot } from "../util/throttle.js";
@@ -95,9 +95,14 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
         return reply.code(403).send({ error: `Bot ist ${bot.status}.` });
       }
 
+      // Harte Sperre (Info-Website): Chat nur von fragio.at — fremde Einbettungen
+      // bzw. fremde data-bot-id werden serverseitig abgelehnt.
+      const origin = request.headers.origin;
+      if (!isFragioOrigin(origin)) {
+        return reply.code(403).send({ error: "Fragio wird nur auf fragio.at bereitgestellt." });
+      }
       // Domain-Whitelist serverseitig durchsetzen.
       const allowed = parseAllowedOrigins(bot.allowed_origins);
-      const origin = request.headers.origin;
       if (!isOriginAllowed(origin, allowed)) {
         return reply
           .code(403)
