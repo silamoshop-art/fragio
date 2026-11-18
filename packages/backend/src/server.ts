@@ -23,6 +23,7 @@ import { botIdFromUrl, parseAllowedOrigins, isOriginAllowed, isFragioOrigin } fr
 import { chatRoutes } from "./routes/chat.js";
 import { widgetConfigRoutes } from "./routes/widget-config.js";
 import { adminRoutes } from "./routes/admin.js";
+import { contactRoutes } from "./routes/contact.js";
 import { startCron } from "./cron.js";
 // Umbau zur reinen Info-Website: Signup, Kunden-Portal, Stripe-/Lemon-Squeezy-
 // Webhooks und der Demo-Endpunkt (Einlesen beliebiger fremder URLs) sind
@@ -105,6 +106,29 @@ export async function buildServer() {
 
   app.get("/health", async () => ({ ok: true, ts: Date.now() }));
 
+  // --- Umbau zur Info-Website: entfernte Seiten (410 Gone) + Weiterleitungen (301). ---
+  // 410 statt 404, damit Suchmaschinen die Seiten endgültig austragen.
+  const gonePage = path.join(config.repoRoot, "packages", "landing", "public", "410.html");
+  const GONE_PATHS = [
+    "/signup.html", "/status.html", "/agb.html", "/widerruf.html", "/avv.html",
+    "/portal", "/portal/", "/ablauf.html",
+  ];
+  // /ablauf.html bekommt eine 301 (Vorrang, s. u.); hier NICHT doppelt — daher entfernen.
+  GONE_PATHS.pop();
+  for (const p of GONE_PATHS) {
+    app.get(p, (_req, reply) => {
+      try {
+        const html = fs.readFileSync(gonePage, "utf8");
+        return reply.code(410).header("Content-Type", "text/html; charset=utf-8").header("X-Robots-Tag", "noindex").send(html);
+      } catch {
+        return reply.code(410).send("Gone");
+      }
+    });
+  }
+  // 301-Weiterleitungen (viele eingehende Links): Preise -> Start, Ablauf -> Funktionen#technik.
+  app.get("/preise.html", (_req, reply) => reply.code(301).redirect("/"));
+  app.get("/ablauf.html", (_req, reply) => reply.code(301).redirect("/funktionen.html#technik"));
+
   // Hochgeladene Kunden-Logos unter /logos/. Sicherheits-Header neutralisieren
   // evtl. in SVGs eingebettete Skripte, falls jemand die Datei-URL direkt aufruft.
   const logosDir = path.join(path.dirname(config.DATABASE_PATH), "logos");
@@ -135,6 +159,7 @@ export async function buildServer() {
     "connect-src 'self'; " +
     "form-action 'self'; " +
     "base-uri 'none'; " +
+    "object-src 'none'; " +
     "frame-ancestors 'none'";
   await app.register(fastifyStatic, {
     root: path.join(config.repoRoot, "packages", "landing", "public"),
@@ -169,6 +194,7 @@ export async function buildServer() {
 
   await app.register(chatRoutes); // auf fragio.at gesperrt
   await app.register(widgetConfigRoutes); // auf fragio.at gesperrt
+  await app.register(contactRoutes); // Kontaktformular der Info-Website
   await app.register(adminRoutes); // Betreiber-Tool, nur mit ADMIN_API_KEY, nicht verlinkt
 
   // Custom 404: echte Seitenaufrufe bekommen die gestaltete 404-Seite, API-/App-
