@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>KI & Datenverarbeitung — Fragio</title>
-<meta name="description" content="Transparente Offenlegung: welches KI-Modell Fragio nutzt, wo Daten verarbeitet werden (EU/USA), welche Löschfristen gelten und wie die EU-only-Option funktioniert." />
+<title>KI &amp; Daten — Fragio</title>
+<meta name="description" content="Offen erklärt: welches KI-Modell Fragio nutzt, wo verarbeitet wird und welche Daten dabei anfallen." />
 <meta name="robots" content="index,follow" />
 <link rel="canonical" href="https://fragio.at/ki-transparenz.html" />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -13,11 +13,10 @@
 <meta name="theme-color" content="#ffffff" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Fragio" />
-<meta property="og:title" content="KI & Datenverarbeitung — Fragio" />
-<meta property="og:description" content="Welches KI-Modell, wo verarbeitet, welche Löschfristen — offen dokumentiert." />
+<meta property="og:title" content="KI &amp; Daten — Fragio" />
+<meta property="og:description" content="KI & Datenverarbeitung, offen erklärt." />
 <meta property="og:url" content="https://fragio.at/ki-transparenz.html" />
 <meta property="og:locale" content="de_AT" />
-<meta property="og:image" content="https://fragio.at/og-image.png" />
 <link rel="stylesheet" href="/site.css" />
 </head>
 <body>
@@ -32,61 +31,49 @@
     <button class="nav-toggle" aria-label="Menü" aria-expanded="false"><span></span><span></span><span></span></button>
     <div class="nav-links">
       <a href="/funktionen.html">Funktionen</a>
-      <a href="/ablauf.html">So funktioniert's</a>
-      <a href="/preise.html">Preise</a>
+      <a href="/testen.html">Ausprobieren</a>
+      <a href="/ehrlichkeitstest.html">Ehrlichkeitstest</a>
+      <a href="/ki-transparenz.html">KI &amp; Daten</a>
       <a href="/faq.html">FAQ</a>
+      <a href="/ueber.html">Über</a>
       <a href="/kontakt.html">Kontakt</a>
-      <a href="/portal/">Login</a>
       <button type="button" class="lang-toggle" aria-label="Switch to English">EN</button>
-      <a href="/preise.html" class="btn btn-primary btn-sm">Jetzt bestellen</a>
+      <a href="/testen.html" class="btn btn-primary btn-sm">Ausprobieren</a>
     </div>
   </nav>
 </header>
 
+<div class="project-status" role="note">
+  <div class="wrap"><span data-i18n-en="Fragio is a private software project in development. It is not for sale – no orders, no contracts.">Fragio ist ein privates Softwareprojekt in Entwicklung. Es wird derzeit nicht verkauft – keine Bestellungen, keine Verträge.</span></div>
+</div>
+
 <main id="main">
   <section class="section">
-    <div class="wrap">
+    <div class="wrap" style="max-width:820px">
       <div class="page-head">
-        <h1 data-reveal>KI &amp; Datenverarbeitung — offen erklärt</h1>
-        <p class="section-sub" data-reveal="80">Welches Modell wir nutzen, wo verarbeitet wird und wie lange Daten gespeichert bleiben. Ohne Kleingedrucktes.</p>
+        <h1 data-reveal data-i18n-en="AI &amp; data processing, explained openly.">KI &amp; Datenverarbeitung, offen erklärt.</h1>
       </div>
 
-      <div class="prose" data-reveal="120">
-        <section>
-          <h2>Welches KI-Modell steckt dahinter?</h2>
-          <p>Für die Antworttexte nutzen wir standardmäßig <strong>Claude&nbsp;Haiku&nbsp;4.5</strong> von Anthropic. Das Modell formuliert die Antwort ausschließlich aus den Inhalten, die zuvor aus Ihrer Website eingelesen wurden — es „weiß" nichts darüber hinaus und ist angewiesen, bei fehlender Information ehrlich zu passen, statt zu raten.</p>
-        </section>
+      <div class="prose" data-reveal="100">
+        <h2 data-i18n-en="AI model">KI-Modell</h2>
+        <p data-i18n-en="Answers are formulated by a language model from Anthropic (Claude Haiku 4.5). The model only receives the question and matching text sections and is instructed not to claim anything beyond them.">Antworten formuliert ein Sprachmodell von Anthropic (Claude Haiku 4.5). Das Modell bekommt nur die Frage und passende Textabschnitte und ist angewiesen, nichts darüber hinaus zu behaupten.</p>
 
-        <section>
-          <h2>Wo werden die Daten verarbeitet?</h2>
-          <ul>
-            <li><strong>Einlesen &amp; Suche (Embeddings):</strong> läuft <strong>lokal auf unserem Server in der EU</strong>. Ihre Website-Inhalte und die Vektorsuche verlassen die EU nicht.</li>
-            <li><strong>Antwortformulierung (Standard):</strong> die eigentliche Chat-Nachricht wird zur Formulierung an <strong>Anthropic (USA)</strong> übermittelt — abgesichert über die EU-Standardvertragsklauseln. Übertragen wird nur, was zur Beantwortung nötig ist; nach Angaben von Anthropic wird auf API-Daten nicht trainiert.</li>
-            <li><strong>EU-/Lokal-Option (Premium):</strong> Auf Wunsch läuft auch die Antwortformulierung über ein <strong>lokal betriebenes Modell</strong> — dann findet <strong>keine Übermittlung in die USA</strong> statt. Etwas langsamer, dafür bleibt alles in Eigenregie. Ideal, wenn keine Drittland-Übermittlung gewünscht ist.</li>
-          </ul>
-        </section>
+        <h2 data-i18n-en="Processing">Verarbeitung</h2>
+        <p data-i18n-en="Reading in and search run on a server operated by [[BESTÄTIGEN: netcup GmbH]] in [[BESTÄTIGEN: country, EU]]. Once the live demo chat is activated, the question and the matching text excerpts are sent to Anthropic (USA) to formulate an answer. The live demo chat is currently disabled.">Das Einlesen und die Suche laufen auf einem Server von [[BESTÄTIGEN: netcup GmbH]] in [[BESTÄTIGEN: Land, EU]]. Sobald der Live-Demo-Chat aktiviert ist, werden für die Formulierung einer Antwort die Frage und die passenden Textausschnitte an Anthropic (USA) gesendet. Der Live-Demo-Chat ist derzeit deaktiviert.</p>
 
-        <section>
-          <h2>Welche Daten und welche Löschfristen?</h2>
-          <ul>
-            <li><strong>Chat-Verläufe</strong> werden nur gespeichert, wenn der Besucher im Consent-Popup zustimmt. Standard-Speicherdauer: <strong>90&nbsp;Tage</strong>, pro Bot auf 30/90/180/365&nbsp;Tage einstellbar. Danach löscht ein täglicher Job automatisch.</li>
-            <li><strong>IP-Adressen</strong> werden nie im Klartext gespeichert, sondern nur als <strong>SHA-256-Hash mit geheimem Salt</strong>.</li>
-            <li><strong>Kontaktanfragen (Leads)</strong> speichern wir, bis der Kunde sie löscht oder exportiert.</li>
-            <li><strong>Test-/Demo-Daten</strong> werden nicht dauerhaft gespeichert (Demo-Wissensbasis wird spätestens nach 24&nbsp;Stunden gelöscht).</li>
-            <li><strong>Löschung auf Zuruf:</strong> Der Kunde kann alle Anfragen eines Absenders gezielt löschen (Art.&nbsp;17 DSGVO) und alle Daten jederzeit exportieren.</li>
-          </ul>
-        </section>
+        <h2 data-i18n-en="Training">Training</h2>
+        <p data-i18n-en="According to Anthropic, API data is not used for training. [[BESTÄTIGEN + link to the Anthropic source]]">Laut Anthropic werden API-Daten nicht zum Training verwendet. [[BESTÄTIGEN + Link zur Anthropic-Quelle]]</p>
 
-        <section>
-          <h2>Wie stellen wir Ehrlichkeit sicher?</h2>
-          <p>Der Bot arbeitet ausschließlich mit Ihren Website-Inhalten und nennt die Quelle. Findet er die Antwort dort nicht, sagt er das offen — statt eine plausibel klingende, aber falsche Antwort zu erfinden. Wie belastbar das ist, dokumentieren wir im <a href="/ehrlichkeitstest.html">öffentlichen Ehrlichkeitstest</a>.</p>
-        </section>
+        <h2 data-i18n-en="Storage">Speicherung</h2>
+        <p data-i18n-en="No permanent storage of chats [[BESTÄTIGEN]]. Server logs [[BESTÄTIGEN: X days]]. IP addresses only shortened or hashed.">Keine dauerhafte Speicherung von Chats [[BESTÄTIGEN]]. Server-Logs [[BESTÄTIGEN: X Tage]]. IP-Adressen nur gekürzt bzw. gehasht.</p>
 
-        <section>
-          <h2>Für Kunden: Auftragsverarbeitung</h2>
-          <p>Setzen Sie den Bot auf Ihrer Website ein, sind Sie datenschutzrechtlich Verantwortlicher und wir Auftragsverarbeiter. Dafür gibt es einen fertigen <a href="/avv.html">Auftragsverarbeitungsvertrag (AVV)</a>. Details zur Verarbeitung stehen in der <a href="/datenschutz.html">Datenschutzerklärung</a>.</p>
-        </section>
+        <h2 data-i18n-en="Cookies &amp; tracking">Cookies &amp; Tracking</h2>
+        <p data-i18n-en="No cookies, no tracking, no third-party scripts.">Keine Cookies, kein Tracking, keine Drittanbieter-Skripte.</p>
       </div>
+
+      <aside class="card" data-reveal="160" style="margin-top:8px">
+        <p style="margin:0" data-i18n-en="Note pursuant to Art. 50 of the EU AI Act: the demo chat is an AI system. Answers are generated automatically and may be incorrect.">Hinweis nach Art. 50 KI-Verordnung: Der Demo-Chat ist ein KI-System. Antworten werden automatisch erzeugt und können fehlerhaft sein.</p>
+      </aside>
     </div>
   </section>
 </main>
@@ -95,37 +82,28 @@
   <div class="wrap footer-grid">
     <div class="footer-brand">
       <span class="brand-name">Fragio</span>
-      <p>KI-Chat für Website-Inhalte. Ehrliche Antworten aus Ihren eigenen Seiten. Standort Linz, Oberösterreich.</p>
+      <p>Fragio – ein KI-Chatbot, der nur sagt, was auf einer Website steht. Ein privates Softwareprojekt aus Oberösterreich.</p>
     </div>
     <div>
-      <p class="footer-h">Produkt</p>
+      <p class="footer-h">Projekt</p>
       <a href="/funktionen.html">Funktionen</a>
-      <a href="/ablauf.html">So funktioniert's</a>
-      <a href="/testen.html">Live testen</a>
-      <a href="/preise.html">Preise</a>
-    </div>
-    <div>
-      <p class="footer-h">Unternehmen</p>
-      <a href="/ueber.html">Über Fragio</a>
-      <a href="/kontakt.html">Kontakt</a>
-      <a href="/portal/">Kunden-Login</a>
-    </div>
-    <div>
-      <p class="footer-h">Vertrauen</p>
-      <a href="/ki-transparenz.html">KI &amp; Datenverarbeitung</a>
+      <a href="/testen.html">Ausprobieren</a>
       <a href="/ehrlichkeitstest.html">Ehrlichkeitstest</a>
-      <a href="/status.html">Status</a>
+      <a href="/faq.html">FAQ</a>
     </div>
     <div>
-      <p class="footer-h">Recht</p>
+      <p class="footer-h">Transparenz</p>
+      <a href="/ki-transparenz.html">KI &amp; Daten</a>
+      <a href="/ueber.html">Über</a>
+      <a href="/kontakt.html">Kontakt</a>
+    </div>
+    <div>
+      <p class="footer-h">Rechtliches</p>
       <a href="/impressum.html">Impressum</a>
       <a href="/datenschutz.html">Datenschutz</a>
-      <a href="/agb.html">AGB</a>
-      <a href="/widerruf.html">Widerrufsbelehrung</a>
-      <a href="/avv.html">AVV (Art. 28)</a>
     </div>
   </div>
-  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>Dies ist ein KI-Assistent.</span></div>
+  <div class="wrap footer-bottom"><span>© 2026 Peter Obermüller – Projekt Fragio</span></div>
 </footer>
 
 <script src="/site.js" defer></script>

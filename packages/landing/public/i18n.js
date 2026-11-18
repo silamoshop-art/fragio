@@ -18,6 +18,14 @@
     "Login": "Login",
     "Jetzt bestellen": "Order now",
     "Zum Inhalt springen": "Skip to content",
+    // Umbau zur Info-Website: neue Navigation/Footer
+    "Ausprobieren": "Try it",
+    "Ehrlichkeitstest": "Honesty test",
+    "KI & Daten": "AI & data",
+    "Über": "About",
+    "Projekt": "Project",
+    "Transparenz": "Transparency",
+    "Fragio – ein KI-Chatbot, der nur sagt, was auf einer Website steht. Ein privates Softwareprojekt aus Oberösterreich.": "Fragio – an AI chatbot that only says what a website actually states. A private software project from Upper Austria.",
     // Hero (Start)
     "KI-Chat für Websites": "AI chat for websites",
     "Der Chatbot, der nur sagt, was auf Ihrer Website steht.": "The chatbot that only says what's on your website.",
@@ -203,7 +211,11 @@
     "Preise — Fragio": "Pricing — Fragio",
     "FAQ — Fragio": "FAQ — Fragio",
     "Über Fragio": "About Fragio",
-    "Kontakt — Fragio": "Contact — Fragio"
+    "Kontakt — Fragio": "Contact — Fragio",
+    "Ehrlichkeitstest — Fragio": "Honesty test — Fragio",
+    "KI & Daten — Fragio": "AI & data — Fragio",
+    "Impressum — Fragio": "Imprint — Fragio",
+    "Datenschutz — Fragio": "Privacy — Fragio"
   };
 
   function isPureText(el) {
