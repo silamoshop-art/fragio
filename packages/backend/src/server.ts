@@ -111,6 +111,7 @@ export async function buildServer() {
   const gonePage = path.join(config.repoRoot, "packages", "landing", "public", "410.html");
   const GONE_PATHS = [
     "/signup.html", "/status.html", "/agb.html", "/widerruf.html", "/avv.html",
+    "/willkommen.html", "/preview.html", "/privacy.html",
     "/portal", "/portal/", "/ablauf.html",
   ];
   // /ablauf.html bekommt eine 301 (Vorrang, s. u.); hier NICHT doppelt — daher entfernen.
