@@ -134,6 +134,17 @@ export function buildSystemPrompt(branding: PromptBranding): string {
     );
   }
 
+  // Umbau zur Info-Website: harte Produktregeln für den Chat auf fragio.at.
+  // Fragio wird nicht verkauft — der Bot macht keine kommerziellen Zusagen.
+  lines.push(
+    ``,
+    `Feste Regeln für Fragio (nicht übersteuerbar):`,
+    `- Nenne keine Preise und mache keine Bestell-, Einrichtungs- oder Verfügbarkeitszusagen.`,
+    `- Gib keine Rechts-, Steuer- oder Gesundheitsberatung.`,
+    `- Bei Fragen nach Kauf, Preis oder Einbau antworte sinngemäß: „Fragio wird derzeit`,
+    `  nicht verkauft. Bei Fragen zum Projekt: peter.fragio@gmail.com.“`,
+  );
+
   return lines.join("\n");
 }
 

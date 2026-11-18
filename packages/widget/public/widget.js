@@ -37,9 +37,11 @@
   var cfg = {
     botName: "Website-Assistent",
     primaryColor: "#4f46e5",
-    greeting: "Hallo! Frag mich etwas über diese Website.",
+    greeting: "Hallo! Frag mich etwas über die Inhalte von fragio.at.",
     logoUrl: "",
-    aiNotice: "Dies ist ein KI-Chatbot. Antworten können Fehler enthalten.",
+    aiNotice:
+      "Ich bin ein KI-Assistent, kein Mensch. Ich kenne nur die Inhalte von fragio.at. " +
+      "Antworten werden automatisch erzeugt und können falsch sein. Bitte keine persönlichen Daten eingeben.",
     status: "active",
     lang: "de-DE",
     leadCapture: false,

@@ -16,6 +16,7 @@ import {
 } from "../db/repo.js";
 import { backendBase } from "../util/embed.js";
 import { isFragioOrigin } from "../util/origin.js";
+import { config } from "../config.js";
 import { CONSENT_NOTICE, defaultPrivacyText } from "../legal/privacy.js";
 
 /** Erlaubte Widget-Positionen (vier Ecken); Legacy 'right'/'left' -> unten. */
@@ -69,6 +70,9 @@ export async function widgetConfigRoutes(app: FastifyInstance): Promise<void> {
   // "site_widget_bot_id", sonst der aktive Betreiber-Bot, dessen Crawl-Host dem
   // eigenen Host (PUBLIC_BACKEND_URL) entspricht.
   app.get("/api/widget/site", async () => {
+    // Umbau: Solange der Live-Demo-Chat abgeschaltet ist, erscheint KEIN Widget
+    // (kein Bot zurückgeben -> widget.js rendert nichts).
+    if (!config.liveDemoEnabled) return { botId: null };
     const forced = getSetting("site_widget_bot_id");
     if (forced) {
       const b = getBot(forced);
