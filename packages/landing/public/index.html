@@ -5,7 +5,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Fragio — KI-Chat für Website-Inhalte</title>
-<meta name="description" content="Fragio liest Ihre Website und beantwortet Besucherfragen daraus — kurz, konkret, mit Quellenangabe. Steht etwas nicht auf der Seite, sagt der Bot das ehrlich, statt es zu erfinden." />
+<meta name="description" content="Fragio – ein privates KI-Softwareprojekt: ein Chatbot, der nur aus Website-Inhalten antwortet und Quellen nennt." />
 <link rel="canonical" href="https://fragio.at/" />
 <meta name="robots" content="index,follow" />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -15,7 +15,7 @@
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Fragio" />
 <meta property="og:title" content="Fragio — KI-Chat für Website-Inhalte" />
-<meta property="og:description" content="Der Chatbot, der nur sagt, was auf Ihrer Website steht. Kurz, konkret, mit Quellenangabe — und ehrlich, wenn eine Information fehlt." />
+<meta property="og:description" content="Ein Chatbot, der nur sagt, was auf einer Website steht — mit Quellenangabe, und ehrlich, wenn eine Information fehlt. Privates Softwareprojekt." />
 <meta property="og:url" content="https://fragio.at/" />
 <meta property="og:locale" content="de_AT" />
 <meta property="og:image" content="https://fragio.at/og-image.png" />
@@ -23,7 +23,7 @@
 <meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Fragio — KI-Chat für Website-Inhalte" />
-<meta name="twitter:description" content="Der Chatbot, der nur sagt, was auf Ihrer Website steht." />
+<meta name="twitter:description" content="Ein Chatbot, der nur sagt, was auf einer Website steht." />
 <meta name="twitter:image" content="https://fragio.at/og-image.png" />
 <link rel="stylesheet" href="/site.css" />
 </head>
@@ -39,16 +39,21 @@
     <button class="nav-toggle" aria-label="Menü" aria-expanded="false"><span></span><span></span><span></span></button>
     <div class="nav-links">
       <a href="/funktionen.html">Funktionen</a>
-      <a href="/ablauf.html">So funktioniert's</a>
-      <a href="/preise.html">Preise</a>
+      <a href="/testen.html">Ausprobieren</a>
+      <a href="/ehrlichkeitstest.html">Ehrlichkeitstest</a>
+      <a href="/ki-transparenz.html">KI &amp; Daten</a>
       <a href="/faq.html">FAQ</a>
+      <a href="/ueber.html">Über</a>
       <a href="/kontakt.html">Kontakt</a>
-      <a href="/portal/">Login</a>
       <button type="button" class="lang-toggle" aria-label="Switch to English">EN</button>
-      <a href="/preise.html" class="btn btn-primary btn-sm">Jetzt bestellen</a>
+      <a href="/testen.html" class="btn btn-primary btn-sm">Ausprobieren</a>
     </div>
   </nav>
 </header>
+
+<div class="project-status" role="note">
+  <div class="wrap"><span data-i18n-en="Fragio is a private software project in development. It is not for sale – no orders, no contracts.">Fragio ist ein privates Softwareprojekt in Entwicklung. Es wird derzeit nicht verkauft – keine Bestellungen, keine Verträge.</span></div>
+</div>
 
 <main id="main">
   <!-- HERO -->
@@ -56,21 +61,20 @@
     <div class="wrap hero-grid">
       <div>
         <h1 data-reveal>Der Chatbot, der nur sagt, was auf Ihrer Website steht.</h1>
-        <p class="lead" data-reveal="90">Fragio liest Ihre Website und beantwortet Besucherfragen daraus — kurz, konkret, mit Quellenangabe. Steht etwas nicht auf der Seite, sagt der Bot das offen, statt es zu erfinden.</p>
+        <p class="lead" data-reveal="90">Fragio ist darauf ausgelegt, Fragen ausschließlich aus den Inhalten einer Website zu beantworten und die Quelle zu nennen. Findet Fragio nichts Passendes, soll es das offen sagen, statt etwas zu erfinden.</p>
         <div class="btn-row" data-reveal="170">
-          <a href="/preise.html" class="btn btn-primary">Jetzt bestellen</a>
-          <a href="/testen.html" class="btn btn-ghost">Erst kostenlos testen</a>
+          <a href="/testen.html" class="btn btn-primary">Fragio ausprobieren</a>
+          <a href="/funktionen.html#technik" class="btn btn-ghost">So funktioniert's</a>
         </div>
-        <p class="hero-note" data-reveal="230" data-min-price data-i18n-en="From <strong>29&nbsp;€/mo</strong> · cancel monthly · order online, invoice by email">Ab <strong>29&nbsp;€/Monat</strong> · monatlich kündbar · Bestellung online, Rechnung per E-Mail</p>
       </div>
       <div class="hero-chat" data-reveal="120">
         <div class="chat-card">
-          <div class="chat-head"><span class="dot"></span><span class="chat-title">Chat mit der Website</span><span class="chat-ai">KI-Assistent</span></div>
+          <div class="chat-head"><span class="dot"></span><span class="chat-title">Beispiel mit einer erfundenen Website (fiktiv)</span><span class="chat-ai">KI</span></div>
           <div class="chat-body">
-            <div class="msg user">Habt ihr am Samstag offen?</div>
-            <div class="msg bot" data-i18n-en='Yes — Saturday from 8 a.m. to 12 p.m. Appointments outside those hours by request only.<span class="src">Source: /opening-hours</span>'>Ja — Samstag von 8 bis 12 Uhr. Termine außerhalb dieser Zeit nur auf Anfrage.<span class="src">Quelle: /oeffnungszeiten</span></div>
-            <div class="msg user">Was kostet eine Erstberatung?</div>
-            <div class="msg bot flag">Dazu steht auf der Website leider kein Preis. Am besten kurz anrufen unter 0732 123456 — dort bekommen Sie eine verbindliche Auskunft.</div>
+            <div class="msg user">Haben Sie am Samstag offen?</div>
+            <div class="msg bot" data-i18n-en='According to the website, it is open on Saturdays from 8 a.m. to 12 p.m.<span class="src">Source: /opening-hours</span>'>Laut Website ist samstags von 8 bis 12 Uhr geöffnet.<span class="src">Quelle: /oeffnungszeiten</span></div>
+            <div class="msg user">Was kostet ein Esstisch aus Eiche?</div>
+            <div class="msg bot flag" data-i18n-en='I can&#39;t find a price for that on this website. For quotes, the website refers to its contact form.<span class="src">Source: /contact</span>'>Dazu finde ich auf dieser Website keinen Preis. Für Angebote verweist die Website auf ihr Kontaktformular.<span class="src">Quelle: /kontakt</span></div>
             <p class="chat-foot">Genau das ist der Unterschied: keine erfundene Zahl, sondern ein ehrliches „weiß ich nicht".</p>
           </div>
         </div>
@@ -80,79 +84,34 @@
 
   <!-- VALUE BAND -->
   <section class="band">
-    <div class="wrap"><p class="band-text">Keine erfundenen Antworten. Der Bot arbeitet ausschließlich mit den Inhalten Ihrer eigenen Website — und nennt die Seite, aus der die Antwort kommt. Betrieben aus Österreich, mit persönlichem deutschsprachigem Ansprechpartner und Einbau auf Wunsch.</p></div>
+    <div class="wrap"><p class="band-text">Keine erfundenen Antworten. Fragio arbeitet ausschließlich mit den Inhalten einer Website — und nennt die Seite, aus der die Antwort kommt.</p></div>
   </section>
 
-  <!-- FEATURES TEASER -->
+  <!-- DREI GRUNDSÄTZE -->
   <section class="section">
     <div class="wrap">
       <div class="section-head">
         <div>
-          <h2 data-reveal>Was Fragio für Sie übernimmt</h2>
-          <p class="section-sub" data-reveal="60">Rund um die Uhr Fragen beantworten — professionell und ohne Erfindungen.</p>
+          <h2 data-reveal>Drei Grundsätze</h2>
+          <p class="section-sub" data-reveal="60">Woran sich Fragio hält.</p>
         </div>
         <a href="/funktionen.html" class="link-more" data-reveal="60">Alle Funktionen →</a>
       </div>
       <div class="grid-3">
         <article class="card" data-lift data-reveal>
-          <h3>Antwortet rund um die Uhr</h3>
-          <p>Die Fragen, die sonst am Telefon landen, sind auch um 21:30 beantwortet.</p>
+          <h3>Nur aus der Website</h3>
+          <p>Fragio nutzt kein allgemeines Internetwissen, sondern die eingelesenen Seiten.</p>
         </article>
         <article class="card" data-lift data-reveal="70">
-          <h3>Bleibt automatisch aktuell</h3>
-          <p>Einmal pro Woche wird Ihre Website neu gelesen — neue Preise oder Inhalte kennt der Bot ab dem nächsten Lauf.</p>
+          <h3>Mit Quelle</h3>
+          <p>Zu jeder Antwort gibt es einen Link zur Seite, auf der sie steht.</p>
         </article>
         <article class="card" data-lift data-reveal="140">
-          <h3>Zeigt Ihre Content-Lücken</h3>
-          <p>Jede Frage, die der Bot nicht beantworten konnte, sehen Sie in Ihrem Dashboard — Ihre To-do-Liste.</p>
+          <h3>Ehrlich bei Lücken</h3>
+          <p>Fehlt eine Information, ist Fragio darauf ausgelegt, das zu sagen — gerade bei Preisen, Adressen und Terminen.</p>
         </article>
       </div>
-    </div>
-  </section>
-
-  <!-- HOW IT WORKS TEASER -->
-  <section class="section alt">
-    <div class="wrap">
-      <div class="section-head">
-        <div>
-          <h2 data-reveal>In drei Schritten startklar</h2>
-          <p class="section-sub" data-reveal="60">Kein technisches Vorwissen nötig.</p>
-        </div>
-        <a href="/ablauf.html" class="link-more" data-reveal="60">So funktioniert's im Detail →</a>
-      </div>
-      <ol class="steps">
-        <li data-reveal><span class="step-n">1</span><h3>Website eintragen</h3><p>Sie nennen uns Ihre Adresse — Fragio liest alle Unterseiten, auch verlinkte PDF-Dokumente.</p></li>
-        <li data-reveal="70"><span class="step-n">2</span><h3>Vorab testen</h3><p>Stellen Sie dem Bot Ihre typischen Kundenfragen — bevor irgendetwas eingebaut wird.</p></li>
-        <li data-reveal="140"><span class="step-n">3</span><h3>Eine Zeile einfügen</h3><p>Eine Script-Zeile in Ihre Website — auf Wunsch übernehmen wir das für Sie.</p></li>
-      </ol>
-    </div>
-  </section>
-
-  <!-- PRICING TEASER -->
-  <section class="section">
-    <div class="wrap">
-      <div class="section-head">
-        <div>
-          <h2 data-reveal>Einfache, faire Preise</h2>
-          <p class="section-sub" data-reveal="60">Monatlich, ohne Bindung. Online bestellen, Rechnung per E-Mail.</p>
-        </div>
-        <a href="/preise.html" class="link-more" data-reveal="60">Alle Details &amp; bestellen →</a>
-      </div>
-      <div class="grid-3">
-        <article class="price-card" data-lift data-reveal data-plan="starter">
-          <p class="plan">Basis</p><p class="price">29&nbsp;€<span>/Monat</span></p><p class="quota">500 Antworten/Monat</p>
-          <a href="/preise.html" class="btn btn-ghost btn-block">Bestellen</a>
-        </article>
-        <article class="price-card featured" data-lift data-reveal="70" data-plan="business">
-          <span class="badge">Empfohlen</span>
-          <p class="plan">Standard</p><p class="price">79&nbsp;€<span>/Monat</span></p><p class="quota">2.500 Antworten/Monat</p>
-          <a href="/preise.html" class="btn btn-primary btn-block">Bestellen</a>
-        </article>
-        <article class="price-card" data-lift data-reveal="140" data-plan="pro">
-          <p class="plan">Betreut</p><p class="price">199&nbsp;€<span>/Monat</span></p><p class="quota">10.000 Antworten/Monat</p>
-          <a href="/preise.html" class="btn btn-ghost btn-block">Bestellen</a>
-        </article>
-      </div>
+      <p class="section-sub" data-reveal="180" style="margin-top:24px">Fehler sind trotzdem möglich. Deshalb steht bei jeder Antwort die Quelle zum Nachprüfen. <a href="/funktionen.html#grenzen">Grenzen ansehen →</a></p>
     </div>
   </section>
 
@@ -160,12 +119,11 @@
   <section class="cta">
     <div class="wrap cta-inner">
       <div>
-        <h2 data-reveal>Bereit, Ihre Besucher besser zu beantworten?</h2>
-        <p data-reveal="60">Testen Sie den Bot kostenlos mit Ihrer eigenen Website — oder bestellen Sie direkt online.</p>
+        <h2 data-reveal>Sehen Sie selbst.</h2>
+        <p data-reveal="60">Stellen Sie Fragio Fragen, auch solche, auf die es keine Antwort geben kann.</p>
       </div>
       <div class="btn-row" data-reveal="120">
-        <a href="/preise.html" class="btn btn-accent">Jetzt bestellen</a>
-        <a href="/testen.html" class="btn btn-ghost-light">Kostenlos testen</a>
+        <a href="/testen.html" class="btn btn-accent">Ausprobieren</a>
       </div>
     </div>
   </section>
@@ -175,37 +133,28 @@
   <div class="wrap footer-grid">
     <div class="footer-brand">
       <span class="brand-name">Fragio</span>
-      <p>KI-Chat für Website-Inhalte. Ehrliche Antworten aus Ihren eigenen Seiten. Standort Linz, Oberösterreich.</p>
+      <p>Fragio – ein KI-Chatbot, der nur sagt, was auf einer Website steht. Ein privates Softwareprojekt aus Oberösterreich.</p>
     </div>
     <div>
-      <p class="footer-h">Produkt</p>
+      <p class="footer-h">Projekt</p>
       <a href="/funktionen.html">Funktionen</a>
-      <a href="/ablauf.html">So funktioniert's</a>
-      <a href="/testen.html">Live testen</a>
-      <a href="/preise.html">Preise</a>
-    </div>
-    <div>
-      <p class="footer-h">Unternehmen</p>
-      <a href="/ueber.html">Über Fragio</a>
-      <a href="/kontakt.html">Kontakt</a>
-      <a href="/portal/">Kunden-Login</a>
-    </div>
-    <div>
-      <p class="footer-h">Vertrauen</p>
-      <a href="/ki-transparenz.html">KI &amp; Datenverarbeitung</a>
+      <a href="/testen.html">Ausprobieren</a>
       <a href="/ehrlichkeitstest.html">Ehrlichkeitstest</a>
-      <a href="/status.html">Status</a>
+      <a href="/faq.html">FAQ</a>
     </div>
     <div>
-      <p class="footer-h">Recht</p>
+      <p class="footer-h">Transparenz</p>
+      <a href="/ki-transparenz.html">KI &amp; Daten</a>
+      <a href="/ueber.html">Über</a>
+      <a href="/kontakt.html">Kontakt</a>
+    </div>
+    <div>
+      <p class="footer-h">Rechtliches</p>
       <a href="/impressum.html">Impressum</a>
       <a href="/datenschutz.html">Datenschutz</a>
-      <a href="/agb.html">AGB</a>
-      <a href="/widerruf.html">Widerrufsbelehrung</a>
-      <a href="/avv.html">AVV (Art. 28)</a>
     </div>
   </div>
-  <div class="wrap footer-bottom"><span>© 2026 Fragio · Linz</span><span>Dies ist ein KI-Assistent.</span></div>
+  <div class="wrap footer-bottom"><span>© 2026 Peter Obermüller – Projekt Fragio</span></div>
 </footer>
 
 <script src="/site.js" defer></script>

@@ -65,6 +65,11 @@ input, textarea { caret-color: var(--accent); }
 
 /* ---- Header / Nav ---- */
 .site-header { position: sticky; top: 0; z-index: 50; background: oklch(0.985 0.003 258 / 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+/* Projektstatus-Leiste (Umbau zur Info-Website): dezenter, nicht wegklickbarer
+   Hinweis direkt unter dem Header — auf jeder Seite. */
+.project-status { background: var(--accent-soft); border-bottom: 1px solid var(--line); color: var(--accent-dark); font-size: 13.5px; }
+.project-status .wrap { padding-top: 9px; padding-bottom: 9px; text-align: center; }
+@media (max-width: 640px) { .project-status { font-size: 12.5px; } .project-status .wrap { text-align: left; } }
 .nav { max-width: var(--wrap); margin: 0 auto; padding: 14px clamp(20px, 4vw, 40px); display: flex; align-items: center; gap: 20px; }
 .brand { display: inline-flex; align-items: center; gap: 9px; font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; margin-right: auto; }
 .brand:hover { color: var(--ink); }
