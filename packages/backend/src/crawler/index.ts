@@ -68,6 +68,8 @@ export interface IndexResult {
 export interface CrawlIndexOptions {
   /** Obergrenze zu indexierender PDFs (z. B. Demo-Crawl) — bounded Ressourcen. */
   maxPdfs?: number;
+  /** Öffentliche Demo: SSRF-gehärteter Crawl (aufgelöste IP + Port-Prüfung je Anfrage). */
+  publicOnly?: boolean;
 }
 
 export async function crawlAndIndex(
@@ -80,6 +82,7 @@ export async function crawlAndIndex(
   // 1) Crawlen (Seiten + verlinkte same-site PDFs).
   const { pages, pdfUrls } = await crawl(bot.crawl_start_url, {
     maxPages: bot.crawl_max_pages,
+    publicOnly: opts?.publicOnly,
     onProgress: (p) =>
       onProgress?.({ ...p, phase: "crawling", chunks: 0 }),
   });
@@ -161,7 +164,7 @@ export async function crawlAndIndex(
     if (SKIP_INDEX_PATH.test(pdfUrl)) continue; // rechtliche PDFs (AGB/Datenschutz) auslassen
     let pdfText: string | null = null;
     try {
-      pdfText = await fetchAndExtractPdf(pdfUrl);
+      pdfText = await fetchAndExtractPdf(pdfUrl, opts?.publicOnly);
     } catch {
       pdfText = null; // Fehler pro PDF -> überspringen, Crawl NICHT abbrechen
     }

@@ -16,7 +16,7 @@
  * Robustheit: Größenlimit, Signatur-Check, und bei nicht lesbaren PDFs (gescannte
  * Bilder, passwortgeschützt, korrupt) sauberes null statt Exception.
  */
-import { checkPublicHttpUrl } from "../util/url-guard.js";
+import { checkPublicHttpUrl, guardedFetch } from "../util/url-guard.js";
 import { CRAWLER_UA } from "./crawl.js";
 
 /** Obergrenze pro PDF (Speicher-/Zeitschutz). */
@@ -27,14 +27,14 @@ export const MAX_PDF_BYTES = 5 * 1024 * 1024; // 5 MB
  * zurück oder null, wenn das PDF nicht erreichbar, zu groß, kein echtes PDF oder
  * nicht lesbar ist.
  */
-export async function fetchAndExtractPdf(url: string): Promise<string | null> {
+export async function fetchAndExtractPdf(url: string, publicOnly = false): Promise<string | null> {
   if (!checkPublicHttpUrl(url).ok) return null; // SSRF-Schutz
 
   // Robuster Download mit Retry: der ERSTE fetch direkt nach dem Playwright-Crawl
   // scheitert gelegentlich transient ("fetch failed", undici-Verbindungsrace nach
   // Browser-Shutdown) — dann würde ein reales Preis-PDF verloren gehen. Deshalb
   // bis zu 3 Versuche mit kurzer Wartezeit und Timeout.
-  const res = await fetchPdfWithRetry(url);
+  const res = await fetchPdfWithRetry(url, 3, publicOnly);
   if (!res || !res.ok) return null;
 
   const ct = (res.headers.get("content-type") || "").toLowerCase();
@@ -62,14 +62,12 @@ export async function fetchAndExtractPdf(url: string): Promise<string | null> {
 }
 
 /** PDF-Download mit bis zu `attempts` Versuchen (transiente Netzfehler abfangen) + Timeout. */
-async function fetchPdfWithRetry(url: string, attempts = 3): Promise<Response | null> {
+async function fetchPdfWithRetry(url: string, attempts = 3, publicOnly = false): Promise<Response | null> {
   for (let i = 0; i < attempts; i++) {
     try {
-      return await fetch(url, {
-        headers: { "user-agent": CRAWLER_UA },
-        redirect: "follow",
-        signal: AbortSignal.timeout(20000),
-      });
+      const init = { headers: { "user-agent": CRAWLER_UA }, signal: AbortSignal.timeout(20000) };
+      if (publicOnly) return await guardedFetch(url, init); // null = blockiert -> kein Retry nötig
+      return await fetch(url, { ...init, redirect: "follow" });
     } catch {
       if (i < attempts - 1) await new Promise((r) => setTimeout(r, 400 * (i + 1)));
     }

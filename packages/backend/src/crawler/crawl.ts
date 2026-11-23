@@ -8,6 +8,7 @@
  */
 import { chromium, type Browser } from "playwright";
 import robotsParserImport from "robots-parser";
+import { guardedFetch, hostIsPublic, isAllowedPort } from "../util/url-guard.js";
 
 // robots-parser ist ein CommonJS-Modul; unter NodeNext die Aufrufsignatur casten.
 const robotsParser = robotsParserImport as unknown as (
@@ -58,6 +59,12 @@ export interface CrawlOptions {
   maxDepth?: number;
   timeoutMs?: number;
   onProgress?: (info: CrawlProgress) => void;
+  /**
+   * Öffentliche Demo (beliebige Besucher-URL): JEDE Browser-Anfrage (Seiten,
+   * Weiterleitungen, Unterressourcen) wird vor dem Senden zur IP aufgelöst und nur
+   * zugelassen, wenn sie öffentlich ist und auf Port 80/443 geht (SSRF-Schutz).
+   */
+  publicOnly?: boolean;
 }
 
 export interface CrawlProgress {
@@ -166,11 +173,12 @@ function pdfLinkIfSameSite(href: string, base: string, originHost: string): stri
 const NOT_FOUND_TITLE =
   /(page not found|not found|404|nicht gefunden|seite nicht gefunden|fehler\s*404|error\s*404|no encontrada|introuvable)/i;
 
-async function loadRobots(origin: string): Promise<ReturnType<typeof robotsParser>> {
+async function loadRobots(origin: string, publicOnly = false): Promise<ReturnType<typeof robotsParser>> {
   const robotsUrl = `${origin}/robots.txt`;
   try {
-    const res = await fetch(robotsUrl, { headers: { "user-agent": CRAWLER_UA } });
-    const body = res.ok ? await res.text() : "";
+    const init = { headers: { "user-agent": CRAWLER_UA }, signal: AbortSignal.timeout(10000) };
+    const res = publicOnly ? await guardedFetch(robotsUrl, init) : await fetch(robotsUrl, init);
+    const body = res && res.ok ? (await res.text()).slice(0, 500_000) : "";
     return robotsParser(robotsUrl, body);
   } catch {
     // robots.txt nicht erreichbar -> nichts blockiert.
@@ -190,7 +198,7 @@ export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<
   // den finalen Host nach Weiterleitung aktualisiert (apex→www oder Domainwechsel).
   let originHost = siteHost(new URL(start).hostname);
 
-  const robots = await loadRobots(origin);
+  const robots = await loadRobots(origin, opts.publicOnly);
   const results: CrawledPage[] = [];
   const pdfUrls = new Set<string>(); // same-site PDF-Links (Prompt 16 #2)
   const seen = new Set<string>([dedupeKey(start)]);
@@ -202,6 +210,22 @@ export async function crawl(startUrl: string, opts: CrawlOptions = {}): Promise<
   try {
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ userAgent: CRAWLER_UA });
+    if (opts.publicOnly) {
+      await context.route("**/*", async (route) => {
+        try {
+          const u = new URL(route.request().url());
+          if (
+            (u.protocol === "http:" || u.protocol === "https:") &&
+            (!isAllowedPort(u) || !(await hostIsPublic(u.hostname)))
+          ) {
+            return await route.abort("blockedbyclient");
+          }
+          await route.continue();
+        } catch {
+          await route.abort("blockedbyclient").catch(() => {});
+        }
+      });
+    }
 
     while (queue.length && results.length < maxPages) {
       const { url, depth } = queue.shift()!;

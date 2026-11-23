@@ -222,10 +222,12 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
       // abbrechen. Vorher lief der Anthropic-Stream serverseitig weiter, obwohl
       // der Browser schon weg war — reine Kostenverschwendung.
       const abort = new AbortController();
-      request.raw.on("close", () => {
-        // reply.raw.writableEnded = Antwort regulär beendet; nur bei echtem
-        // Client-Disconnect (vor „done") den LLM-Stream abbrechen.
-        if (!res.writableEnded) abort.abort();
+      // WICHTIG: auf der RESPONSE lauschen, nicht auf request.raw — das Request-
+      // 'close' feuert in neueren Node-Versionen schon, sobald der Body gelesen ist,
+      // und würde JEDE Antwort sofort abbrechen (leere Antworten).
+      res.on("close", () => {
+        // Nur bei echtem Client-Disconnect (vor dem regulären Ende) abbrechen.
+        if (!res.writableFinished) abort.abort();
       });
       try {
         // Nur mit Analytics-Einwilligung wird der Gesprächsinhalt in chat_logs

@@ -25,7 +25,7 @@
     "Über": "About",
     "Projekt": "Project",
     "Transparenz": "Transparency",
-    "Fragio – ein KI-Chatbot, der nur sagt, was auf einer Website steht. Ein privates Softwareprojekt aus Oberösterreich.": "Fragio – an AI chatbot that only says what a website actually states. A private software project from Upper Austria.",
+    "Fragio – ein KI-Chatbot, der nur sagt, was auf einer Website steht.": "Fragio – an AI chatbot that only says what a website actually states.",
     // Hero (Start)
     "KI-Chat für Websites": "AI chat for websites",
     "Der Chatbot, der nur sagt, was auf Ihrer Website steht.": "The chatbot that only says what's on your website.",

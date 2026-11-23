@@ -16,7 +16,9 @@
  */
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { checkPublicHttpUrl } from "../util/url-guard.js";
+import { config } from "../config.js";
+import { isFragioOrigin } from "../util/origin.js";
+import { checkPublicHttpUrl, hostIsPublic, isAllowedPort } from "../util/url-guard.js";
 import { getOrCreateSystemTenant, createBot, deleteBot, setCrawlResult } from "../db/repo.js";
 import { crawlAndIndex } from "../crawler/index.js";
 
@@ -65,6 +67,21 @@ function ipThrottled(ip: string): boolean {
   return false;
 }
 
+/** Globales Tageslimit (Kosten-/Last-Schutz für die öffentliche Demo). */
+const DAILY_MAX_CRAWLS = 150;
+let dayKey = "";
+let dayCount = 0;
+function dailyCrawlsExceeded(): boolean {
+  const k = new Date().toISOString().slice(0, 10);
+  if (k !== dayKey) {
+    dayKey = k;
+    dayCount = 0;
+  }
+  if (dayCount >= DAILY_MAX_CRAWLS) return true;
+  dayCount++;
+  return false;
+}
+
 const BodySchema = z.object({ url: z.string().min(3).max(2048) });
 
 /** Adresse ohne Schema -> https:// voranstellen; danach hart validieren. */
@@ -84,6 +101,12 @@ function domainOf(url: string): string {
 
 export async function demoRoutes(app: FastifyInstance): Promise<void> {
   app.post("/api/demo/start", async (request: FastifyRequest, reply) => {
+    if (!config.liveDemoEnabled) {
+      return reply.code(503).send({ error: "Die Live-Demo ist derzeit nicht aktiv." });
+    }
+    if (!isFragioOrigin(request.headers.origin)) {
+      return reply.code(403).send({ error: "Nicht erlaubt." });
+    }
     const parsed = BodySchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: "Bitte eine gültige Website-Adresse angeben." });
@@ -95,7 +118,18 @@ export async function demoRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(400).send({ error: check.reason || "Adresse nicht erlaubt." });
     }
     const startUrl = check.normalized || normalized;
+    const startParsed = new URL(startUrl);
+    if (!isAllowedPort(startParsed) || !(await hostIsPublic(startParsed.hostname))) {
+      return reply.code(400).send({
+        error: "Diese Adresse ist nicht erreichbar oder nicht öffentlich. Erlaubt sind nur öffentliche Websites (Port 80/443).",
+      });
+    }
 
+    if (dailyCrawlsExceeded()) {
+      return reply.code(503).send({
+        error: "Die Demo hat heute ihr Tageslimit erreicht. Bitte morgen erneut versuchen.",
+      });
+    }
     if (ipThrottled(request.ip)) {
       return reply.code(429).send({
         error: "Zu viele Test-Crawls von dieser Verbindung. Bitte später erneut versuchen.",
@@ -144,7 +178,7 @@ export async function demoRoutes(app: FastifyInstance): Promise<void> {
             send("progress", { url: p.currentUrl, fetched: p.fetched });
           }
         },
-        { maxPdfs: DEMO_MAX_PDFS },
+        { maxPdfs: DEMO_MAX_PDFS, publicOnly: true },
       );
       setCrawlResult(bot.id, "ok", null);
       done = true;

@@ -24,6 +24,7 @@ import { chatRoutes } from "./routes/chat.js";
 import { widgetConfigRoutes } from "./routes/widget-config.js";
 import { adminRoutes } from "./routes/admin.js";
 import { contactRoutes } from "./routes/contact.js";
+import { demoRoutes } from "./routes/demo.js";
 import { startCron } from "./cron.js";
 // Umbau zur reinen Info-Website: Signup, Kunden-Portal, Stripe-/Lemon-Squeezy-
 // Webhooks und der Demo-Endpunkt (Einlesen beliebiger fremder URLs) sind
@@ -200,6 +201,7 @@ export async function buildServer() {
 
   await app.register(chatRoutes); // auf fragio.at gesperrt
   await app.register(widgetConfigRoutes); // auf fragio.at gesperrt
+  await app.register(demoRoutes); // Live-Demo (eigene Website), nur mit LIVE_DEMO_ENABLED
   await app.register(contactRoutes); // Kontaktformular der Info-Website
   await app.register(adminRoutes); // Betreiber-Tool, nur mit ADMIN_API_KEY, nicht verlinkt
 
