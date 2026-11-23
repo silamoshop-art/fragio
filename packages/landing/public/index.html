@@ -53,10 +53,6 @@
   </nav>
 </header>
 
-<div class="project-status" role="note">
-  <div class="wrap"><span data-i18n-en="Fragio is a private software project in development. It is not for sale – no orders, no contracts.">Fragio ist ein privates Softwareprojekt in Entwicklung. Es wird derzeit nicht verkauft – keine Bestellungen, keine Verträge.</span></div>
-</div>
-
 <main id="main">
   <!-- HERO -->
   <section class="hero">
@@ -71,12 +67,13 @@
       </div>
       <div class="hero-chat" data-reveal="120">
         <div class="chat-card">
-          <div class="chat-head"><span class="dot"></span><span class="chat-title">Beispiel mit einer erfundenen Website (fiktiv)</span><span class="chat-ai">KI</span></div>
+          <div class="chat-head"><span class="dot"></span><span class="chat-title" data-i18n-en="Fragio answers questions about fragio.at">Fragio beantwortet Fragen zu fragio.at</span><span class="chat-ai">KI</span></div>
           <div class="chat-body">
-            <div class="msg user">Haben Sie am Samstag offen?</div>
-            <div class="msg bot" data-i18n-en='According to the website, it is open on Saturdays from 8 a.m. to 12 p.m.<span class="src">Source: /opening-hours</span>'>Laut Website ist samstags von 8 bis 12 Uhr geöffnet.<span class="src">Quelle: /oeffnungszeiten</span></div>
-            <div class="msg user">Was kostet ein Esstisch aus Eiche?</div>
-            <div class="msg bot flag" data-i18n-en='I can&#39;t find a price for that on this website. For quotes, the website refers to its contact form.<span class="src">Source: /contact</span>'>Dazu finde ich auf dieser Website keinen Preis. Für Angebote verweist die Website auf ihr Kontaktformular.<span class="src">Quelle: /kontakt</span></div>
+            <!-- Echte, unveränderte Antworten des Fragio-Bots auf die Inhalte dieser Website (Lauf vom 23.11.2026). -->
+            <div class="msg user" data-i18n-en="Which AI is behind it?">Welche KI steckt dahinter?</div>
+            <div class="msg bot" data-i18n-en='A language model from Anthropic (Claude Haiku 4.5) formulates the answers. The model only receives the question and matching text sections from the website and is instructed not to claim anything beyond them.<span class="src">Source: /ki-transparenz.html</span>'>Ein Sprachmodell von Anthropic (Claude Haiku 4.5) formuliert die Antworten. Das Modell bekommt nur die Frage und passende Textabschnitte von der Website und ist angewiesen, nichts darüber hinaus zu behaupten.<span class="src">Quelle: /ki-transparenz.html</span></div>
+            <div class="msg user" data-i18n-en="How many customers does Fragio have?">Wie viele Kunden hat Fragio?</div>
+            <div class="msg bot flag" data-i18n-en="I can't answer that based on the website. The context contains no information about the number of Fragio's customers.">Das kann ich anhand der Website nicht beantworten. Der Kontext enthält keine Informationen zur Anzahl der Kunden von Fragio.</div>
             <p class="chat-foot">Genau das ist der Unterschied: keine erfundene Zahl, sondern ein ehrliches „weiß ich nicht".</p>
           </div>
         </div>
@@ -156,7 +153,7 @@
       <a href="/datenschutz.html">Datenschutz</a>
     </div>
   </div>
-  <div class="wrap footer-bottom"><span>© 2026 Peter Obermüller – Projekt Fragio</span></div>
+  <div class="wrap footer-bottom"><span>© 2026 Fragio</span></div>
 </footer>
 
 <script src="/site.js" defer></script>
