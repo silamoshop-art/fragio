@@ -639,6 +639,13 @@
         return '<a href="' + u + '" target="_blank" rel="noopener noreferrer">' + t + "</a>";
       }
     );
+    // Markdown-Link [Text](mailto:adresse) — nur mailto:, kein javascript:.
+    html = html.replace(
+      /\[([^\]]+)\]\((mailto:[^\s)"'<>]+)\)/g,
+      function (m, t, u) {
+        return '<a href="' + u + '">' + t + "</a>";
+      }
+    );
     // Blanke URLs (nicht bereits in einem Tag/Attribut) verlinken.
     html = html.replace(
       /(^|[\s(])(https?:\/\/[^\s<)]+)/g,

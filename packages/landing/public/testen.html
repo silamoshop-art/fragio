@@ -195,9 +195,14 @@
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function renderAnswer(text) {
     var out = esc(text);
-    out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, function (_m, l, u) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener nofollow">' + esc(l) + "</a>"; });
-    out = out.replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, function (_m, p, u) { return p + '<a href="' + esc(u) + '" target="_blank" rel="noopener nofollow">' + esc(u) + "</a>"; });
+    // Markdown-Links [Text](https://…) und [Text](mailto:…) — Text/URL sind hier schon escaped.
+    out = out.replace(/\[([^\]]+)\]\(((?:https?:\/\/|mailto:)[^\s)]+)\)/g, function (_m, l, u) {
+      var ext = u.indexOf("mailto:") === 0 ? "" : ' target="_blank" rel="noopener nofollow"';
+      return '<a href="' + u + '"' + ext + ">" + l + "</a>";
+    });
+    out = out.replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, function (_m, p, u) { return p + '<a href="' + u + '" target="_blank" rel="noopener nofollow">' + u + "</a>"; });
     out = out.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    out = out.replace(/^- /gm, "• ");
     return out;
   }
   function streamSSE(url, body, onEvent) {
