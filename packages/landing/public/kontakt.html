@@ -45,42 +45,49 @@
 
 <main id="main">
   <section class="section">
-    <div class="wrap" style="max-width:720px">
+    <div class="wrap" style="max-width:980px">
       <div class="page-head">
-        <h1 data-reveal data-i18n-en="Questions or feedback about Fragio?">Fragen oder Feedback zu Fragio?</h1>
-        <p class="section-sub" data-reveal="80" data-i18n-en="Write to me if you have questions about the project, found a wrong answer or want to share ideas. I'll reply as soon as I can.">Schreiben Sie mir, wenn Sie Fragen zum Projekt haben, eine falsche Antwort gefunden haben oder Ideen teilen möchten. Ich antworte, so schnell es geht.</p>
+        <h1 data-reveal data-i18n-en="Contact">Kontakt</h1>
+        <p class="section-sub" data-reveal="80" data-i18n-en="Questions, interest in Fragio or feedback? Write to me. I will get back to you personally.">Fragen, Interesse an Fragio oder Feedback? Schreiben Sie mir. Ich melde mich persönlich bei Ihnen.</p>
       </div>
 
-      <aside class="card" data-reveal="100" style="margin-bottom:24px">
-        <p style="margin:0" data-i18n-en="Interested in Fragio or have questions about it? Just write to me. I will get back to you personally.">Interesse an Fragio oder Fragen dazu? Schreiben Sie mir einfach. Ich melde mich persönlich bei Ihnen.</p>
-      </aside>
+      <div class="contact-grid">
+        <div class="contact-card" data-reveal="120">
+          <form id="contact-form" class="form form-wide" method="post" action="/api/contact" novalidate>
+            <input type="hidden" name="fillMs" value="" />
+            <!-- Honeypot: für Menschen unsichtbar; wird es ausgefüllt, verwerfen wir still. -->
+            <div aria-hidden="true" style="position:absolute;left:-9999px;top:auto;height:0;overflow:hidden">
+              <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+            </div>
+            <div class="field">
+              <label for="cf-name"><span data-i18n-en="Name">Name</span> <span class="opt" data-i18n-en="(optional)">(optional)</span></label>
+              <input id="cf-name" name="name" type="text" maxlength="120" autocomplete="name" />
+            </div>
+            <div class="field">
+              <label for="cf-email" data-i18n-en="Email">E-Mail</label>
+              <input id="cf-email" name="email" type="email" required maxlength="200" autocomplete="email" />
+            </div>
+            <div class="field">
+              <label for="cf-msg" data-i18n-en="Message">Nachricht</label>
+              <textarea id="cf-msg" name="message" rows="6" required maxlength="2000"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" data-i18n-en="Send message">Nachricht senden</button>
+            <p class="form-note" data-i18n-en='Your details are used only to answer your message and are then deleted, at the latest after 6 months. More in the <a href="/datenschutz.html">privacy policy</a>.'>Ihre Angaben werden nur zur Beantwortung Ihrer Nachricht verwendet und danach gelöscht, spätestens nach 6 Monaten. Mehr in der <a href="/datenschutz.html">Datenschutzerklärung</a>.</p>
+          </form>
 
-      <form id="contact-form" method="post" action="/api/contact" data-reveal="140" novalidate>
-        <input type="hidden" name="fillMs" value="" />
-        <!-- Honeypot: für Menschen unsichtbar; wird es ausgefüllt, verwerfen wir still. -->
-        <div aria-hidden="true" style="position:absolute;left:-9999px;top:auto;height:0;overflow:hidden">
-          <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+          <p id="contact-ok" hidden role="status" aria-live="polite" class="notice notice-ok" data-i18n-en="Thank you, your message has arrived. I will get back to you soon.">Danke, Ihre Nachricht ist angekommen. Ich melde mich in Kürze.</p>
+          <p id="contact-err" hidden role="alert" aria-live="assertive" class="notice notice-err" data-i18n-en="Sending didn't work. Please write directly to peter.fragio@gmail.com.">Das Senden hat nicht geklappt. Bitte schreiben Sie direkt an peter.fragio@gmail.com.</p>
         </div>
-        <div class="field">
-          <label for="cf-name" data-i18n-en="Name (optional)">Name (optional)</label>
-          <input id="cf-name" name="name" type="text" maxlength="120" autocomplete="name" />
-        </div>
-        <div class="field">
-          <label for="cf-email" data-i18n-en="Email (required)">E-Mail (Pflicht)</label>
-          <input id="cf-email" name="email" type="email" required maxlength="200" autocomplete="email" />
-        </div>
-        <div class="field">
-          <label for="cf-msg" data-i18n-en="Message (required)">Nachricht (Pflicht)</label>
-          <textarea id="cf-msg" name="message" rows="6" required maxlength="2000"></textarea>
-        </div>
-        <button type="submit" class="btn btn-primary" data-i18n-en="Send message">Nachricht senden</button>
-        <p class="section-sub" style="margin-top:14px" data-i18n-en='Your details are used only to answer your message and are then deleted, at the latest after 6 months. More in the <a href="/datenschutz.html">privacy policy</a>.'>Ihre Angaben werden nur zur Beantwortung Ihrer Nachricht verwendet und danach gelöscht, spätestens nach 6 Monaten. Mehr in der <a href="/datenschutz.html">Datenschutzerklärung</a>.</p>
-      </form>
 
-      <p id="contact-ok" hidden role="status" aria-live="polite" class="card" style="margin-top:20px" data-i18n-en="Thank you, your message has arrived.">Danke, Ihre Nachricht ist angekommen.</p>
-      <p id="contact-err" hidden role="alert" aria-live="assertive" class="card" style="margin-top:20px;color:var(--danger)" data-i18n-en="Sending didn't work. Please write directly to peter.fragio@gmail.com.">Das Senden hat nicht geklappt. Bitte schreiben Sie direkt an peter.fragio@gmail.com.</p>
-
-      <p class="section-sub" style="margin-top:24px" data-i18n-en='Or by email: <a href="mailto:peter.fragio@gmail.com">peter.fragio@gmail.com</a>'>Oder per E-Mail: <a href="mailto:peter.fragio@gmail.com">peter.fragio@gmail.com</a></p>
+        <aside class="contact-card contact-side" data-reveal="180">
+          <h2 data-i18n-en="Prefer email?">Lieber per E-Mail?</h2>
+          <p><a href="mailto:peter.fragio@gmail.com">peter.fragio@gmail.com</a></p>
+          <h2 data-i18n-en="What I can help with">Wobei ich helfen kann</h2>
+          <p data-i18n-en="Questions about how Fragio works, interest in using it on your own website, wrong answers you found, or ideas.">Fragen zur Funktionsweise von Fragio, Interesse am Einsatz auf der eigenen Website, falsche Antworten, die Ihnen aufgefallen sind, oder Ideen.</p>
+          <h2 data-i18n-en="Try it first">Erst ausprobieren</h2>
+          <p data-i18n-en='Test Fragio with your own website: <a href="/testen.html">Try it</a>.'>Testen Sie Fragio mit Ihrer eigenen Website: <a href="/testen.html">Ausprobieren</a>.</p>
+        </aside>
+      </div>
     </div>
   </section>
 </main>

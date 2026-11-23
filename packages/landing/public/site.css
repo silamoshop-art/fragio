@@ -258,3 +258,31 @@ input, textarea { caret-color: var(--accent); }
 @media (max-width: 520px) {
   .footer-grid { grid-template-columns: 1fr; }
 }
+
+/* ---- FAQ-Liste & Kontaktformular (Review 2026-11-23) ---- */
+.faq-list { display: grid; gap: 12px; }
+.faq-item { transition: border-color .18s var(--ease-out), box-shadow .18s var(--ease-out); }
+.faq-item[open] { border-color: var(--line-2); box-shadow: 0 10px 26px -20px var(--shadow-lg); }
+.faq-item summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
+.faq-item p a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.faq-item p + p { margin-top: -6px; }
+
+.contact-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: clamp(20px, 3vw, 32px); align-items: start; }
+@media (max-width: 760px) { .contact-grid { grid-template-columns: 1fr; } }
+.contact-card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: clamp(22px, 3vw, 32px); }
+.contact-side h2 { font-size: 18px; margin: 0 0 8px; letter-spacing: -0.01em; }
+.contact-side p { margin: 0 0 14px; color: var(--muted); font-size: 15.5px; line-height: 1.6; }
+.contact-side p:last-child { margin-bottom: 0; }
+.contact-side a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; word-break: break-word; }
+.form.form-wide { max-width: none; gap: 20px; }
+.form .field { display: block; margin: 0; }
+.form textarea { width: 100%; min-height: 160px; padding: 13px 15px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.55; resize: vertical; transition: border-color .18s var(--ease-out), box-shadow .18s var(--ease-out); }
+.form textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); outline: none; }
+.form .field .opt { font-weight: 400; color: var(--muted-2); }
+.form button[type=submit] { justify-self: start; }
+.form .form-note { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--muted-2); }
+.form .form-note a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.notice { border-radius: 12px; padding: 14px 18px; font-size: 15.5px; line-height: 1.55; }
+.notice-ok { background: oklch(0.96 0.045 150); border: 1px solid oklch(0.85 0.08 150); color: oklch(0.32 0.08 150); }
+.notice-err { background: oklch(0.96 0.03 25); border: 1px solid oklch(0.85 0.08 25); color: oklch(0.38 0.14 25); }
+.contact-side h2:not(:first-child) { margin-top: 22px; }
