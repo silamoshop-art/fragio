@@ -12,3 +12,6 @@ packages/dashboard/dist
 test-results
 playwright-report
 *.log
+simple-variant-images/
+packages/portal/
+.fragio-codereview/

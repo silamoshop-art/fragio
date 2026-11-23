@@ -32,6 +32,12 @@ export interface ChatOptions {
   messages: ChatMessage[];
   maxTokens?: number;
   temperature?: number;
+  /**
+   * Abbruchsignal (Client-Disconnect). Provider sollen den HTTP-Request
+   * abbrechen und den Stream verlassen, sobald das Signal `aborted` ist.
+   * Review 2026-11-22 (NEU-1/P-002).
+   */
+  signal?: AbortSignal;
 }
 
 export interface LLMProvider {

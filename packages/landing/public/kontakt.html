@@ -60,7 +60,7 @@
       </aside>
 
       <form id="contact-form" method="post" action="/api/contact" data-reveal="140" novalidate>
-        <input type="hidden" name="ts" value="" />
+        <input type="hidden" name="fillMs" value="" />
         <!-- Honeypot: für Menschen unsichtbar; wird es ausgefüllt, verwerfen wir still. -->
         <div aria-hidden="true" style="position:absolute;left:-9999px;top:auto;height:0;overflow:hidden">
           <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
@@ -81,8 +81,8 @@
         <p class="section-sub" style="margin-top:14px" data-i18n-en='Your details are used only to answer your message and are then deleted, at the latest after 6 months. More in the <a href="/datenschutz.html">privacy policy</a>.'>Ihre Angaben werden nur zur Beantwortung Ihrer Nachricht verwendet und danach gelöscht, spätestens nach 6 Monaten. Mehr in der <a href="/datenschutz.html">Datenschutzerklärung</a>.</p>
       </form>
 
-      <p id="contact-ok" hidden class="card" style="margin-top:20px" data-i18n-en="Thank you, your message has arrived.">Danke, Ihre Nachricht ist angekommen.</p>
-      <p id="contact-err" hidden class="card" style="margin-top:20px;color:var(--danger)" data-i18n-en="Sending didn't work. Please write directly to peter.fragio@gmail.com.">Das Senden hat nicht geklappt. Bitte schreiben Sie direkt an peter.fragio@gmail.com.</p>
+      <p id="contact-ok" hidden role="status" aria-live="polite" class="card" style="margin-top:20px" data-i18n-en="Thank you, your message has arrived.">Danke, Ihre Nachricht ist angekommen.</p>
+      <p id="contact-err" hidden role="alert" aria-live="assertive" class="card" style="margin-top:20px;color:var(--danger)" data-i18n-en="Sending didn't work. Please write directly to peter.fragio@gmail.com.">Das Senden hat nicht geklappt. Bitte schreiben Sie direkt an peter.fragio@gmail.com.</p>
 
       <p class="section-sub" style="margin-top:24px" data-i18n-en='Or by email: <a href="mailto:peter.fragio@gmail.com">peter.fragio@gmail.com</a>'>Oder per E-Mail: <a href="mailto:peter.fragio@gmail.com">peter.fragio@gmail.com</a></p>
     </div>
@@ -118,15 +118,23 @@
 </footer>
 
 <script>
-  // Zeitstempel fürs 3-Sekunden-Limit setzen (nur mit JS). Ohne JS bleibt das Feld
-  // leer und der Server überspringt die Zeitprüfung (Honeypot + Rate-Limit greifen weiter).
+  // Review 2026-11-22 (F-020/QUA-K-2/P-107): Zeitprüfung auf Client-DELTA
+  // umgestellt. Vorher verglich der Server seinen Date.now() mit dem Client-ts;
+  // ging die Client-Uhr vor, wurden legitime Nachrichten still verworfen und
+  // der Nutzer sah trotzdem „Danke". Jetzt misst der Client die ms seit dem
+  // Formular-Load mit performance.now() (monotone Uhr) und sendet nur das
+  // Delta — keine Abhängigkeit von Client-/Serverzeit-Abgleich.
   (function () {
     var f = document.getElementById("contact-form");
     if (!f) return;
-    var ts = f.querySelector('input[name="ts"]');
-    if (ts) ts.value = String(Date.now());
+    var loadedAt = (typeof performance !== "undefined" && performance.now)
+      ? performance.now() : Date.now();
+    var fillMsEl = f.querySelector('input[name="fillMs"]');
     f.addEventListener("submit", function (e) {
       e.preventDefault();
+      var now = (typeof performance !== "undefined" && performance.now)
+        ? performance.now() : Date.now();
+      if (fillMsEl) fillMsEl.value = String(Math.max(0, Math.round(now - loadedAt)));
       var ok = document.getElementById("contact-ok");
       var err = document.getElementById("contact-err");
       ok.hidden = true; err.hidden = true;
@@ -134,7 +142,7 @@
       btn.disabled = true;
       fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: f.name.value, email: f.email.value, message: f.message.value,
-          website: f.website.value, ts: f.ts.value }) })
+          website: f.website.value, fillMs: f.fillMs.value }) })
         .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
         .then(function () { f.reset(); f.style.display = "none"; ok.hidden = false; })
         .catch(function () { btn.disabled = false; err.hidden = false; });

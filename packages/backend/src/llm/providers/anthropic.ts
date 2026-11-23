@@ -29,18 +29,25 @@ export class AnthropicProvider implements LLMProvider {
 
   async *streamAnswer(opts: ChatOptions): AsyncIterable<string> {
     try {
-      const stream = this.client.messages.stream({
-        model: this.chatModel,
-        max_tokens: opts.maxTokens ?? 512,
-        temperature: opts.temperature ?? 0.2,
-        // System-Prompt (Regeln/Branding) ist pro Bot stabil und wird bei jeder Frage
-        // unverändert erneut gesendet -> Prompt-Caching spart Input-Tokens (~90 % auf
-        // Cache-Reads). Liegt der Prefix unter der Cache-Mindestgröße, ignoriert die
-        // API cache_control folgenlos (kein Risiko). Kontext/Frage stehen in messages.
-        system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
-        messages: opts.messages.map((m) => ({ role: m.role, content: m.content })),
-      });
+      // Review 2026-11-22 (NEU-1/P-002): AbortSignal als zweite Option übergeben,
+      // damit der HTTP-Request bei Client-Disconnect wirklich abgebrochen wird
+      // (sonst laufen Tokens + Kosten weiter, obwohl niemand mehr zuhört).
+      const stream = this.client.messages.stream(
+        {
+          model: this.chatModel,
+          max_tokens: opts.maxTokens ?? 512,
+          temperature: opts.temperature ?? 0.2,
+          // System-Prompt (Regeln/Branding) ist pro Bot stabil und wird bei jeder Frage
+          // unverändert erneut gesendet -> Prompt-Caching spart Input-Tokens (~90 % auf
+          // Cache-Reads). Liegt der Prefix unter der Cache-Mindestgröße, ignoriert die
+          // API cache_control folgenlos (kein Risiko). Kontext/Frage stehen in messages.
+          system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
+          messages: opts.messages.map((m) => ({ role: m.role, content: m.content })),
+        },
+        opts.signal ? { signal: opts.signal } : undefined,
+      );
       for await (const event of stream) {
+        if (opts.signal?.aborted) break;
         if (
           event.type === "content_block_delta" &&
           event.delta.type === "text_delta"
@@ -49,6 +56,8 @@ export class AnthropicProvider implements LLMProvider {
         }
       }
     } catch (err) {
+      // AbortError durch Client-Disconnect ist kein Provider-Fehler → still.
+      if (opts.signal?.aborted) return;
       throw new ProviderUnavailableError("Anthropic-API-Aufruf fehlgeschlagen.", err);
     }
   }

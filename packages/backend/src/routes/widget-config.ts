@@ -118,7 +118,12 @@ export async function widgetConfigRoutes(app: FastifyInstance): Promise<void> {
       offsetY: clampOffset(bot.widget_offset_y),
       // Consent (DSGVO/AI-Act)
       consentNotice: CONSENT_NOTICE,
-      privacyUrl: `${backendBase()}/privacy.html?bot=${bot.id}`,
+      // Review 2026-11-22 (F-032/REC-D-6/P-206): ein einziger Datenschutztext
+      // (datenschutz.html). Vorher Verweis auf /privacy.html?bot=…; diese Route
+      // ist im Umbau 410 Gone und der Fallback-Text aus legal/privacy.ts
+      // (Verantwortlicher=Firma, 90-Tage-Retention, Vertragsgrundlage) passt
+      // nicht mehr zur Info-Website.
+      privacyUrl: `${backendBase()}/datenschutz.html`,
     };
   });
 

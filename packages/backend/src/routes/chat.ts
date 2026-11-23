@@ -37,6 +37,25 @@ function hashIp(ip: string | undefined): string | null {
   return sha256(config.secretKey.toString("hex") + "|sitebot-ip|" + ip);
 }
 
+// Review 2026-11-22 (F-001/F-008/P-001): UA-unabhängiger Tages-Hardcap pro Bot.
+// Greift zusätzlich zum Monats-Kontingent und auch dann, wenn der User-Agent als
+// Bot erkannt wird (Bot-Traffic würde das Monats-Kontingent sonst NICHT belasten
+// → Kostenkanal offen). In-Memory-Map; Single-Process-Setup wie util/throttle.ts.
+// Bei Prozess-Restart wird der Zähler zurückgesetzt — bewusster Trade-off.
+const BOT_DAILY_HARD_CAP = 2000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const botDailyHits = new Map<string, { windowStart: number; count: number }>();
+function consumeBotDailyCap(botId: string, now = Date.now()): boolean {
+  const cur = botDailyHits.get(botId);
+  if (!cur || now - cur.windowStart >= DAY_MS) {
+    botDailyHits.set(botId, { windowStart: now, count: 1 });
+    return true;
+  }
+  if (cur.count >= BOT_DAILY_HARD_CAP) return false;
+  cur.count++;
+  return true;
+}
+
 // Absolute Obergrenze (Missbrauchsschutz); das pro-Bot-Limit greift zusätzlich darunter.
 const HARD_INPUT_CEILING = 4000;
 const BodySchema = z.object({
@@ -85,6 +104,13 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
       },
     },
     async (request, reply) => {
+      // Review 2026-11-22 (F-001/F-009/P-001): Chat nur aktiv, wenn LIVE_DEMO_ENABLED=true.
+      // Vorher war nur /api/widget/site durch den Schalter gegated → der Chat-Endpunkt
+      // konnte direkt angesprochen werden und Anthropic-Kosten auslösen, obwohl die
+      // Datenschutzseite „Live-Demo deaktiviert" sagte.
+      if (!config.liveDemoEnabled) {
+        return reply.code(503).send({ error: "Live-Chat ist derzeit deaktiviert." });
+      }
       const parsed = BodySchema.safeParse(request.body);
       if (!parsed.success) {
         return reply.code(400).send({ error: "message fehlt oder ist zu lang." });
@@ -122,6 +148,13 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
         return reply
           .code(413)
           .send({ error: `Nachricht zu lang (max. ${bot.max_input_chars} Zeichen).` });
+      }
+
+      // Review 2026-11-22 (F-008/P-001): UA-unabhängiges Tages-Hardcap pro Bot.
+      // Greift VOR dem LLM-Call und auch dann, wenn looksLikeBot() matcht
+      // (das würde sonst das Monatskontingent umgehen).
+      if (!consumeBotDailyCap(bot.id)) {
+        return reply.code(429).send({ error: "Tages-Limit für diesen Bot erreicht." });
       }
 
       const ipHash = hashIp(request.ip);
@@ -185,6 +218,15 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
         );
       }
 
+      // Review 2026-11-22 (F-026/NEU-1/P-001+P-002): Stream bei Client-Disconnect
+      // abbrechen. Vorher lief der Anthropic-Stream serverseitig weiter, obwohl
+      // der Browser schon weg war — reine Kostenverschwendung.
+      const abort = new AbortController();
+      request.raw.on("close", () => {
+        // reply.raw.writableEnded = Antwort regulär beendet; nur bei echtem
+        // Client-Disconnect (vor „done") den LLM-Stream abbrechen.
+        if (!res.writableEnded) abort.abort();
+      });
       try {
         // Nur mit Analytics-Einwilligung wird der Gesprächsinhalt in chat_logs
         // gespeichert; Kontingent (oben) + Rate-Limit laufen unabhängig davon.
@@ -199,9 +241,13 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
             ipHash,
             history: parsed.data.history,
             msgId,
+            signal: abort.signal,
           },
         );
-        for await (const piece of stream) send("token", { t: piece });
+        for await (const piece of stream) {
+          if (abort.signal.aborted) break;
+          send("token", { t: piece });
+        }
         send("done", {});
       } catch (err) {
         request.log.error(err);
@@ -222,6 +268,12 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
     "/api/chat/:botId/feedback",
     { config: { rateLimit: {} } },
     async (request, reply) => {
+      // Review 2026-11-22 (F-036/P-001): gleiche Gates wie beim Chat — ohne
+      // Origin-Prüfung konnten beliebige Clients Statistiken verfälschen.
+      if (!config.liveDemoEnabled) return reply.code(503).send({ error: "deaktiviert." });
+      if (!isFragioOrigin(request.headers.origin)) {
+        return reply.code(403).send({ error: "Nur auf fragio.at verfügbar." });
+      }
       const bot = getBot(request.params.botId);
       if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
       const parsed = FeedbackSchema.safeParse(request.body);
@@ -246,6 +298,13 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
     "/api/chat/:botId/lead",
     { config: { rateLimit: {} } },
     async (request, reply) => {
+      // Review 2026-11-22 (F-028/NEU-4/P-001): gleiche Gates wie beim Chat.
+      // Vorher fehlte die isFragioOrigin-Prüfung — bei Bot mit leerer
+      // allowed_origins hätte jeder Lead-Spam an den Betreiber senden können.
+      if (!config.liveDemoEnabled) return reply.code(503).send({ error: "deaktiviert." });
+      if (!isFragioOrigin(request.headers.origin)) {
+        return reply.code(403).send({ error: "Nur auf fragio.at verfügbar." });
+      }
       const bot = getBot(request.params.botId);
       if (!bot) return reply.code(404).send({ error: "Bot nicht gefunden." });
       if (!bot.lead_capture) {

@@ -22,6 +22,15 @@ const STRIP_SELECTORS = [
   '[role="banner"]',
   '[role="contentinfo"]',
   '[aria-hidden="true"]',
+  // Review 2026-11-22 (F-017/SEC-K-3/P-007): visuell versteckte Elemente mit
+  // Inline-Style oder hidden-Attribut — häufiger Weg für indirekte Prompt-Injection
+  // ("weißer Text auf weiß", "display:none"). Externe CSS-Klassen bleiben weiter
+  // Restvektor (bräuchte Rendering).
+  "[hidden]",
+  '[style*="display:none" i]',
+  '[style*="display: none" i]',
+  '[style*="visibility:hidden" i]',
+  '[style*="visibility: hidden" i]',
   // gängige Cookie-/Consent-/Menü-Muster (heuristisch per id/class-Substring)
   '[id*="cookie" i]',
   '[class*="cookie" i]',

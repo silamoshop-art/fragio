@@ -126,11 +126,20 @@ export function startCron(): void {
     console.warn(`⚠️  Ungültiger RECRAWL_CRON: "${config.RECRAWL_CRON}" — Recrawl-Cron deaktiviert.`);
   }
 
-  // (C) monatlicher Rechnungslauf im VORAUS: 25. des Monats, 04:00 — erstellt die
-  //     Rechnung für den KOMMENDEN Monat (Vorauskasse, siehe upcomingPeriod()).
-  cron.schedule("0 4 25 * *", () => {
-    runMonthlyBilling().catch((err) => console.error("Cron-Billing-Fehler:", err));
-  });
+  // (C) monatlicher Rechnungslauf — Review 2026-11-22 (F-018/SEC-Z-1/P-008):
+  //     Umbau zur Info-Website → fail-closed, Cron nur registrieren, wenn ein
+  //     Zahlungs-Flow aktiv konfiguriert ist. Vorher unbedingt registriert → bei
+  //     versehentlich gesetztem is_paying=1 wurden am 25. automatisch Rechnungen
+  //     mit echter Operator-IBAN an Dritte gemailt.
+  const billingEnabled = config.stripeEnabled || config.lemonSqueezyEnabled;
+  if (billingEnabled) {
+    cron.schedule("0 4 25 * *", () => {
+      runMonthlyBilling().catch((err) => console.error("Cron-Billing-Fehler:", err));
+    });
+    console.log("🧾 Billing-Cron aktiv.");
+  } else {
+    console.log("🧾 Billing-Cron deaktiviert (kein Zahlungs-Flow konfiguriert).");
+  }
 
   // (D) tägliches DB-Backup (Audit-Punkt 2).
   if (cron.validate(config.BACKUP_CRON)) {

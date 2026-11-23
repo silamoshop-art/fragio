@@ -103,10 +103,15 @@ function fromAddress(): string {
 
 export async function sendEmail(
   to: string,
-  subject: string,
+  rawSubject: string,
   body: string,
   attachments: EmailAttachment[] = [],
 ): Promise<void> {
+  // Review 2026-11-22 (F-073/NEU-7/P-011): Mail-Header-Injection-Schutz.
+  // CR/LF/Tabs im Betreff zentral entfernen — wirkt für SMTP und Brevo.
+  // Vorher konnte eine Admin-Eingabe (z. B. bot.name mit `\r\nBcc:…`) im Betreff
+  // zusätzliche Header einschleusen. 300-Zeichen-Cap gegen übergroße Betreffs.
+  const subject = String(rawSubject).replace(/[\r\n\t]+/g, " ").slice(0, 300);
   const mc = getMailConfig();
   // Bevorzugt HTTPS-API (Brevo), falls ein Key hinterlegt ist — umgeht SMTP-Sperren.
   if (mc.apiKey) {

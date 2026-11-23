@@ -144,19 +144,15 @@ if (env.NODE_ENV === "production" && !env.PUBLIC_BACKEND_URL) {
   );
 }
 
-// APP_SECRET: 32 Bytes aus hex/base64/utf8 ableiten. Fehlt er im Dev, warnen + flüchtigen Key erzeugen.
+// APP_SECRET: 32 Bytes aus hex/base64/utf8 ableiten. Pflicht in jeder Umgebung.
+// Review-Lauf 2026-11-22 (F-002/F-010): Dev-Fallback entfernt — der frühere
+// flüchtige Zufalls-Key machte verschlüsselte Kunden-Keys nach jedem Neustart
+// unlesbar und verwischte die Produktionspflicht. Jetzt fail-closed für alle Umgebungen.
 import crypto from "node:crypto";
 function deriveSecretKey(raw: string | undefined): Buffer {
   if (!raw) {
-    if (env.NODE_ENV === "production") {
-      console.error("❌ APP_SECRET ist in Produktion erforderlich (32 Byte).");
-      process.exit(1);
-    }
-    console.warn(
-      "⚠️  APP_SECRET nicht gesetzt — erzeuge flüchtigen Dev-Key. " +
-        "Verschlüsselte Kunden-Keys sind nach Neustart NICHT mehr entschlüsselbar!",
-    );
-    return crypto.randomBytes(32);
+    console.error("❌ APP_SECRET ist erforderlich (32 Byte hex/base64). Beispiel: openssl rand -hex 32");
+    process.exit(1);
   }
   // hex (64 Zeichen) oder base64, sonst als Passphrase via scrypt auf 32 Byte bringen.
   if (/^[0-9a-fA-F]{64}$/.test(raw)) return Buffer.from(raw, "hex");
@@ -165,16 +161,14 @@ function deriveSecretKey(raw: string | undefined): Buffer {
   return crypto.scryptSync(raw, "sitebot-app-secret-salt", 32);
 }
 
-// Admin-Key ableiten: in Prod Pflicht, im Dev fester Fallback (mit Warnung),
-// damit der Login lokal über Neustarts hinweg stabil bleibt.
+// Admin-Key: in jeder Umgebung Pflicht, kein Dev-Fallback mehr.
+// Review-Lauf 2026-11-22 (F-002): der feste String "dev-admin-key" war öffentlich
+// bekannt (stand als Default in .env.example). Entfernt, damit kein Deploy ohne
+// bewusst gesetzten Key laufen kann.
 function deriveAdminKey(raw: string | undefined): string {
   if (raw) return raw;
-  if (env.NODE_ENV === "production") {
-    console.error("❌ ADMIN_API_KEY ist in Produktion erforderlich.");
-    process.exit(1);
-  }
-  console.warn('⚠️  ADMIN_API_KEY nicht gesetzt — Dev-Fallback "dev-admin-key" wird genutzt.');
-  return "dev-admin-key";
+  console.error("❌ ADMIN_API_KEY ist erforderlich. Beispiel: openssl rand -base64 32");
+  process.exit(1);
 }
 
 export const config = {

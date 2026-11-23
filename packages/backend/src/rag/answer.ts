@@ -26,6 +26,10 @@ const RELEVANCE_DISTANCE = 0.24; // bester Treffer schlechter -> "weiß ich nich
 const CONTEXT_DISTANCE = 0.3; // Chunks darüber nicht in den Kontext
 const TOP_K = 8;
 const DEFAULT_ANSWER_TOKENS = 500; // Fallback, falls Bot keinen Wert gesetzt hat
+// Harte serverseitige Obergrenze (Review 2026-11-22, F-043/P-002). Greift unabhängig
+// vom Bot-Wert und schützt vor versehentlich zu hoch gesetzten max_answer_tokens,
+// die bei K-1-Missbrauch die Anthropic-Kosten explodieren lassen würden.
+const HARD_CEILING_OUTPUT_TOKENS = 1024;
 // Untergrenze: verhindert, dass Antworten (v. a. mit Links) mitten im Satz/Link
 // abgeschnitten werden. Bestands-Bots hatten teils nur 250 -> zu wenig für
 // detaillierte Antworten (realer Fall: Link mitten in der URL abgeschnitten).
@@ -235,6 +239,12 @@ export interface AnswerOptions {
   history?: HistoryTurn[];
   /** Pro Antwort erzeugte ID (für die spätere Daumen-hoch/runter-Bewertung). */
   msgId?: string | null;
+  /**
+   * Abbruchsignal (Client-Disconnect). Wird an den Provider-Stream durchgereicht,
+   * damit beim Verbindungsabbruch keine weiteren Tokens generiert/bezahlt werden.
+   * Review 2026-11-22 (NEU-1/P-002).
+   */
+  signal?: AbortSignal;
 }
 
 export async function* answerQuestion(
@@ -407,8 +417,13 @@ export async function* answerQuestion(
     for await (const piece of provider.streamAnswer({
       system,
       messages: [{ role: "user", content: userMessage }],
-      // Untergrenze gegen Mitten-im-Link-Abschneiden (siehe MIN_ANSWER_TOKENS).
-      maxTokens: Math.max(bot.max_answer_tokens || DEFAULT_ANSWER_TOKENS, MIN_ANSWER_TOKENS),
+      // Untergrenze gegen Mitten-im-Link-Abschneiden (siehe MIN_ANSWER_TOKENS),
+      // Obergrenze serverseitig hart (Review 2026-11-22, F-043/P-002).
+      maxTokens: Math.min(
+        HARD_CEILING_OUTPUT_TOKENS,
+        Math.max(bot.max_answer_tokens || DEFAULT_ANSWER_TOKENS, MIN_ANSWER_TOKENS),
+      ),
+      signal: opts?.signal,
     })) {
       buffer += piece;
       const cut = openLinkStart(buffer);

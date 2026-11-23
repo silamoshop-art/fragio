@@ -1,11 +1,13 @@
 # SiteBot Backend — Container.
 #
-# Basis: node:22-bookworm-slim (node:sqlite benötigt Node >= 22.5).
+# Basis: node:24-bookworm-slim (node:sqlite ist ab Node 24 stabil, kein
+# --experimental-sqlite-Flag mehr nötig). Review 2026-11-22 (F-003/F-007):
+# vorher node:22-bookworm-slim ohne Flag → Import schlug fehl.
 # Playwright/Chromium + OS-Abhängigkeiten werden im Build installiert.
 #
 # Aus dem REPO-ROOT bauen (Build-Kontext = Monorepo-Wurzel):
 #   docker build -f packages/backend/Dockerfile -t sitebot-backend .
-FROM node:22-bookworm-slim
+FROM node:24-bookworm-slim
 
 ENV NODE_ENV=production \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
@@ -13,10 +15,11 @@ ENV NODE_ENV=production \
 WORKDIR /app
 
 # Nur Manifeste kopieren -> Layer-Caching für npm install.
+# Review 2026-11-22 (F-003/F-014): packages/landing hat KEINE package.json,
+# die COPY-Zeile für sie wurde entfernt — sonst bricht `docker compose build`.
 COPY package.json package-lock.json* ./
 COPY packages/backend/package.json packages/backend/package.json
 COPY packages/widget/package.json packages/widget/package.json
-COPY packages/landing/package.json packages/landing/package.json
 COPY packages/dashboard/package.json packages/dashboard/package.json
 
 # Prod-Deps des Backends installieren (Workspaces).
@@ -35,13 +38,17 @@ COPY packages/widget ./packages/widget
 COPY packages/landing ./packages/landing
 
 # Datenverzeichnis (SQLite) als Volume-Mountpunkt.
-RUN mkdir -p /app/data
+# Review 2026-11-22 (F-012): /app wird dem unprivilegierten User node übergeben,
+# der Container läuft ab jetzt nicht mehr als root (Härtung gegen Crawler-/RCE-Lücken).
+RUN mkdir -p /app/data && chown -R node:node /app
 VOLUME ["/app/data"]
 
 ENV DATABASE_PATH=/app/data/sitebot.sqlite \
     HOST=0.0.0.0 \
     PORT=3000
 EXPOSE 3000
+
+USER node
 
 # Start via tsx (führt die TS-Quellen direkt aus).
 CMD ["npx", "tsx", "packages/backend/src/server.ts"]

@@ -97,6 +97,12 @@
     if (!el.children.length) el.textContent = numStr;
   }
 
+  // Review 2026-11-22 (F-058/REC-K-4/P-208a): kommerzieller Preis-Loader
+  // deaktiviert (Signup-Endpunkt ist nach dem Umbau nicht mehr registriert).
+  // Block darüber (data-plan, #price-note, [data-min-price]) ist bereits durch
+  // den Early-return (:78) tot, bleibt der Lesbarkeit halber stehen; der fetch
+  // wird nicht mehr abgesetzt.
+  return;
   fetch("/api/signup/plans")
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (d) {

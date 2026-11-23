@@ -12,6 +12,6 @@
     "backend:test:llm": "npm --workspace @sitebot/backend run test:llm"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.5"
   }
 }

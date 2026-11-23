@@ -65,7 +65,10 @@
     "Testen Sie den Bot kostenlos mit Ihrer eigenen Website — oder bestellen Sie direkt online.": "Test the bot for free with your own website — or order directly online.",
     "Kostenlos testen": "Try for free",
     // Footer
-    "KI-Chat für Website-Inhalte. Ehrliche Antworten aus Ihren eigenen Seiten. Standort Linz, Oberösterreich.": "AI chat for website content. Honest answers from your own pages. Based in Linz, Austria.",
+    // Review 2026-11-22 (F-057/REC-K-3): Alt-Eintrag mit "Standort Linz" wird nicht
+    // mehr gerendert (neue Seiten nutzen eigenes data-i18n-en). Bleibt für Alt-Caches
+    // als Mapping, sagt aber jetzt das Richtige (Adresse = Altenberg bei Linz).
+    "KI-Chat für Website-Inhalte. Ehrliche Antworten aus Ihren eigenen Seiten. Standort Linz, Oberösterreich.": "AI chat for website content. Honest answers from your own pages. Based in Upper Austria.",
     "Produkt": "Product",
     "Live testen": "Live demo",
     "Unternehmen": "Company",

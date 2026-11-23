@@ -31,7 +31,12 @@ import { startCron } from "./cron.js";
 
 export async function buildServer() {
   const app = Fastify({
-    trustProxy: true, // korrekte Client-IP hinter Reverse-Proxy (Rate-Limit)
+    // Review 2026-11-22 (F-027/NEU-2): trustProxy nur dem lokalen Reverse-Proxy
+    // (Caddy auf dem Host, erreicht uns via Docker-Loopback). Vorher `true` →
+    // jeder Client konnte via X-Forwarded-For seine IP fälschen und die
+    // Pro-IP-Rate-Limits aufheben. Bei zusätzlichem Proxy im Docker-Netz muss
+    // dessen CIDR hier ergänzt werden (siehe RUNBOOK.md).
+    trustProxy: ["127.0.0.1", "::1"],
     logger: {
       level: config.isProd ? "info" : "debug",
       transport: config.isProd

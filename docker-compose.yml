@@ -26,7 +26,10 @@ services:
       PORT: "3000"
       DATABASE_PATH: /app/data/sitebot.sqlite
       DEFAULT_ENGINE: anthropic
-      EMBEDDING_MODEL: Xenova/paraphrase-multilingual-MiniLM-L12-v2
+      # Review 2026-11-22 (F-013/QUA-K-1): auf e5-small vereinheitlicht — die
+      # Relevanz-Schwellen in rag/answer.ts sind auf dieses Modell kalibriert.
+      # Vorher paraphrase-multilingual-MiniLM-L12-v2 → Bot antwortete fast immer „weiß nicht".
+      EMBEDDING_MODEL: Xenova/multilingual-e5-small
       EMBEDDING_DIM: "384"
       # PFLICHT: verschlüsselt Kunden-API-Keys (32-Byte-Hex).
       APP_SECRET: ${APP_SECRET:?APP_SECRET muss gesetzt sein (openssl rand -hex 32)}
@@ -36,7 +39,10 @@ services:
       # Optional: separater Trial-Key (sonst wird ANTHROPIC_API_KEY genutzt).
       TRIAL_ANTHROPIC_API_KEY: ${TRIAL_ANTHROPIC_API_KEY:-}
     ports:
-      - "3000:3000"
+      # Review 2026-11-22 (F-011/SEC-S-2): nur auf Loopback publizieren; Caddy
+      # (Reverse-Proxy auf dem Host) terminiert HTTPS und proxied zu 127.0.0.1:3000.
+      # Vorher "3000:3000" → Backend extern ohne TLS direkt erreichbar.
+      - "127.0.0.1:3000:3000"
     volumes:
       - sitebot_data:/app/data
       # Cache für das lokale Embedding-Modell (spart Re-Download bei Rebuilds).

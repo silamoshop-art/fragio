@@ -14,6 +14,16 @@ import { z } from "zod";
 import { sendOperatorEmail } from "../notify/email.js";
 import { isFragioOrigin } from "../util/origin.js";
 import { sha256 } from "../util/id.js";
+import { config } from "../config.js";
+
+/**
+ * IP gesalzen hashen — gleiches Schema wie in routes/chat.ts (hashIp).
+ * Review 2026-11-22 (F-029/REC-D-3/P-010): vorher hier `sha256(request.ip)` ohne
+ * Salt, der Datenschutztext behauptete aber „gesalzener Hash". Jetzt konsistent.
+ */
+function hashIp(ip: string | undefined): string {
+  return sha256(config.secretKey.toString("hex") + "|sitebot-ip|" + (ip || ""));
+}
 
 const MIN_FILL_MS = 3000;
 // Einfaches In-Memory-Rate-Limit: höchstens 5 Nachrichten pro IP-Hash je Stunde.
@@ -69,7 +79,10 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
         email: z.string().email().max(200),
         message: z.string().min(1).max(2000),
         website: z.string().optional(), // Honeypot
-        ts: z.string().optional(),
+        // Review 2026-11-22 (F-020/P-107): Client-Delta (ms seit Formular-Load,
+        // monotone performance.now()-Uhr) statt Client-Timestamp. Keine
+        // Server/Client-Uhr-Vermischung mehr.
+        fillMs: z.string().optional(),
       })
       .safeParse(request.body);
 
@@ -85,13 +98,14 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
 
     // Honeypot ausgefüllt -> still verwerfen (nach außen "ok").
     if (d.website && d.website.trim()) return ok();
-    // Zu schnell abgeschickt -> verwerfen (nur wenn ts gesetzt, sonst kein JS).
-    if (d.ts) {
-      const t = Number(d.ts);
-      if (Number.isFinite(t) && Date.now() - t < MIN_FILL_MS) return ok();
+    // Zu schnell abgeschickt -> verwerfen. Reines Client-Delta (keine Uhr-Vermischung,
+    // behebt stille Verwerfung bei Uhr-Drift F-020). Ohne JS bleibt das Feld leer.
+    if (d.fillMs) {
+      const ms = Number(d.fillMs);
+      if (Number.isFinite(ms) && ms >= 0 && ms < MIN_FILL_MS) return ok();
     }
 
-    const ipHash = sha256(request.ip || "");
+    const ipHash = hashIp(request.ip);
     if (rateLimited(ipHash)) {
       return reply.code(429).send({ error: "Zu viele Nachrichten. Bitte später erneut." });
     }
